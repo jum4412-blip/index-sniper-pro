@@ -1,5 +1,4 @@
 #!/usr/bin/env bash
-set -e
-cd "$(dirname "$0")"
+set -euo pipefail
 source venv/bin/activate
-python main.py --mode dry-order
+python main.py --mode order-dry

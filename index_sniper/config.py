@@ -1,11 +1,24 @@
 from __future__ import annotations
 
+import os
 from dataclasses import dataclass
 from pathlib import Path
 from dotenv import load_dotenv
-import os
 
 ROOT = Path(__file__).resolve().parents[1]
+
+
+def _bool(value: str | None, default: bool = True) -> bool:
+    if value is None:
+        return default
+    return value.strip().lower() in {"1", "true", "yes", "y", "on"}
+
+
+def _required(name: str) -> str:
+    value = os.getenv(name)
+    if not value:
+        raise RuntimeError(f"Missing environment variable: {name}")
+    return value.strip()
 
 
 @dataclass(frozen=True)
@@ -22,32 +35,25 @@ class Settings:
     category: str
     margin_mode: str
     margin_coin: str
-    dry_test_qty: str
 
 
-def _required(name: str) -> str:
-    value = os.getenv(name)
-    if value is None or value.strip() == "":
-        raise RuntimeError(f"Missing environment variable: {name}")
-    return value.strip()
-
-
-def load_settings(env_path: str | None = None) -> Settings:
-    path = Path(env_path) if env_path else ROOT / ".env"
-    load_dotenv(path)
-
+def load_settings() -> Settings:
+    load_dotenv(ROOT / ".env")
+    symbols_raw = os.getenv("SYMBOLS", "SP500USDT,NDX100USDT,BTCUSDT")
+    symbols = [s.strip().upper() for s in symbols_raw.split(",") if s.strip()]
+    if not symbols:
+        raise RuntimeError("SYMBOLS is empty")
     return Settings(
         bitget_api_key=_required("BITGET_API_KEY"),
         bitget_secret_key=_required("BITGET_SECRET_KEY"),
         bitget_passphrase=_required("BITGET_PASSPHRASE"),
         telegram_token=_required("TELEGRAM_TOKEN"),
         telegram_chat_id=_required("TELEGRAM_CHAT_ID"),
-        dry_run=os.getenv("DRY_RUN", "true").strip().lower() == "true",
+        dry_run=_bool(os.getenv("DRY_RUN"), True),
         leverage=int(os.getenv("LEVERAGE", "5")),
         capital_ratio=float(os.getenv("CAPITAL_RATIO", "0.10")),
-        symbols=[s.strip() for s in os.getenv("SYMBOLS", "SPX500USDT,NDX100USDT").split(",") if s.strip()],
+        symbols=symbols,
         category=os.getenv("CATEGORY", "USDT-FUTURES").strip(),
         margin_mode=os.getenv("MARGIN_MODE", "crossed").strip(),
-        margin_coin=os.getenv("MARGIN_COIN", "USDT").strip(),
-        dry_test_qty=os.getenv("DRY_TEST_QTY", "1").strip(),
+        margin_coin=os.getenv("MARGIN_COIN", "USDT").strip().upper(),
     )

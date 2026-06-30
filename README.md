@@ -2,48 +2,43 @@
 
 고정 프로젝트: `index-sniper-pro`
 
-## v0.2 목표
+## v0.3 목표
 
-- Bitget UTA API 키 로딩
-- UTA 계정/자산 조회
-- 심볼별 ticker 조회
-- 심볼별 position 조회
-- 주문 엔진 payload 생성
-- 텔레그램 시작/결과 알림
-- **실주문 없음**
+- Bitget UTA 연결 확인
+- `.env`의 `SYMBOLS` 전체를 대상으로 가격/포지션/심볼 규격 조회
+- 계좌 가용 USDT 기준 자동 수량 계산
+- `CAPITAL_RATIO=0.10`이면 전체 가용 USDT의 10%를 사용하고, 종목 수만큼 균등 분배
+- 목표 레버리지 확인
+- 현재 마진모드 확인
+- 주문 payload 생성
+- `DRY_RUN=true`에서만 동작
+- 실주문 없음
 
-## 서버 설치
+## 설치
 
 ```bash
-cd ~
-git clone https://github.com/jum4412-blip/index-sniper-pro.git
-cd index-sniper-pro
+cd ~/index-sniper-pro
 bash install.sh
 ```
 
-## .env 만들기
-
-```bash
-cp .env.example .env
-nano .env
-```
-
-`.env`에는 실제 API/텔레그램 값을 넣는다. `.env`는 GitHub에 올리지 않는다.
-
-## CHECK 실행
+## 연결 체크
 
 ```bash
 bash run_check.sh
 ```
 
-## DRY ORDER 실행
-
-실주문 없이 주문 payload만 만든다.
+## DRY 주문/수량 체크
 
 ```bash
 bash run_dry_order.sh
 ```
 
-## 안전 규칙
+또는:
 
-v0.2에서는 `DRY_RUN=true`일 때만 dry-order가 실행된다. `DRY_RUN=false`면 안전을 위해 중단한다.
+```bash
+bash run_order_dry.sh
+```
+
+## 중요
+
+`.env`는 절대 GitHub에 올리지 않는다. 실제 주문 테스트 전까지 `DRY_RUN=true` 유지.

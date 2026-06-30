@@ -5,6 +5,7 @@ import hashlib
 import hmac
 import json
 import time
+from dataclasses import dataclass
 from typing import Any
 from urllib.parse import urlencode
 
@@ -15,13 +16,21 @@ class BitgetUTAError(RuntimeError):
     pass
 
 
+@dataclass(frozen=True)
+class OrderIntent:
+    symbol: str
+    side: str
+    pos_side: str
+    qty: str
+    category: str = "USDT-FUTURES"
+    margin_coin: str = "USDT"
+    margin_mode: str = "crossed"
+    order_type: str = "market"
+    reduce_only: bool = False
+    client_oid: str | None = None
+
+
 class BitgetUTAClient:
-    """Small Bitget UTA v3 REST client.
-
-    v0.2 rule: methods that can place orders exist, but `main.py --mode dry-order`
-    never calls them. Real order execution will be added only after an explicit live probe step.
-    """
-
     BASE_URL = "https://api.bitget.com"
 
     def __init__(self, api_key: str, secret_key: str, passphrase: str, timeout: int = 10):
@@ -55,30 +64,36 @@ class BitgetUTAClient:
         clean = {k: v for k, v in params.items() if v is not None and v != ""}
         return "?" + urlencode(clean) if clean else ""
 
-    def get(self, path: str, params: dict[str, Any] | None = None, *, private: bool = True) -> dict[str, Any]:
+    def get(self, path: str, params: dict[str, Any] | None = None, *, auth: bool = True) -> dict[str, Any]:
         full_path = path + self._query(params)
-        ts = self._timestamp()
-        headers = self._headers(ts, "GET", full_path) if private else {"Content-Type": "application/json", "locale": "en-US"}
-        r = requests.get(self.BASE_URL + full_path, headers=headers, timeout=self.timeout)
-        return self._parse(r)
+        headers = {"Content-Type": "application/json", "locale": "en-US"}
+        if auth:
+            ts = self._timestamp()
+            headers = self._headers(ts, "GET", full_path)
+        response = requests.get(self.BASE_URL + full_path, headers=headers, timeout=self.timeout)
+        return self._parse(response)
 
-    def post(self, path: str, payload: dict[str, Any]) -> dict[str, Any]:
+    def post(self, path: str, payload: dict[str, Any], *, auth: bool = True) -> dict[str, Any]:
         body = json.dumps(payload, separators=(",", ":"), ensure_ascii=False)
-        ts = self._timestamp()
-        r = requests.post(self.BASE_URL + path, headers=self._headers(ts, "POST", path, body), data=body, timeout=self.timeout)
-        return self._parse(r)
+        headers = {"Content-Type": "application/json", "locale": "en-US"}
+        if auth:
+            ts = self._timestamp()
+            headers = self._headers(ts, "POST", path, body)
+        response = requests.post(self.BASE_URL + path, headers=headers, data=body, timeout=self.timeout)
+        return self._parse(response)
 
-    def _parse(self, response: requests.Response) -> dict[str, Any]:
+    @staticmethod
+    def _parse(response: requests.Response) -> dict[str, Any]:
         try:
             data = response.json()
         except Exception as exc:
-            raise BitgetUTAError(f"Non-JSON response HTTP {response.status_code}: {response.text[:300]}") from exc
+            raise BitgetUTAError(f"Non-JSON HTTP {response.status_code}: {response.text[:300]}") from exc
         if response.status_code >= 400:
             raise BitgetUTAError(f"HTTP {response.status_code}: {data}")
         return data
 
     @staticmethod
-    def ok(data: dict[str, Any]) -> bool:
+    def is_success(data: dict[str, Any]) -> bool:
         return str(data.get("code")) in {"00000", "0"}
 
     def account_info(self) -> dict[str, Any]:
@@ -90,36 +105,63 @@ class BitgetUTAClient:
     def settings(self) -> dict[str, Any]:
         return self.get("/api/v3/account/settings")
 
-    def instruments(self, category: str = "USDT-FUTURES", symbol: str | None = None) -> dict[str, Any]:
-        return self.get("/api/v3/market/instruments", {"category": category, "symbol": symbol}, private=False)
+    def tickers(self, symbol: str | None = None, category: str = "USDT-FUTURES") -> dict[str, Any]:
+        params: dict[str, Any] = {"category": category}
+        if symbol:
+            params["symbol"] = symbol
+        return self.get("/api/v3/market/tickers", params, auth=False)
 
-    def ticker(self, symbol: str, category: str = "USDT-FUTURES") -> dict[str, Any]:
-        return self.get("/api/v3/market/tickers", {"category": category, "symbol": symbol}, private=False)
+    def instruments(self, symbol: str | None = None, category: str = "USDT-FUTURES") -> dict[str, Any]:
+        params: dict[str, Any] = {"category": category}
+        if symbol:
+            params["symbol"] = symbol
+        return self.get("/api/v3/market/instruments", params, auth=False)
 
-    def ticker_last_price(self, symbol: str, category: str = "USDT-FUTURES") -> float | None:
-        data = self.ticker(symbol, category)
-        if not self.ok(data):
-            return None
-        items = data.get("data") or []
-        if isinstance(items, dict):
-            items = [items]
-        for item in items:
-            if item.get("symbol") == symbol or len(items) == 1:
-                value = item.get("lastPrice") or item.get("last") or item.get("price")
-                try:
-                    return float(value)
-                except (TypeError, ValueError):
-                    return None
-        return None
+    def current_position(self, symbol: str | None = None, category: str = "USDT-FUTURES") -> dict[str, Any]:
+        params: dict[str, Any] = {"category": category}
+        if symbol:
+            params["symbol"] = symbol
+        return self.get("/api/v3/position/current-position", params)
 
-    def positions(self, category: str = "USDT-FUTURES", symbol: str | None = None, pos_side: str | None = None) -> dict[str, Any]:
-        return self.get("/api/v3/position/current-position", {"category": category, "symbol": symbol, "posSide": pos_side})
+    def last_price(self, symbol: str, category: str = "USDT-FUTURES") -> float:
+        data = self.tickers(symbol=symbol, category=category)
+        if not self.is_success(data):
+            raise BitgetUTAError(f"ticker failed for {symbol}: {data}")
+        payload = data.get("data")
+        if isinstance(payload, list):
+            row = payload[0] if payload else None
+        elif isinstance(payload, dict):
+            rows = payload.get("list")
+            row = rows[0] if isinstance(rows, list) and rows else payload
+        else:
+            row = None
+        if not isinstance(row, dict):
+            raise BitgetUTAError(f"ticker empty for {symbol}: {data}")
+        for key in ("lastPrice", "lastPr", "last", "close", "price", "markPrice"):
+            if row.get(key) not in (None, ""):
+                return float(row[key])
+        raise BitgetUTAError(f"ticker missing price field for {symbol}: {row}")
 
-    def open_orders(self, category: str = "USDT-FUTURES", symbol: str | None = None) -> dict[str, Any]:
-        return self.get("/api/v3/trade/unfilled-orders", {"category": category, "symbol": symbol})
+    @staticmethod
+    def build_market_order_payload(intent: OrderIntent) -> dict[str, Any]:
+        body: dict[str, Any] = {
+            "symbol": intent.symbol,
+            "category": intent.category,
+            "marginCoin": intent.margin_coin,
+            "marginMode": intent.margin_mode,
+            "orderType": intent.order_type,
+            "side": intent.side,
+            "posSide": intent.pos_side,
+            "qty": str(intent.qty),
+        }
+        if intent.client_oid:
+            body["clientOid"] = intent.client_oid
+        if intent.reduce_only:
+            body["reduceOnly"] = "yes"
+        return body
 
-    def place_order(self, payload: dict[str, Any]) -> dict[str, Any]:
+    def place_order(self, intent: OrderIntent, *, dry_run: bool = True) -> dict[str, Any]:
+        payload = self.build_market_order_payload(intent)
+        if dry_run:
+            return {"dry_run": True, "payload": payload}
         return self.post("/api/v3/trade/place-order", payload)
-
-    def order_info(self, order_id: str | None = None, client_oid: str | None = None) -> dict[str, Any]:
-        return self.get("/api/v3/trade/order-info", {"orderId": order_id, "clientOid": client_oid})

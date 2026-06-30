@@ -10,10 +10,9 @@ class TelegramBot:
         self.timeout = timeout
 
     def send(self, text: str) -> bool:
-        url = f"https://api.telegram.org/bot{self.token}/sendMessage"
         try:
             response = requests.post(
-                url,
+                f"https://api.telegram.org/bot{self.token}/sendMessage",
                 data={"chat_id": self.chat_id, "text": text, "parse_mode": "HTML"},
                 timeout=self.timeout,
             )
