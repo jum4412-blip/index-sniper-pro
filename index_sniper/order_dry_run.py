@@ -17,7 +17,7 @@ def _short(data: object, limit: int = 4000) -> str:
 
 def run_dry_order_check(settings: Settings, client: BitgetUTAClient, tg: TelegramBot) -> list[dict]:
     if not settings.dry_run:
-        msg = "DRY_RUN=false 상태에서는 v0.3 dry-order를 실행하지 않습니다."
+        msg = "DRY_RUN=false 상태에서는 dry-order를 실행하지 않습니다."
         tg.send(f"🛑 <b>dry-order 중단</b>\n{msg}")
         raise RuntimeError(msg)
 
@@ -29,7 +29,7 @@ def run_dry_order_check(settings: Settings, client: BitgetUTAClient, tg: Telegra
     warnings: list[str] = []
 
     tg.send(
-        "🧪 <b>Index Sniper Pro v0.3</b>\n"
+        "🧪 <b>Index Sniper Pro v0.4</b>\n"
         "모드: DRY_ORDER\n"
         "실주문 없음\n"
         f"대상: {', '.join(settings.symbols)}\n"
@@ -42,8 +42,7 @@ def run_dry_order_check(settings: Settings, client: BitgetUTAClient, tg: Telegra
         item: dict = {"symbol": symbol}
         try:
             price = client.last_price(symbol, settings.category)
-            instruments = client.instruments(symbol, settings.category)
-            instrument = extract_instrument(instruments, symbol)
+            instrument = extract_instrument(client.instruments(symbol, settings.category), symbol)
             positions = client.current_position(symbol, settings.category)
             sym_cfg = extract_symbol_config(settings_response, symbol) or {}
             current_leverage = int(sym_cfg.get("leverage") or 0) if sym_cfg else None
@@ -64,13 +63,11 @@ def run_dry_order_check(settings: Settings, client: BitgetUTAClient, tg: Telegra
                 price=price,
                 instrument=instrument,
             )
-
             oid = str(int(time.time() * 1000))[-10:]
             long_open = client.place_order(OrderIntent(symbol=symbol, side="buy", pos_side="long", qty=size_plan.final_qty, category=settings.category, margin_coin=settings.margin_coin, margin_mode=settings.margin_mode, client_oid=f"drylo-{symbol}-{oid}"), dry_run=True)
             long_close = client.place_order(OrderIntent(symbol=symbol, side="sell", pos_side="long", qty=size_plan.final_qty, category=settings.category, margin_coin=settings.margin_coin, margin_mode=settings.margin_mode, reduce_only=True, client_oid=f"drylc-{symbol}-{oid}"), dry_run=True)
             short_open = client.place_order(OrderIntent(symbol=symbol, side="sell", pos_side="short", qty=size_plan.final_qty, category=settings.category, margin_coin=settings.margin_coin, margin_mode=settings.margin_mode, client_oid=f"dryso-{symbol}-{oid}"), dry_run=True)
             short_close = client.place_order(OrderIntent(symbol=symbol, side="buy", pos_side="short", qty=size_plan.final_qty, category=settings.category, margin_coin=settings.margin_coin, margin_mode=settings.margin_mode, reduce_only=True, client_oid=f"drysc-{symbol}-{oid}"), dry_run=True)
-
             item.update({
                 "price": price,
                 "current_leverage": current_leverage,
@@ -97,18 +94,12 @@ def run_dry_order_check(settings: Settings, client: BitgetUTAClient, tg: Telegra
             item["error"] = str(exc)
         reports.append(item)
 
-    print("===== DRY ORDER PLAN v0.3 =====")
-    print(_short(reports, 20000))
-
+    print("===== DRY ORDER PLAN v0.4 =====")
+    print(_short(reports, 25000))
     failed = [r["symbol"] for r in reports if "error" in r or not r.get("size_plan", {}).get("valid", False)]
     warning_text = "\n".join(f"- {w}" for w in warnings) if warnings else "없음"
     if failed:
-        tg.send(f"⚠️ <b>v0.3 DRY_ORDER 확인 필요</b>\n실패 심볼: {', '.join(failed)}\n레버리지/마진 경고:\n{warning_text}")
+        tg.send(f"⚠️ <b>v0.4 DRY_ORDER 확인 필요</b>\n실패 심볼: {', '.join(failed)}\n레버리지/마진 경고:\n{warning_text}")
     else:
-        tg.send(
-            "✅ <b>v0.3 DRY_ORDER 성공</b>\n"
-            "실주문 없이 10% 시드 기준 수량과 주문 payload 생성 완료\n"
-            f"대상: {', '.join(settings.symbols)}\n"
-            f"레버리지/마진 경고:\n{warning_text}"
-        )
+        tg.send("✅ <b>v0.4 DRY_ORDER 성공</b>\n실주문 없이 수량과 주문 payload 생성 완료\n" f"대상: {', '.join(settings.symbols)}\n레버리지/마진 경고:\n{warning_text}")
     return reports

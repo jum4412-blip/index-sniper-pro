@@ -40,7 +40,6 @@ def extract_usdt_equity_available(assets_response: dict[str, Any]) -> tuple[floa
                 equity = float(row.get("equity") or row.get("balance") or 0)
                 available = float(row.get("available") or equity or 0)
                 return equity, available
-        # Fallback to top-level UTA equity fields.
         equity = float(data.get("usdtEquity") or data.get("effEquity") or data.get("accountEquity") or 0)
         return equity, equity
     raise RuntimeError(f"Unable to parse assets response: {assets_response}")

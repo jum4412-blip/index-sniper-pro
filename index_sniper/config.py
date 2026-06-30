@@ -35,6 +35,13 @@ class Settings:
     category: str
     margin_mode: str
     margin_coin: str
+    allow_live_smoke: bool
+    live_smoke_confirm: str
+    live_smoke_symbol: str
+    live_smoke_side: str
+    live_smoke_notional_usdt: float
+    live_smoke_max_notional_usdt: float
+    live_smoke_wait_seconds: int
 
 
 def load_settings() -> Settings:
@@ -56,4 +63,11 @@ def load_settings() -> Settings:
         category=os.getenv("CATEGORY", "USDT-FUTURES").strip(),
         margin_mode=os.getenv("MARGIN_MODE", "crossed").strip(),
         margin_coin=os.getenv("MARGIN_COIN", "USDT").strip().upper(),
+        allow_live_smoke=_bool(os.getenv("ALLOW_LIVE_SMOKE"), False),
+        live_smoke_confirm=os.getenv("LIVE_SMOKE_CONFIRM", "").strip(),
+        live_smoke_symbol=os.getenv("LIVE_SMOKE_SYMBOL", "BTCUSDT").strip().upper(),
+        live_smoke_side=os.getenv("LIVE_SMOKE_SIDE", "long").strip().lower(),
+        live_smoke_notional_usdt=float(os.getenv("LIVE_SMOKE_NOTIONAL_USDT", "12")),
+        live_smoke_max_notional_usdt=float(os.getenv("LIVE_SMOKE_MAX_NOTIONAL_USDT", "20")),
+        live_smoke_wait_seconds=int(os.getenv("LIVE_SMOKE_WAIT_SECONDS", "3")),
     )

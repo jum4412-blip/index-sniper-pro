@@ -2,17 +2,14 @@
 
 고정 프로젝트: `index-sniper-pro`
 
-## v0.3 목표
+## v0.4 목표
 
 - Bitget UTA 연결 확인
-- `.env`의 `SYMBOLS` 전체를 대상으로 가격/포지션/심볼 규격 조회
-- 계좌 가용 USDT 기준 자동 수량 계산
-- `CAPITAL_RATIO=0.10`이면 전체 가용 USDT의 10%를 사용하고, 종목 수만큼 균등 분배
-- 목표 레버리지 확인
-- 현재 마진모드 확인
-- 주문 payload 생성
-- `DRY_RUN=true`에서만 동작
-- 실주문 없음
+- SP500USDT / NDX100USDT / BTCUSDT 대상 고정
+- 목표 레버리지 5배 / crossed 여부 확인
+- 가용 USDT 기준 10% 배분 수량 계산 확인
+- 실주문 전 PRE-FLIGHT 점검
+- 안전장치가 걸린 BTCUSDT 최소 실주문 테스트 스크립트 추가
 
 ## 설치
 
@@ -21,24 +18,35 @@ cd ~/index-sniper-pro
 bash install.sh
 ```
 
-## 연결 체크
+## 기본 체크
 
 ```bash
 bash run_check.sh
-```
-
-## DRY 주문/수량 체크
-
-```bash
 bash run_dry_order.sh
+bash run_preflight.sh
 ```
 
-또는:
+`run_check.sh`, `run_dry_order.sh`, `run_preflight.sh`는 실주문을 넣지 않는다.
+
+## 실제 micro order test
+
+이 스크립트는 실제 시장가 주문을 넣는다. 기본 추천 심볼은 `BTCUSDT`다.
 
 ```bash
-bash run_order_dry.sh
+DRY_RUN=false LIVE_TEST_CONFIRM=I_UNDERSTAND_REAL_ORDER LIVE_TEST_SYMBOL=BTCUSDT bash run_micro_live_test.sh
 ```
+
+동작:
+
+1. BTCUSDT 레버리지/마진모드 확인
+2. 기존 포지션이 있으면 중단
+3. 최소 수량 시장가 LONG 진입
+4. 2초 대기
+5. reduceOnly 시장가 청산
+6. 텔레그램 알림
 
 ## 중요
 
-`.env`는 절대 GitHub에 올리지 않는다. 실제 주문 테스트 전까지 `DRY_RUN=true` 유지.
+`.env`는 절대 GitHub에 올리지 않는다.
+
+실전 전략은 v1.0 이후에 붙인다. v0.4는 거래 엔진 검증 단계다.
