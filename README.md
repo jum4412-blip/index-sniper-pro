@@ -1,86 +1,125 @@
-# index-sniper-pro
+# index-sniper-pro v0.7
 
 고정 프로젝트: `index-sniper-pro`
 
-## v0.6 목표
+## v0.7 목표
 
-v0.5에서 SP500USDT / NDX100USDT가 1일봉 60개 미만이라 `not enough candles` 오류가 발생했다. v0.6은 이 문제를 해결하기 위해 **Adaptive Warm-up Mode**를 추가한다.
+v0.7은 **전략 신호를 실제 주문 payload로 변환하는 실행 엔진** 단계입니다. 기본값은 `DRY_RUN=true`라서 실주문은 없습니다.
 
-## v0.6 핵심
+v0.7에서 추가된 것:
 
-- BTCUSDT는 1D EMA20/60 정상 사용
-- SP500USDT / NDX100USDT처럼 1D EMA60이 아직 부족한 심볼은:
-  1. 4H EMA50/200으로 추세 필터 대체
-  2. 4H도 부족하면 1D EMA8/21 임시 필터 사용
-  3. 데이터가 너무 부족하면 ERROR가 아니라 HOLD 처리
-- 변동성 돌파 기준은 기존과 동일하게 1D 기준:
-  - 롱 기준가 = 오늘 시가 + 전일 Range × K
-  - 숏 기준가 = 오늘 시가 - 전일 Range × K
-- ATR14가 부족하면 가능한 최근 TR을 사용하되, 최소 10개 미만이면 HOLD
-- Warm-up 모드 심볼은 포지션 크기를 `FALLBACK_SIZE_MULTIPLIER`만큼 축소
-- `DRY_RUN=true`에서만 전략 신호 확인
-- 실전 자동 주문은 아직 붙이지 않음
+- SP500USDT / NDX100USDT / BTCUSDT 신호 계산
+- 1D EMA60 부족 심볼은 4H EMA50/200 warm-up 사용
+- 계좌 10% / 3개 종목 분산 / 5배 레버리지 기준 수량 계산
+- 현재 레버리지/마진모드/기존 포지션 확인
+- 거래 허용 여부 체크
+- 실주문용 payload 생성
+- Bitget UTA preset `takeProfit`, `stopLoss` 포함
+- 로그 저장: `logs/events.jsonl`, `logs/trades.csv`
+- 상태 저장: `data/strategy_state.json`
+
+## 전략 기준
+
+### 돌파 가격
+
+```text
+전일 Range = 전일 고가 - 전일 저가
+롱 기준가 = 오늘 시가 + 전일 Range × K_VALUE
+숏 기준가 = 오늘 시가 - 전일 Range × K_VALUE
+```
+
+기본값은 `K_VALUE=0.50`입니다.
+
+### 추세 필터
+
+- BTCUSDT: 1D EMA20 / EMA60
+- SP500USDT, NDX100USDT: 1D EMA60이 부족하면 4H EMA50 / EMA200 warm-up
+
+롱은 상승 추세에서 상단 돌파가 필요하고, 숏은 하락 추세에서 하단 돌파가 필요합니다.
+
+### 손절 / 익절
+
+```text
+롱 손절 = 현재가 - ATR × ATR_STOP_MULT
+롱 익절 = 현재가 + ATR × ATR_TAKE_PROFIT_MULT
+
+숏 손절 = 현재가 + ATR × ATR_STOP_MULT
+숏 익절 = 현재가 - ATR × ATR_TAKE_PROFIT_MULT
+```
+
+기본값:
+
+```text
+ATR_STOP_MULT=1.30
+ATR_TAKE_PROFIT_MULT=2.00
+```
+
+v0.7은 Bitget UTA `place-order` 요청에 `takeProfit`, `stopLoss` preset 값을 함께 넣습니다.
 
 ## 설치
 
 ```bash
 cd ~/index-sniper-pro
+git pull
 bash install.sh
 ```
 
-## 기본 체크
+## 기본 점검
 
 ```bash
 bash run_check.sh
-bash run_dry_order.sh
 bash run_preflight.sh
-```
-
-## 전략 드라이런
-
-```bash
 bash run_strategy_dry.sh
 ```
 
-정상 출력 예시:
+## v0.7 실행 드라이런
+
+```bash
+bash run_strategy_exec_dry.sh
+```
+
+루프 실행:
+
+```bash
+screen -S sniper-exec-dry
+bash run_strategy_exec_loop.sh
+```
+
+빠져나오기:
 
 ```text
-v0.6 STRATEGY_DRY 완료
-실주문 없음
-SP500USDT: HOLD / ... / trend 4H_EMA50/200_WARMUP(200+) / size x0.5
-NDX100USDT: HOLD / ... / trend 4H_EMA50/200_WARMUP(200+) / size x0.5
-BTCUSDT: HOLD / ... / trend 1D_EMA20/60 / size x1.0
-```
-
-## 전략 드라이 루프
-
-```bash
-screen -S sniper-dry
-bash run_strategy_loop_dry.sh
-```
-
-분리:
-
-```bash
 Ctrl + A, D
 ```
 
 다시 보기:
 
 ```bash
-screen -r sniper-dry
+screen -r sniper-exec-dry
 ```
 
-## 실제 micro order test
+## 실제 전략 자동매매 시작 조건
 
-v0.4에서 사용한 안전장치 포함 실주문 테스트는 유지된다.
+실제 자동매매는 아래 2개가 `.env`에 있어야만 실행됩니다.
+
+```env
+DRY_RUN=false
+STRATEGY_LIVE_CONFIRM=I_UNDERSTAND_AUTO_TRADING
+```
+
+실제 루프 시작:
 
 ```bash
-DRY_RUN=false LIVE_TEST_CONFIRM=I_UNDERSTAND_REAL_ORDER LIVE_TEST_SYMBOL=BTCUSDT bash run_micro_live_test.sh
+screen -S sniper-live
+bash run_strategy_live_loop.sh
 ```
 
-## 중요
+## 안전장치
 
-`.env`는 절대 GitHub에 올리지 않는다.
-
-v0.6은 상장 초기 데이터 부족 문제를 해결하는 전략 드라이런 버전이다. 실전 전략 주문은 v0.7 이후에 붙인다.
+- 기본은 `DRY_RUN=true`
+- 레버리지 5배가 아니면 주문 차단
+- crossed가 아니면 주문 차단
+- 해당 심볼 포지션이 있으면 신규 주문 차단
+- 하루 심볼당 기본 1회만 진입
+- 한 사이클 신규 진입 기본 1개
+- 전체 오픈 포지션 최대 3개
+- `.env`는 GitHub에 올리지 않음

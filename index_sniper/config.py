@@ -61,6 +61,15 @@ class Settings:
     atr_take_profit_mult: float
     loop_seconds: int
     heartbeat_minutes: int
+    strategy_live_confirm: str
+    strategy_state_path: str
+    log_dir: str
+    max_open_positions: int
+    max_new_positions_per_cycle: int
+    max_daily_entries_per_symbol: int
+    live_allow_warmup_entries: bool
+    use_exchange_tpsl: bool
+    strategy_heartbeat_minutes: int
 
 
 def load_settings() -> Settings:
@@ -108,4 +117,13 @@ def load_settings() -> Settings:
         atr_take_profit_mult=float(os.getenv("ATR_TAKE_PROFIT_MULT", "2.00")),
         loop_seconds=int(os.getenv("LOOP_SECONDS", "300")),
         heartbeat_minutes=int(os.getenv("HEARTBEAT_MINUTES", "60")),
+        strategy_live_confirm=os.getenv("STRATEGY_LIVE_CONFIRM", "").strip(),
+        strategy_state_path=os.getenv("STRATEGY_STATE_PATH", "data/strategy_state.json").strip(),
+        log_dir=os.getenv("LOG_DIR", "logs").strip(),
+        max_open_positions=int(os.getenv("MAX_OPEN_POSITIONS", "3")),
+        max_new_positions_per_cycle=int(os.getenv("MAX_NEW_POSITIONS_PER_CYCLE", "1")),
+        max_daily_entries_per_symbol=int(os.getenv("MAX_DAILY_ENTRIES_PER_SYMBOL", "1")),
+        live_allow_warmup_entries=_bool(os.getenv("LIVE_ALLOW_WARMUP_ENTRIES"), True),
+        use_exchange_tpsl=_bool(os.getenv("USE_EXCHANGE_TPSL"), True),
+        strategy_heartbeat_minutes=int(os.getenv("STRATEGY_HEARTBEAT_MINUTES", os.getenv("HEARTBEAT_MINUTES", "60"))),
     )

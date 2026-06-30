@@ -28,6 +28,12 @@ class OrderIntent:
     order_type: str = "market"
     reduce_only: bool = False
     client_oid: str | None = None
+    take_profit: str | None = None
+    stop_loss: str | None = None
+    tp_trigger_by: str = "market"
+    sl_trigger_by: str = "market"
+    tp_order_type: str = "market"
+    sl_order_type: str = "market"
 
 
 class BitgetUTAClient:
@@ -124,13 +130,7 @@ class BitgetUTAClient:
         return self.get("/api/v3/position/current-position", params)
 
     def candles(self, symbol: str, category: str = "USDT-FUTURES", interval: str = "1D", limit: int = 100, candle_type: str = "market") -> dict[str, Any]:
-        params: dict[str, Any] = {
-            "category": category,
-            "symbol": symbol,
-            "interval": interval,
-            "type": candle_type,
-            "limit": str(limit),
-        }
+        params: dict[str, Any] = {"category": category, "symbol": symbol, "interval": interval, "type": candle_type, "limit": str(limit)}
         return self.get("/api/v3/market/candles", params, auth=False)
 
     def last_price(self, symbol: str, category: str = "USDT-FUTURES") -> float:
@@ -168,6 +168,15 @@ class BitgetUTAClient:
             body["clientOid"] = intent.client_oid
         if intent.reduce_only:
             body["reduceOnly"] = "yes"
+        if not intent.reduce_only:
+            if intent.take_profit:
+                body["takeProfit"] = str(intent.take_profit)
+                body["tpTriggerBy"] = intent.tp_trigger_by
+                body["tpOrderType"] = intent.tp_order_type
+            if intent.stop_loss:
+                body["stopLoss"] = str(intent.stop_loss)
+                body["slTriggerBy"] = intent.sl_trigger_by
+                body["slOrderType"] = intent.sl_order_type
         return body
 
     def place_order(self, intent: OrderIntent, *, dry_run: bool = True) -> dict[str, Any]:

@@ -1,13 +1,24 @@
 from __future__ import annotations
 
-import json
+from decimal import Decimal, ROUND_DOWN, ROUND_HALF_UP, getcontext
 from typing import Any
 
-
-def short_json(data: Any, limit: int = 1200) -> str:
-    text = json.dumps(data, ensure_ascii=False, indent=2)
-    return text[:limit] + ("..." if len(text) > limit else "")
+getcontext().prec = 28
 
 
-def ok_mark(data: dict) -> str:
-    return "✅" if str(data.get("code")) in {"00000", "0"} else "⚠️"
+def _d(value: Any, default: str = "0") -> Decimal:
+    if value is None or value == "":
+        return Decimal(default)
+    return Decimal(str(value))
+
+
+def format_price(value: float | Decimal, instrument: dict[str, Any]) -> str:
+    price = _d(value)
+    precision = int(instrument.get("pricePrecision") or 0)
+    step = _d(instrument.get("priceMultiplier"), "0")
+    if step > 0:
+        units = (price / step).to_integral_value(rounding=ROUND_HALF_UP)
+        price = units * step
+    quant = Decimal("1") if precision <= 0 else Decimal("1") / (Decimal(10) ** precision)
+    price = price.quantize(quant, rounding=ROUND_DOWN)
+    return format(price, "f")
