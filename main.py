@@ -77,19 +77,29 @@ def mode_strategy_dry() -> None:
 
 def mode_strategy_exec() -> None:
     settings, client, tg = make_client_and_tg()
-    run_strategy_exec(settings, client, tg)
+    run_strategy_exec(settings, client, tg, notify_policy="always")
 
 
 def mode_strategy_loop_dry() -> None:
     import time
     settings, client, tg = make_client_and_tg()
-    tg.send(f"🟢 <b>v{__version__} 전략 드라이 루프 시작</b>\n실주문 없음\n주기: {settings.loop_seconds}초")
-    last_heartbeat = 0.0
+    if settings.notify_loop_start:
+        tg.send(
+            f"🟢 <b>v{__version__} 전략 드라이 루프 시작</b>\n"
+            f"실주문 없음\n"
+            f"주기: {settings.loop_seconds}초\n"
+            "알림정책: HOLD 무음 / 신호·오류·heartbeat만 알림"
+        )
+    last_heartbeat = time.time()
     while True:
-        run_strategy_dry(settings, client, tg)
+        try:
+            run_strategy_exec(settings, client, tg, notify_policy="important")
+        except Exception as exc:
+            if settings.notify_error:
+                tg.send(f"⚠️ <b>v{__version__} 전략 드라이 루프 오류</b>\n{exc}")
         now = time.time()
-        if now - last_heartbeat >= settings.heartbeat_minutes * 60:
-            tg.send(f"❤️ Index Sniper Pro v{__version__} dry loop alive")
+        if settings.notify_heartbeat and now - last_heartbeat >= settings.strategy_heartbeat_minutes * 60:
+            tg.send(f"❤️ Index Sniper Pro v{__version__} dry-loop alive")
             last_heartbeat = now
         time.sleep(max(10, settings.loop_seconds))
 
@@ -98,16 +108,24 @@ def mode_strategy_exec_loop() -> None:
     import time
     settings, client, tg = make_client_and_tg()
     mode = "LIVE" if not settings.dry_run else "DRY"
-    tg.send(f"🟢 <b>v{__version__} 전략 실행 루프 시작</b>\n모드: {mode}\n실주문: {'있음' if not settings.dry_run else '없음'}\n주기: {settings.loop_seconds}초")
-    last_heartbeat = 0.0
+    if settings.notify_loop_start:
+        tg.send(
+            f"🟢 <b>v{__version__} 전략 실행 루프 시작</b>\n"
+            f"모드: {mode}\n"
+            f"실주문: {'있음' if not settings.dry_run else '없음'}\n"
+            f"주기: {settings.loop_seconds}초\n"
+            "알림정책: HOLD 무음 / 신호·오류·heartbeat만 알림"
+        )
+    last_heartbeat = time.time()
     while True:
         try:
-            run_strategy_exec(settings, client, tg)
+            run_strategy_exec(settings, client, tg, notify_policy="important")
         except Exception as exc:
-            tg.send(f"⚠️ <b>v{__version__} 전략 실행 루프 오류</b>\n{exc}")
+            if settings.notify_error:
+                tg.send(f"⚠️ <b>v{__version__} 전략 실행 루프 오류</b>\n{exc}")
         now = time.time()
-        if now - last_heartbeat >= settings.strategy_heartbeat_minutes * 60:
-            tg.send(f"❤️ Index Sniper Pro v{__version__} strategy-exec-loop alive ({mode})")
+        if settings.notify_heartbeat and now - last_heartbeat >= settings.strategy_heartbeat_minutes * 60:
+            tg.send(f"❤️ Index Sniper Pro v{__version__} alive ({mode})")
             last_heartbeat = now
         time.sleep(max(10, settings.loop_seconds))
 

@@ -1,125 +1,42 @@
-# index-sniper-pro v0.7
+# index-sniper-pro v0.8
 
-고정 프로젝트: `index-sniper-pro`
+## v0.8 변경점
 
-## v0.7 목표
+- HOLD 상태 텔레그램 알림 기본 OFF
+- 루프 시작 알림 1회
+- 신호 발생 / 주문 예정 / 주문 실행 / 오류만 알림
+- 하트비트는 `STRATEGY_HEARTBEAT_MINUTES`마다 1회
+- 중복 screen 정리 스크립트 추가
 
-v0.7은 **전략 신호를 실제 주문 payload로 변환하는 실행 엔진** 단계입니다. 기본값은 `DRY_RUN=true`라서 실주문은 없습니다.
-
-v0.7에서 추가된 것:
-
-- SP500USDT / NDX100USDT / BTCUSDT 신호 계산
-- 1D EMA60 부족 심볼은 4H EMA50/200 warm-up 사용
-- 계좌 10% / 3개 종목 분산 / 5배 레버리지 기준 수량 계산
-- 현재 레버리지/마진모드/기존 포지션 확인
-- 거래 허용 여부 체크
-- 실주문용 payload 생성
-- Bitget UTA preset `takeProfit`, `stopLoss` 포함
-- 로그 저장: `logs/events.jsonl`, `logs/trades.csv`
-- 상태 저장: `data/strategy_state.json`
-
-## 전략 기준
-
-### 돌파 가격
-
-```text
-전일 Range = 전일 고가 - 전일 저가
-롱 기준가 = 오늘 시가 + 전일 Range × K_VALUE
-숏 기준가 = 오늘 시가 - 전일 Range × K_VALUE
-```
-
-기본값은 `K_VALUE=0.50`입니다.
-
-### 추세 필터
-
-- BTCUSDT: 1D EMA20 / EMA60
-- SP500USDT, NDX100USDT: 1D EMA60이 부족하면 4H EMA50 / EMA200 warm-up
-
-롱은 상승 추세에서 상단 돌파가 필요하고, 숏은 하락 추세에서 하단 돌파가 필요합니다.
-
-### 손절 / 익절
-
-```text
-롱 손절 = 현재가 - ATR × ATR_STOP_MULT
-롱 익절 = 현재가 + ATR × ATR_TAKE_PROFIT_MULT
-
-숏 손절 = 현재가 + ATR × ATR_STOP_MULT
-숏 익절 = 현재가 - ATR × ATR_TAKE_PROFIT_MULT
-```
-
-기본값:
-
-```text
-ATR_STOP_MULT=1.30
-ATR_TAKE_PROFIT_MULT=2.00
-```
-
-v0.7은 Bitget UTA `place-order` 요청에 `takeProfit`, `stopLoss` preset 값을 함께 넣습니다.
-
-## 설치
-
-```bash
-cd ~/index-sniper-pro
-git pull
-bash install.sh
-```
-
-## 기본 점검
-
-```bash
-bash run_check.sh
-bash run_preflight.sh
-bash run_strategy_dry.sh
-```
-
-## v0.7 실행 드라이런
-
-```bash
-bash run_strategy_exec_dry.sh
-```
-
-루프 실행:
-
-```bash
-screen -S sniper-exec-dry
-bash run_strategy_exec_loop.sh
-```
-
-빠져나오기:
-
-```text
-Ctrl + A, D
-```
-
-다시 보기:
-
-```bash
-screen -r sniper-exec-dry
-```
-
-## 실제 전략 자동매매 시작 조건
-
-실제 자동매매는 아래 2개가 `.env`에 있어야만 실행됩니다.
+## 알림 정책 기본값
 
 ```env
-DRY_RUN=false
-STRATEGY_LIVE_CONFIRM=I_UNDERSTAND_AUTO_TRADING
+NOTIFY_HOLD_SUMMARY=false
+NOTIFY_LOOP_START=true
+NOTIFY_HEARTBEAT=true
+NOTIFY_SIGNAL=true
+NOTIFY_ERROR=true
+NOTIFY_BLOCKED_SIGNAL=true
+STRATEGY_HEARTBEAT_MINUTES=60
+LOOP_SECONDS=300
 ```
 
-실제 루프 시작:
+## 기존 루프 중지
 
 ```bash
-screen -S sniper-live
-bash run_strategy_live_loop.sh
+bash stop_sniper.sh
 ```
 
-## 안전장치
+## 조용한 드라이런 루프 시작
 
-- 기본은 `DRY_RUN=true`
-- 레버리지 5배가 아니면 주문 차단
-- crossed가 아니면 주문 차단
-- 해당 심볼 포지션이 있으면 신규 주문 차단
-- 하루 심볼당 기본 1회만 진입
-- 한 사이클 신규 진입 기본 1개
-- 전체 오픈 포지션 최대 3개
-- `.env`는 GitHub에 올리지 않음
+```bash
+bash start_exec_dry_quiet.sh
+```
+
+## 로그 보기
+
+```bash
+bash view_log.sh
+```
+
+`DRY_RUN=true` 상태에서는 실주문이 나가지 않습니다.

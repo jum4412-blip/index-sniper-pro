@@ -73,7 +73,7 @@ def _make_entry_intent(settings: Settings, symbol: str, signal: Any, qty: str, i
     side = "buy" if signal.signal == "LONG" else "sell"
     pos_side = "long" if signal.signal == "LONG" else "short"
     oid = str(int(time.time() * 1000))[-10:]
-    prefix = "v07lo" if signal.signal == "LONG" else "v07so"
+    prefix = "v08lo" if signal.signal == "LONG" else "v08so"
     client_oid = f"{prefix}-{symbol.lower()}-{oid}"[:32]
     tp = format_price(signal.take_profit_price, instrument) if settings.use_exchange_tpsl and signal.take_profit_price else None
     sl = format_price(signal.stop_price, instrument) if settings.use_exchange_tpsl and signal.stop_price else None
@@ -105,7 +105,7 @@ def _global_open_count(settings: Settings, client: BitgetUTAClient) -> int:
     return count
 
 
-def run_strategy_exec(settings: Settings, client: BitgetUTAClient, tg: TelegramBot) -> list[dict[str, Any]]:
+def run_strategy_exec(settings: Settings, client: BitgetUTAClient, tg: TelegramBot, notify_policy: str = "always") -> list[dict[str, Any]]:
     live = not settings.dry_run
     if live and settings.strategy_live_confirm != CONFIRM_PHRASE:
         msg = f"DRY_RUN=false이지만 STRATEGY_LIVE_CONFIRM가 없습니다. 실제 자동매매를 하려면 {CONFIRM_PHRASE}가 필요합니다."
@@ -122,14 +122,15 @@ def run_strategy_exec(settings: Settings, client: BitgetUTAClient, tg: TelegramB
     new_entries_this_cycle = 0
     mode_label = "LIVE" if live else "DRY"
 
-    tg.send(
-        f"🧠 <b>Index Sniper Pro v0.7 STRATEGY_EXEC {mode_label}</b>\n"
-        f"실주문: {'있음' if live else '없음'}\n"
-        f"대상: {', '.join(settings.symbols)}\n"
-        f"계좌 사용비율: {settings.capital_ratio * 100:.2f}% / 레버리지 {settings.leverage}x\n"
-        f"TP/SL preset: {settings.use_exchange_tpsl}\n"
-        f"open positions before: {global_open_before} / max {settings.max_open_positions}"
-    )
+    if notify_policy == "always":
+        tg.send(
+            f"🧠 <b>Index Sniper Pro v0.8 STRATEGY_EXEC {mode_label}</b>\n"
+            f"실주문: {'있음' if live else '없음'}\n"
+            f"대상: {', '.join(settings.symbols)}\n"
+            f"계좌 사용비율: {settings.capital_ratio * 100:.2f}% / 레버리지 {settings.leverage}x\n"
+            f"TP/SL preset: {settings.use_exchange_tpsl}\n"
+            f"open positions before: {global_open_before} / max {settings.max_open_positions}"
+        )
 
     for symbol in settings.symbols:
         item: dict[str, Any] = {"symbol": symbol, "mode": mode_label, "day": today}
@@ -211,7 +212,7 @@ def run_strategy_exec(settings: Settings, client: BitgetUTAClient, tg: TelegramB
     blocked = [r for r in active if not r.get("action_allowed")]
 
     lines = [
-        f"✅ <b>v0.7 STRATEGY_EXEC {mode_label} 완료</b>",
+        f"✅ <b>v0.8 STRATEGY_EXEC {mode_label} 완료</b>",
         f"실주문: {'있음' if live else '없음'}",
         "Exchange preset TP/SL 포함" if settings.use_exchange_tpsl else "Exchange preset TP/SL 미사용",
     ]
@@ -237,5 +238,21 @@ def run_strategy_exec(settings: Settings, client: BitgetUTAClient, tg: TelegramB
             continue
         s = r["signal"]
         lines.append(f"- {r['symbol']}: {s['signal']} / {s['reason']} / trend {s.get('trend_mode')} / size x{r.get('effective_size_multiplier')} / now {_fmt_price(s.get('current_price'))}, L {_fmt_price(s.get('long_target'))}, S {_fmt_price(s.get('short_target'))}")
-    tg.send("\n".join(lines[:35]))
+    if notify_policy == "always":
+        should_send = True
+    else:
+        should_send = False
+        if errors and settings.notify_error:
+            should_send = True
+        elif executed and settings.notify_signal:
+            should_send = True
+        elif blocked and settings.notify_blocked_signal:
+            should_send = True
+        elif active and settings.notify_signal:
+            should_send = True
+        elif settings.notify_hold_summary:
+            should_send = True
+
+    if should_send:
+        tg.send("\n".join(lines[:35]))
     return reports

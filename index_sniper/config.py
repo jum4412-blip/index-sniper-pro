@@ -70,6 +70,12 @@ class Settings:
     live_allow_warmup_entries: bool
     use_exchange_tpsl: bool
     strategy_heartbeat_minutes: int
+    notify_hold_summary: bool
+    notify_loop_start: bool
+    notify_heartbeat: bool
+    notify_signal: bool
+    notify_error: bool
+    notify_blocked_signal: bool
 
 
 def load_settings() -> Settings:
@@ -126,4 +132,10 @@ def load_settings() -> Settings:
         live_allow_warmup_entries=_bool(os.getenv("LIVE_ALLOW_WARMUP_ENTRIES"), True),
         use_exchange_tpsl=_bool(os.getenv("USE_EXCHANGE_TPSL"), True),
         strategy_heartbeat_minutes=int(os.getenv("STRATEGY_HEARTBEAT_MINUTES", os.getenv("HEARTBEAT_MINUTES", "60"))),
+        notify_hold_summary=_bool(os.getenv("NOTIFY_HOLD_SUMMARY"), False),
+        notify_loop_start=_bool(os.getenv("NOTIFY_LOOP_START"), True),
+        notify_heartbeat=_bool(os.getenv("NOTIFY_HEARTBEAT"), True),
+        notify_signal=_bool(os.getenv("NOTIFY_SIGNAL"), True),
+        notify_error=_bool(os.getenv("NOTIFY_ERROR"), True),
+        notify_blocked_signal=_bool(os.getenv("NOTIFY_BLOCKED_SIGNAL"), True),
     )
