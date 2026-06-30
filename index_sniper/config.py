@@ -42,6 +42,16 @@ class Settings:
     live_smoke_notional_usdt: float
     live_smoke_max_notional_usdt: float
     live_smoke_wait_seconds: int
+    strategy_interval: str
+    strategy_candle_limit: int
+    k_value: float
+    ema_fast: int
+    ema_slow: int
+    atr_period: int
+    atr_stop_mult: float
+    atr_take_profit_mult: float
+    loop_seconds: int
+    heartbeat_minutes: int
 
 
 def load_settings() -> Settings:
@@ -70,4 +80,14 @@ def load_settings() -> Settings:
         live_smoke_notional_usdt=float(os.getenv("LIVE_SMOKE_NOTIONAL_USDT", "12")),
         live_smoke_max_notional_usdt=float(os.getenv("LIVE_SMOKE_MAX_NOTIONAL_USDT", "20")),
         live_smoke_wait_seconds=int(os.getenv("LIVE_SMOKE_WAIT_SECONDS", "3")),
+        strategy_interval=os.getenv("STRATEGY_INTERVAL", "1D").strip(),
+        strategy_candle_limit=int(os.getenv("STRATEGY_CANDLE_LIMIT", "100")),
+        k_value=float(os.getenv("K_VALUE", "0.50")),
+        ema_fast=int(os.getenv("EMA_FAST", "20")),
+        ema_slow=int(os.getenv("EMA_SLOW", "60")),
+        atr_period=int(os.getenv("ATR_PERIOD", "14")),
+        atr_stop_mult=float(os.getenv("ATR_STOP_MULT", "1.30")),
+        atr_take_profit_mult=float(os.getenv("ATR_TAKE_PROFIT_MULT", "2.00")),
+        loop_seconds=int(os.getenv("LOOP_SECONDS", "300")),
+        heartbeat_minutes=int(os.getenv("HEARTBEAT_MINUTES", "60")),
     )

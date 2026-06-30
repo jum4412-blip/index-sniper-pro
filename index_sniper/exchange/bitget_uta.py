@@ -123,6 +123,16 @@ class BitgetUTAClient:
             params["symbol"] = symbol
         return self.get("/api/v3/position/current-position", params)
 
+    def candles(self, symbol: str, category: str = "USDT-FUTURES", interval: str = "1D", limit: int = 100, candle_type: str = "market") -> dict[str, Any]:
+        params: dict[str, Any] = {
+            "category": category,
+            "symbol": symbol,
+            "interval": interval,
+            "type": candle_type,
+            "limit": str(limit),
+        }
+        return self.get("/api/v3/market/candles", params, auth=False)
+
     def last_price(self, symbol: str, category: str = "USDT-FUTURES") -> float:
         data = self.tickers(symbol=symbol, category=category)
         if not self.is_success(data):
