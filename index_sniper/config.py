@@ -47,7 +47,16 @@ class Settings:
     k_value: float
     ema_fast: int
     ema_slow: int
+    adaptive_trend: bool
+    warmup_trend_interval: str
+    warmup_trend_candle_limit: int
+    warmup_ema_fast: int
+    warmup_ema_slow: int
+    fallback_ema_fast: int
+    fallback_ema_slow: int
+    fallback_size_multiplier: float
     atr_period: int
+    min_atr_period: int
     atr_stop_mult: float
     atr_take_profit_mult: float
     loop_seconds: int
@@ -85,7 +94,16 @@ def load_settings() -> Settings:
         k_value=float(os.getenv("K_VALUE", "0.50")),
         ema_fast=int(os.getenv("EMA_FAST", "20")),
         ema_slow=int(os.getenv("EMA_SLOW", "60")),
+        adaptive_trend=_bool(os.getenv("ADAPTIVE_TREND"), True),
+        warmup_trend_interval=os.getenv("WARMUP_TREND_INTERVAL", os.getenv("FALLBACK_TREND_INTERVAL", "4H")).strip(),
+        warmup_trend_candle_limit=int(os.getenv("WARMUP_TREND_CANDLE_LIMIT", os.getenv("FALLBACK_TREND_CANDLE_LIMIT", "300"))),
+        warmup_ema_fast=int(os.getenv("WARMUP_EMA_FAST", os.getenv("FALLBACK_EMA_FAST", "50"))),
+        warmup_ema_slow=int(os.getenv("WARMUP_EMA_SLOW", os.getenv("FALLBACK_EMA_SLOW", "200"))),
+        fallback_ema_fast=int(os.getenv("DAILY_FALLBACK_EMA_FAST", "8")),
+        fallback_ema_slow=int(os.getenv("DAILY_FALLBACK_EMA_SLOW", "21")),
+        fallback_size_multiplier=float(os.getenv("FALLBACK_SIZE_MULTIPLIER", "0.50")),
         atr_period=int(os.getenv("ATR_PERIOD", "14")),
+        min_atr_period=int(os.getenv("MIN_ATR_PERIOD", "10")),
         atr_stop_mult=float(os.getenv("ATR_STOP_MULT", "1.30")),
         atr_take_profit_mult=float(os.getenv("ATR_TAKE_PROFIT_MULT", "2.00")),
         loop_seconds=int(os.getenv("LOOP_SECONDS", "300")),

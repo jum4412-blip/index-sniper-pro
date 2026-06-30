@@ -90,13 +90,13 @@ def mode_strategy_dry() -> None:
 def mode_strategy_loop_dry() -> None:
     import time
     settings, client, tg = make_client_and_tg()
-    tg.send(f"🟢 <b>v0.5 전략 드라이 루프 시작</b>\n실주문 없음\n주기: {settings.loop_seconds}초")
+    tg.send(f"🟢 <b>v0.6 전략 드라이 루프 시작</b>\n실주문 없음\n주기: {settings.loop_seconds}초")
     last_heartbeat = 0.0
     while True:
         run_strategy_dry(settings, client, tg)
         now = time.time()
         if now - last_heartbeat >= settings.heartbeat_minutes * 60:
-            tg.send("❤️ Index Sniper Pro v0.5 dry loop alive")
+            tg.send("❤️ Index Sniper Pro v0.6 dry loop alive")
             last_heartbeat = now
         time.sleep(max(10, settings.loop_seconds))
 

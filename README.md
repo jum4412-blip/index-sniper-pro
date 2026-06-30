@@ -2,15 +2,24 @@
 
 고정 프로젝트: `index-sniper-pro`
 
-## v0.5 목표
+## v0.6 목표
 
-- v0.4까지 검증한 Bitget UTA 연결 / 주문 payload / micro live test 유지
-- SP500USDT / NDX100USDT / BTCUSDT 대상 고정
-- 래리 윌리엄스식 변동성 돌파 신호 계산
-- EMA20/EMA60 추세 필터
-- ATR14 기반 손절/익절 가격 계산
-- `DRY_RUN=true` 상태에서만 전략 신호와 주문 예정 payload 생성
-- 실전 자동매매 주문은 아직 넣지 않음
+v0.5에서 SP500USDT / NDX100USDT가 1일봉 60개 미만이라 `not enough candles` 오류가 발생했다. v0.6은 이 문제를 해결하기 위해 **Adaptive Warm-up Mode**를 추가한다.
+
+## v0.6 핵심
+
+- BTCUSDT는 1D EMA20/60 정상 사용
+- SP500USDT / NDX100USDT처럼 1D EMA60이 아직 부족한 심볼은:
+  1. 4H EMA50/200으로 추세 필터 대체
+  2. 4H도 부족하면 1D EMA8/21 임시 필터 사용
+  3. 데이터가 너무 부족하면 ERROR가 아니라 HOLD 처리
+- 변동성 돌파 기준은 기존과 동일하게 1D 기준:
+  - 롱 기준가 = 오늘 시가 + 전일 Range × K
+  - 숏 기준가 = 오늘 시가 - 전일 Range × K
+- ATR14가 부족하면 가능한 최근 TR을 사용하되, 최소 10개 미만이면 HOLD
+- Warm-up 모드 심볼은 포지션 크기를 `FALLBACK_SIZE_MULTIPLIER`만큼 축소
+- `DRY_RUN=true`에서만 전략 신호 확인
+- 실전 자동 주문은 아직 붙이지 않음
 
 ## 설치
 
@@ -33,7 +42,15 @@ bash run_preflight.sh
 bash run_strategy_dry.sh
 ```
 
-실주문 없음. 3개 심볼에 대해 현재가, 돌파 목표가, EMA, ATR, 손절/익절 예정가를 계산하고 텔레그램으로 요약한다.
+정상 출력 예시:
+
+```text
+v0.6 STRATEGY_DRY 완료
+실주문 없음
+SP500USDT: HOLD / ... / trend 4H_EMA50/200_WARMUP(200+) / size x0.5
+NDX100USDT: HOLD / ... / trend 4H_EMA50/200_WARMUP(200+) / size x0.5
+BTCUSDT: HOLD / ... / trend 1D_EMA20/60 / size x1.0
+```
 
 ## 전략 드라이 루프
 
@@ -66,4 +83,4 @@ DRY_RUN=false LIVE_TEST_CONFIRM=I_UNDERSTAND_REAL_ORDER LIVE_TEST_SYMBOL=BTCUSDT
 
 `.env`는 절대 GitHub에 올리지 않는다.
 
-v0.5는 전략 신호 검증 단계다. 실전 전략 자동 주문은 v0.6 이후에 붙인다.
+v0.6은 상장 초기 데이터 부족 문제를 해결하는 전략 드라이런 버전이다. 실전 전략 주문은 v0.7 이후에 붙인다.
