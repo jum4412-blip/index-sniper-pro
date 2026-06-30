@@ -2,4 +2,4 @@
 set -e
 cd "$(dirname "$0")"
 source venv/bin/activate
-python main.py --mode check
+python main.py --mode dry-order

@@ -1,9 +1,12 @@
+from __future__ import annotations
+
 from dataclasses import dataclass
 from pathlib import Path
 from dotenv import load_dotenv
 import os
 
 ROOT = Path(__file__).resolve().parents[1]
+
 
 @dataclass(frozen=True)
 class Settings:
@@ -18,6 +21,8 @@ class Settings:
     symbols: list[str]
     category: str
     margin_mode: str
+    margin_coin: str
+    dry_test_qty: str
 
 
 def _required(name: str) -> str:
@@ -37,10 +42,12 @@ def load_settings(env_path: str | None = None) -> Settings:
         bitget_passphrase=_required("BITGET_PASSPHRASE"),
         telegram_token=_required("TELEGRAM_TOKEN"),
         telegram_chat_id=_required("TELEGRAM_CHAT_ID"),
-        dry_run=os.getenv("DRY_RUN", "true").lower() == "true",
+        dry_run=os.getenv("DRY_RUN", "true").strip().lower() == "true",
         leverage=int(os.getenv("LEVERAGE", "5")),
         capital_ratio=float(os.getenv("CAPITAL_RATIO", "0.10")),
         symbols=[s.strip() for s in os.getenv("SYMBOLS", "SPX500USDT,NDX100USDT").split(",") if s.strip()],
-        category=os.getenv("CATEGORY", "USDT-FUTURES"),
-        margin_mode=os.getenv("MARGIN_MODE", "crossed"),
+        category=os.getenv("CATEGORY", "USDT-FUTURES").strip(),
+        margin_mode=os.getenv("MARGIN_MODE", "crossed").strip(),
+        margin_coin=os.getenv("MARGIN_COIN", "USDT").strip(),
+        dry_test_qty=os.getenv("DRY_TEST_QTY", "1").strip(),
     )

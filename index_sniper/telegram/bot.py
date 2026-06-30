@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import requests
 
 
@@ -10,7 +12,11 @@ class TelegramBot:
     def send(self, text: str) -> bool:
         url = f"https://api.telegram.org/bot{self.token}/sendMessage"
         try:
-            r = requests.post(url, data={"chat_id": self.chat_id, "text": text, "parse_mode": "HTML"}, timeout=self.timeout)
-            return r.status_code == 200
+            response = requests.post(
+                url,
+                data={"chat_id": self.chat_id, "text": text, "parse_mode": "HTML"},
+                timeout=self.timeout,
+            )
+            return response.status_code == 200
         except Exception:
             return False
