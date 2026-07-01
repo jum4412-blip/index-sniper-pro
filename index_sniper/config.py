@@ -21,7 +21,9 @@ def _required(name: str) -> str:
     return value.strip()
 
 
-def _symbols(value: str) -> list[str]:
+def _symbols(value: str | None) -> list[str]:
+    if not value:
+        return []
     return [s.strip().upper() for s in value.split(",") if s.strip()]
 
 
@@ -40,6 +42,7 @@ class Settings:
     margin_mode: str
     margin_coin: str
 
+    # Micro live smoke test
     allow_live_smoke: bool
     live_smoke_confirm: str
     live_smoke_symbol: str
@@ -48,6 +51,7 @@ class Settings:
     live_smoke_max_notional_usdt: float
     live_smoke_wait_seconds: int
 
+    # Strategy
     strategy_interval: str
     strategy_candle_limit: int
     k_value: float
@@ -66,6 +70,7 @@ class Settings:
     atr_stop_mult: float
     atr_take_profit_mult: float
 
+    # Runtime
     loop_seconds: int
     heartbeat_minutes: int
     strategy_heartbeat_minutes: int
@@ -73,12 +78,23 @@ class Settings:
     strategy_state_path: str
     log_dir: str
 
+    # Core execution limits
     max_open_positions: int
     max_new_positions_per_cycle: int
     max_daily_entries_per_symbol: int
     live_allow_warmup_entries: bool
     use_exchange_tpsl: bool
 
+    # Survival profile v1.1
+    risk_profile: str
+    survival_correlated_group: list[str]
+    survival_max_correlated_open: int
+    survival_max_live_open_positions: int
+    survival_min_breakout_atr: float
+    survival_min_signal_score: float
+    survival_select_best_signal: bool
+
+    # Notifications
     notify_hold_summary: bool
     notify_loop_start: bool
     notify_heartbeat: bool
@@ -86,7 +102,7 @@ class Settings:
     notify_error: bool
     notify_blocked_signal: bool
 
-    # v1.0 live safety
+    # Live safety
     live_trading_enabled: bool
     live_start_confirm: str
     allowed_live_symbols: list[str]
@@ -94,7 +110,6 @@ class Settings:
     max_daily_loss_pct: float
     max_daily_loss_usdt: float
     max_order_notional_usdt: float
-    min_live_equity_usdt: float
     risk_state_path: str
     daily_loss_guard_enabled: bool
 
@@ -152,11 +167,19 @@ def load_settings() -> Settings:
         strategy_state_path=os.getenv("STRATEGY_STATE_PATH", "data/strategy_state.json").strip(),
         log_dir=os.getenv("LOG_DIR", "logs").strip(),
 
-        max_open_positions=int(os.getenv("MAX_OPEN_POSITIONS", "3")),
+        max_open_positions=int(os.getenv("MAX_OPEN_POSITIONS", "2")),
         max_new_positions_per_cycle=int(os.getenv("MAX_NEW_POSITIONS_PER_CYCLE", "1")),
         max_daily_entries_per_symbol=int(os.getenv("MAX_DAILY_ENTRIES_PER_SYMBOL", "1")),
         live_allow_warmup_entries=_bool(os.getenv("LIVE_ALLOW_WARMUP_ENTRIES"), True),
         use_exchange_tpsl=_bool(os.getenv("USE_EXCHANGE_TPSL"), True),
+
+        risk_profile=os.getenv("RISK_PROFILE", "SURVIVAL").strip().upper(),
+        survival_correlated_group=_symbols(os.getenv("SURVIVAL_CORRELATED_GROUP", "SP500USDT,NDX100USDT")),
+        survival_max_correlated_open=int(os.getenv("SURVIVAL_MAX_CORRELATED_OPEN", "1")),
+        survival_max_live_open_positions=int(os.getenv("SURVIVAL_MAX_LIVE_OPEN_POSITIONS", "2")),
+        survival_min_breakout_atr=float(os.getenv("SURVIVAL_MIN_BREAKOUT_ATR", "0.05")),
+        survival_min_signal_score=float(os.getenv("SURVIVAL_MIN_SIGNAL_SCORE", "0")),
+        survival_select_best_signal=_bool(os.getenv("SURVIVAL_SELECT_BEST_SIGNAL"), True),
 
         notify_hold_summary=_bool(os.getenv("NOTIFY_HOLD_SUMMARY"), False),
         notify_loop_start=_bool(os.getenv("NOTIFY_LOOP_START"), True),
@@ -169,10 +192,9 @@ def load_settings() -> Settings:
         live_start_confirm=os.getenv("LIVE_START_CONFIRM", "").strip(),
         allowed_live_symbols=_symbols(os.getenv("LIVE_ALLOWED_SYMBOLS", "SP500USDT,NDX100USDT,BTCUSDT")),
         max_live_capital_ratio=float(os.getenv("MAX_LIVE_CAPITAL_RATIO", "0.10")),
-        max_daily_loss_pct=float(os.getenv("MAX_DAILY_LOSS_PCT", "1.50")),
+        max_daily_loss_pct=float(os.getenv("MAX_DAILY_LOSS_PCT", "1.00")),
         max_daily_loss_usdt=float(os.getenv("MAX_DAILY_LOSS_USDT", "0")),
         max_order_notional_usdt=float(os.getenv("MAX_ORDER_NOTIONAL_USDT", "250")),
-        min_live_equity_usdt=float(os.getenv("MIN_LIVE_EQUITY_USDT", "50")),
         risk_state_path=os.getenv("RISK_STATE_PATH", "data/equity_guard.json").strip(),
         daily_loss_guard_enabled=_bool(os.getenv("DAILY_LOSS_GUARD_ENABLED"), True),
     )

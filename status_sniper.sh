@@ -5,7 +5,7 @@ echo "===== screen ====="
 screen -ls || true
 echo
 echo "===== .env safety ====="
-grep -E '^(DRY_RUN|SYMBOLS|LEVERAGE|CAPITAL_RATIO|STRATEGY_HEARTBEAT_MINUTES|LOOP_SECONDS)=' .env || true
+grep -E '^(DRY_RUN|SYMBOLS|LEVERAGE|CAPITAL_RATIO|RISK_PROFILE|MAX_OPEN_POSITIONS|MAX_DAILY_LOSS_PCT|SURVIVAL_|STRATEGY_HEARTBEAT_MINUTES|LOOP_SECONDS)=' .env || true
 echo
 echo "===== loop status ====="
 if [ -f data/loop_status.json ]; then
@@ -21,7 +21,14 @@ else
   echo "no logs/heartbeat.log yet"
 fi
 echo
-echo "===== main log tail ====="
+echo "===== survival dry log tail ====="
+if [ -f logs/sniper-survival-dry.log ]; then
+  tail -n 40 logs/sniper-survival-dry.log
+else
+  echo "no logs/sniper-survival-dry.log yet"
+fi
+echo
+echo "===== exec dry log tail ====="
 if [ -f logs/sniper-exec-dry.log ]; then
   tail -n 40 logs/sniper-exec-dry.log
 else

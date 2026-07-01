@@ -1,16 +1,21 @@
-# index-sniper-pro v1.0
+# index-sniper-pro v1.1 SURVIVAL
 
-Bitget UTA 전용 자동매매 프로젝트입니다.
+Bitget UTA 전용 자동매매 프로젝트입니다. 이 버전은 “1등보다 생존”을 선택한 운용 규칙을 기본값으로 둡니다.
 
-## v1.0 변경점
+## v1.1 핵심 변경점
 
 - SP500USDT / NDX100USDT / BTCUSDT 고정 운용
 - Larry Williams 변동성 돌파 + EMA 추세 필터 + ATR TP/SL
-- 기본값은 `DRY_RUN=true`로 실주문 없음
-- 실제 자동매매는 4중 안전문구가 모두 있어야 실행
-- HOLD 반복 알림 없음, 신호/주문/오류/heartbeat만 텔레그램 전송
-- Daily equity loss guard: 하루 손실 한도 도달 시 신규 진입 차단
-- 실전 시작용 `start_live_guarded.sh` 추가
+- SURVIVAL risk profile 기본 적용
+- SP500USDT와 NDX100USDT를 같은 미국지수 위험 버킷으로 취급
+- 미국지수 버킷은 동시에 1개 포지션만 허용
+- 전체 오픈 포지션 최대 2개
+- 한 사이클 신규 진입 최대 1개
+- 하루 심볼당 신규 진입 1회
+- 돌파선 1틱 터치가 아니라 ATR 0.05 이상 추가 돌파 확인
+- 여러 신호가 동시에 나오면 survival score가 가장 높은 1개만 선택
+- Daily equity loss guard 기본 -1.00%
+- 기본값은 DRY_RUN=true로 실주문 없음
 
 ## 설치
 
@@ -43,16 +48,25 @@ bash run_live_preflight.sh
 
 ## 실전 자동매매 시작 전 필수 .env
 
-처음 실전은 `CAPITAL_RATIO=0.01` 또는 `0.03`처럼 작게 시작하는 것을 권장합니다.
+처음 실전은 아래처럼 보수적으로 시작합니다.
 
 ```env
 DRY_RUN=false
 LIVE_TRADING_ENABLED=true
 LEVERAGE=5
-CAPITAL_RATIO=0.01
+CAPITAL_RATIO=0.10
+RISK_PROFILE=SURVIVAL
+MAX_OPEN_POSITIONS=2
+MAX_NEW_POSITIONS_PER_CYCLE=1
+MAX_DAILY_ENTRIES_PER_SYMBOL=1
+SURVIVAL_CORRELATED_GROUP=SP500USDT,NDX100USDT
+SURVIVAL_MAX_CORRELATED_OPEN=1
+SURVIVAL_MAX_LIVE_OPEN_POSITIONS=2
+SURVIVAL_SELECT_BEST_SIGNAL=true
+SURVIVAL_MIN_BREAKOUT_ATR=0.05
 MAX_LIVE_CAPITAL_RATIO=0.10
 MAX_ORDER_NOTIONAL_USDT=250
-MAX_DAILY_LOSS_PCT=1.50
+MAX_DAILY_LOSS_PCT=1.00
 SYMBOLS=SP500USDT,NDX100USDT,BTCUSDT
 STRATEGY_LIVE_CONFIRM=I_UNDERSTAND_AUTO_TRADING
 LIVE_START_CONFIRM=START_LIVE_INDEX_SNIPER
@@ -74,4 +88,4 @@ bash status_sniper.sh
 bash stop_sniper.sh
 ```
 
-주의: `stop_sniper.sh`는 봇 프로세스만 멈춥니다. 거래소에 이미 열린 포지션이 있으면 Bitget 앱/웹에서 직접 확인해야 합니다.
+주의: stop_sniper.sh는 봇 프로세스만 멈춥니다. 거래소에 이미 열린 포지션이 있으면 Bitget 앱/웹에서 직접 확인해야 합니다.
