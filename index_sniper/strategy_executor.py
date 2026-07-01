@@ -10,6 +10,7 @@ from index_sniper.config import Settings
 from index_sniper.event_log import append_jsonl, append_trade_csv
 from index_sniper.exchange.bitget_uta import BitgetUTAClient, OrderIntent
 from index_sniper.position import open_positions
+from index_sniper.risk.equity_guard import check_daily_equity_guard
 from index_sniper.risk.sizing import build_size_plan, extract_instrument, extract_symbol_config, extract_usdt_equity_available
 from index_sniper.state import StrategyState, utc_day
 from index_sniper.strategy.breakout import build_breakout_signal_adaptive
@@ -18,6 +19,28 @@ from index_sniper.telegram.bot import TelegramBot
 from index_sniper.utils.formatting import format_price
 
 CONFIRM_PHRASE = "I_UNDERSTAND_AUTO_TRADING"
+START_PHRASE = "START_LIVE_INDEX_SNIPER"
+
+
+def _live_safety_errors(settings: Settings) -> list[str]:
+    errors: list[str] = []
+    allowed = set(settings.allowed_live_symbols)
+    symbols = set(settings.symbols)
+    if not settings.live_trading_enabled:
+        errors.append("LIVE_TRADING_ENABLED=true is required")
+    if settings.live_start_confirm != START_PHRASE:
+        errors.append(f"LIVE_START_CONFIRM={START_PHRASE} is required")
+    if not symbols.issubset(allowed):
+        errors.append(f"SYMBOLS contains non-allowed live symbols: {sorted(symbols - allowed)}")
+    if settings.capital_ratio > settings.max_live_capital_ratio:
+        errors.append(f"CAPITAL_RATIO {settings.capital_ratio:.4f} > MAX_LIVE_CAPITAL_RATIO {settings.max_live_capital_ratio:.4f}")
+    if settings.leverage != 5:
+        errors.append(f"LEVERAGE must be 5 for v1.0 live mode, got {settings.leverage}")
+    if settings.max_new_positions_per_cycle > 1:
+        errors.append("MAX_NEW_POSITIONS_PER_CYCLE must be <= 1")
+    if settings.max_daily_entries_per_symbol > 1:
+        errors.append("MAX_DAILY_ENTRIES_PER_SYMBOL must be <= 1")
+    return errors
 
 
 def _short(data: object, limit: int = 50000) -> str:
@@ -73,7 +96,7 @@ def _make_entry_intent(settings: Settings, symbol: str, signal: Any, qty: str, i
     side = "buy" if signal.signal == "LONG" else "sell"
     pos_side = "long" if signal.signal == "LONG" else "short"
     oid = str(int(time.time() * 1000))[-10:]
-    prefix = "v09lo" if signal.signal == "LONG" else "v09so"
+    prefix = "v10lo" if signal.signal == "LONG" else "v10so"
     client_oid = f"{prefix}-{symbol.lower()}-{oid}"[:32]
     tp = format_price(signal.take_profit_price, instrument) if settings.use_exchange_tpsl and signal.take_profit_price else None
     sl = format_price(signal.stop_price, instrument) if settings.use_exchange_tpsl and signal.stop_price else None
@@ -109,12 +132,19 @@ def run_strategy_exec(settings: Settings, client: BitgetUTAClient, tg: TelegramB
     live = not settings.dry_run
     if live and settings.strategy_live_confirm != CONFIRM_PHRASE:
         msg = f"DRY_RUN=false이지만 STRATEGY_LIVE_CONFIRM가 없습니다. 실제 자동매매를 하려면 {CONFIRM_PHRASE}가 필요합니다."
-        tg.send(f"🛑 <b>v0.9 STRATEGY_EXEC 중단</b>\n{msg}")
+        tg.send(f"🛑 <b>v1.0 STRATEGY_EXEC 중단</b>\n{msg}")
         raise RuntimeError(msg)
+    if live:
+        live_errors = _live_safety_errors(settings)
+        if live_errors:
+            msg = "LIVE 안전 조건 불일치: " + "; ".join(live_errors)
+            tg.send(f"🛑 <b>v1.0 LIVE 안전장치 중단</b>\n{msg}")
+            raise RuntimeError(msg)
 
     assets = client.assets()
     settings_response = client.settings()
     equity, available = extract_usdt_equity_available(assets)
+    equity_guard = check_daily_equity_guard(settings, equity=equity, available=available)
     state = StrategyState(settings.strategy_state_path)
     today = utc_day()
     reports: list[dict[str, Any]] = []
@@ -124,11 +154,12 @@ def run_strategy_exec(settings: Settings, client: BitgetUTAClient, tg: TelegramB
 
     if notify_policy == "always":
         tg.send(
-            f"🧠 <b>Index Sniper Pro v0.9 STRATEGY_EXEC {mode_label}</b>\n"
+            f"🧠 <b>Index Sniper Pro v1.0 STRATEGY_EXEC {mode_label}</b>\n"
             f"실주문: {'있음' if live else '없음'}\n"
             f"대상: {', '.join(settings.symbols)}\n"
             f"계좌 사용비율: {settings.capital_ratio * 100:.2f}% / 레버리지 {settings.leverage}x\n"
             f"TP/SL preset: {settings.use_exchange_tpsl}\n"
+            f"daily loss guard: {'OK' if equity_guard.ok else 'BLOCK'} ({equity_guard.loss_pct:.3f}% / {equity_guard.max_daily_loss_pct:.3f}%)\n"
             f"open positions before: {global_open_before} / max {settings.max_open_positions}"
         )
 
@@ -150,15 +181,18 @@ def run_strategy_exec(settings: Settings, client: BitgetUTAClient, tg: TelegramB
             effective_capital_ratio = settings.capital_ratio * max(0.0, effective_size_multiplier)
             size_plan = build_size_plan(equity=equity, available=available, symbol_count=len(settings.symbols), capital_ratio=effective_capital_ratio, leverage=settings.leverage, price=price, instrument=instrument)
             daily_count = state.entry_count(symbol, today)
+            notional_ok = float(size_plan.notional_per_symbol or 0) <= float(settings.max_order_notional_usdt)
             checks = {
                 "has_signal": signal.signal in {"LONG", "SHORT"},
                 "leverage_ok": current_leverage == settings.leverage,
                 "margin_mode_ok": current_margin_mode == settings.margin_mode,
                 "no_open_position_for_symbol": len(opens) == 0,
                 "size_valid": size_plan.valid,
+                "max_order_notional_ok": notional_ok,
                 "daily_entry_limit_ok": daily_count < settings.max_daily_entries_per_symbol,
                 "global_open_limit_ok": global_open_before + new_entries_this_cycle < settings.max_open_positions,
                 "cycle_entry_limit_ok": new_entries_this_cycle < settings.max_new_positions_per_cycle,
+                "daily_loss_guard_ok": equity_guard.ok,
                 "warmup_allowed": (not signal.warmup_mode) or settings.live_allow_warmup_entries,
             }
             action_allowed = all(checks.values())
@@ -193,7 +227,7 @@ def run_strategy_exec(settings: Settings, client: BitgetUTAClient, tg: TelegramB
                 "current_leverage": current_leverage, "target_leverage": settings.leverage,
                 "current_margin_mode": current_margin_mode, "target_margin_mode": settings.margin_mode,
                 "open_position_count": len(opens), "global_open_before": global_open_before,
-                "daily_entries_today": daily_count, "signal": signal.to_dict(),
+                "daily_entries_today": daily_count, "equity_guard": equity_guard.to_dict(), "signal": signal.to_dict(),
                 "effective_size_multiplier": effective_size_multiplier, "effective_capital_ratio": effective_capital_ratio,
                 "size_plan": asdict(size_plan), "checks": checks, "action_allowed": action_allowed,
                 "order_payload_if_signal": intent_payload, "order_result": order_result,
@@ -203,7 +237,7 @@ def run_strategy_exec(settings: Settings, client: BitgetUTAClient, tg: TelegramB
             append_jsonl(settings.log_dir, "events.jsonl", {"type": "strategy_symbol_error", "symbol": symbol, "error": str(exc)})
         reports.append(item)
 
-    print(f"===== STRATEGY EXEC v0.9 {mode_label} =====")
+    print(f"===== STRATEGY EXEC v1.0 {mode_label} =====")
     print(_short(reports, 50000))
 
     active = [r for r in reports if r.get("signal", {}).get("signal") in {"LONG", "SHORT"}]
@@ -212,9 +246,10 @@ def run_strategy_exec(settings: Settings, client: BitgetUTAClient, tg: TelegramB
     blocked = [r for r in active if not r.get("action_allowed")]
 
     lines = [
-        f"✅ <b>v0.9 STRATEGY_EXEC {mode_label} 완료</b>",
+        f"✅ <b>v1.0 STRATEGY_EXEC {mode_label} 완료</b>",
         f"실주문: {'있음' if live else '없음'}",
         "Exchange preset TP/SL 포함" if settings.use_exchange_tpsl else "Exchange preset TP/SL 미사용",
+        f"Daily loss guard: {'OK' if equity_guard.ok else 'BLOCK'} {equity_guard.loss_pct:.3f}% / {equity_guard.max_daily_loss_pct:.3f}%",
     ]
     if errors:
         lines.append("⚠️ 오류: " + ", ".join(r["symbol"] for r in errors))

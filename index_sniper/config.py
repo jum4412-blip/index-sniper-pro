@@ -21,6 +21,10 @@ def _required(name: str) -> str:
     return value.strip()
 
 
+def _symbols(value: str) -> list[str]:
+    return [s.strip().upper() for s in value.split(",") if s.strip()]
+
+
 @dataclass(frozen=True)
 class Settings:
     bitget_api_key: str
@@ -35,6 +39,7 @@ class Settings:
     category: str
     margin_mode: str
     margin_coin: str
+
     allow_live_smoke: bool
     live_smoke_confirm: str
     live_smoke_symbol: str
@@ -42,6 +47,7 @@ class Settings:
     live_smoke_notional_usdt: float
     live_smoke_max_notional_usdt: float
     live_smoke_wait_seconds: int
+
     strategy_interval: str
     strategy_candle_limit: int
     k_value: float
@@ -59,17 +65,20 @@ class Settings:
     min_atr_period: int
     atr_stop_mult: float
     atr_take_profit_mult: float
+
     loop_seconds: int
     heartbeat_minutes: int
+    strategy_heartbeat_minutes: int
     strategy_live_confirm: str
     strategy_state_path: str
     log_dir: str
+
     max_open_positions: int
     max_new_positions_per_cycle: int
     max_daily_entries_per_symbol: int
     live_allow_warmup_entries: bool
     use_exchange_tpsl: bool
-    strategy_heartbeat_minutes: int
+
     notify_hold_summary: bool
     notify_loop_start: bool
     notify_heartbeat: bool
@@ -77,13 +86,25 @@ class Settings:
     notify_error: bool
     notify_blocked_signal: bool
 
+    # v1.0 live safety
+    live_trading_enabled: bool
+    live_start_confirm: str
+    allowed_live_symbols: list[str]
+    max_live_capital_ratio: float
+    max_daily_loss_pct: float
+    max_daily_loss_usdt: float
+    max_order_notional_usdt: float
+    min_live_equity_usdt: float
+    risk_state_path: str
+    daily_loss_guard_enabled: bool
+
 
 def load_settings() -> Settings:
     load_dotenv(ROOT / ".env")
-    symbols_raw = os.getenv("SYMBOLS", "SP500USDT,NDX100USDT,BTCUSDT")
-    symbols = [s.strip().upper() for s in symbols_raw.split(",") if s.strip()]
+    symbols = _symbols(os.getenv("SYMBOLS", "SP500USDT,NDX100USDT,BTCUSDT"))
     if not symbols:
         raise RuntimeError("SYMBOLS is empty")
+
     return Settings(
         bitget_api_key=_required("BITGET_API_KEY"),
         bitget_secret_key=_required("BITGET_SECRET_KEY"),
@@ -97,6 +118,7 @@ def load_settings() -> Settings:
         category=os.getenv("CATEGORY", "USDT-FUTURES").strip(),
         margin_mode=os.getenv("MARGIN_MODE", "crossed").strip(),
         margin_coin=os.getenv("MARGIN_COIN", "USDT").strip().upper(),
+
         allow_live_smoke=_bool(os.getenv("ALLOW_LIVE_SMOKE"), False),
         live_smoke_confirm=os.getenv("LIVE_SMOKE_CONFIRM", "").strip(),
         live_smoke_symbol=os.getenv("LIVE_SMOKE_SYMBOL", "BTCUSDT").strip().upper(),
@@ -104,6 +126,7 @@ def load_settings() -> Settings:
         live_smoke_notional_usdt=float(os.getenv("LIVE_SMOKE_NOTIONAL_USDT", "12")),
         live_smoke_max_notional_usdt=float(os.getenv("LIVE_SMOKE_MAX_NOTIONAL_USDT", "20")),
         live_smoke_wait_seconds=int(os.getenv("LIVE_SMOKE_WAIT_SECONDS", "3")),
+
         strategy_interval=os.getenv("STRATEGY_INTERVAL", "1D").strip(),
         strategy_candle_limit=int(os.getenv("STRATEGY_CANDLE_LIMIT", "100")),
         k_value=float(os.getenv("K_VALUE", "0.50")),
@@ -121,21 +144,35 @@ def load_settings() -> Settings:
         min_atr_period=int(os.getenv("MIN_ATR_PERIOD", "10")),
         atr_stop_mult=float(os.getenv("ATR_STOP_MULT", "1.30")),
         atr_take_profit_mult=float(os.getenv("ATR_TAKE_PROFIT_MULT", "2.00")),
+
         loop_seconds=int(os.getenv("LOOP_SECONDS", "300")),
         heartbeat_minutes=int(os.getenv("HEARTBEAT_MINUTES", "60")),
+        strategy_heartbeat_minutes=int(os.getenv("STRATEGY_HEARTBEAT_MINUTES", os.getenv("HEARTBEAT_MINUTES", "60"))),
         strategy_live_confirm=os.getenv("STRATEGY_LIVE_CONFIRM", "").strip(),
         strategy_state_path=os.getenv("STRATEGY_STATE_PATH", "data/strategy_state.json").strip(),
         log_dir=os.getenv("LOG_DIR", "logs").strip(),
+
         max_open_positions=int(os.getenv("MAX_OPEN_POSITIONS", "3")),
         max_new_positions_per_cycle=int(os.getenv("MAX_NEW_POSITIONS_PER_CYCLE", "1")),
         max_daily_entries_per_symbol=int(os.getenv("MAX_DAILY_ENTRIES_PER_SYMBOL", "1")),
         live_allow_warmup_entries=_bool(os.getenv("LIVE_ALLOW_WARMUP_ENTRIES"), True),
         use_exchange_tpsl=_bool(os.getenv("USE_EXCHANGE_TPSL"), True),
-        strategy_heartbeat_minutes=int(os.getenv("STRATEGY_HEARTBEAT_MINUTES", os.getenv("HEARTBEAT_MINUTES", "60"))),
+
         notify_hold_summary=_bool(os.getenv("NOTIFY_HOLD_SUMMARY"), False),
         notify_loop_start=_bool(os.getenv("NOTIFY_LOOP_START"), True),
         notify_heartbeat=_bool(os.getenv("NOTIFY_HEARTBEAT"), True),
         notify_signal=_bool(os.getenv("NOTIFY_SIGNAL"), True),
         notify_error=_bool(os.getenv("NOTIFY_ERROR"), True),
         notify_blocked_signal=_bool(os.getenv("NOTIFY_BLOCKED_SIGNAL"), True),
+
+        live_trading_enabled=_bool(os.getenv("LIVE_TRADING_ENABLED"), False),
+        live_start_confirm=os.getenv("LIVE_START_CONFIRM", "").strip(),
+        allowed_live_symbols=_symbols(os.getenv("LIVE_ALLOWED_SYMBOLS", "SP500USDT,NDX100USDT,BTCUSDT")),
+        max_live_capital_ratio=float(os.getenv("MAX_LIVE_CAPITAL_RATIO", "0.10")),
+        max_daily_loss_pct=float(os.getenv("MAX_DAILY_LOSS_PCT", "1.50")),
+        max_daily_loss_usdt=float(os.getenv("MAX_DAILY_LOSS_USDT", "0")),
+        max_order_notional_usdt=float(os.getenv("MAX_ORDER_NOTIONAL_USDT", "250")),
+        min_live_equity_usdt=float(os.getenv("MIN_LIVE_EQUITY_USDT", "50")),
+        risk_state_path=os.getenv("RISK_STATE_PATH", "data/equity_guard.json").strip(),
+        daily_loss_guard_enabled=_bool(os.getenv("DAILY_LOSS_GUARD_ENABLED"), True),
     )

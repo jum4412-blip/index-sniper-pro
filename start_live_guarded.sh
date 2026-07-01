@@ -17,5 +17,8 @@ if ! grep -q '^LIVE_START_CONFIRM=START_LIVE_INDEX_SNIPER' .env; then
   echo "🛑 .env에 LIVE_START_CONFIRM=START_LIVE_INDEX_SNIPER 확인문구가 필요합니다."
   exit 1
 fi
-source venv/bin/activate
-python main.py --mode strategy-exec-loop
+bash stop_sniper.sh >/dev/null 2>&1 || true
+mkdir -p logs data
+screen -dmS sniper-live bash -lc 'cd ~/index-sniper-pro && source venv/bin/activate && while true; do bash run_strategy_live_loop.sh >> logs/sniper-live.log 2>&1; echo "$(date -u +%FT%TZ) live loop exited; restarting in 30s" >> logs/sniper-live.log; sleep 30; done'
+echo "✅ sniper-live started"
+screen -ls
