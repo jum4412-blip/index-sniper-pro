@@ -60,7 +60,7 @@ def run_emergency_close(settings: Settings, client: BitgetUTAClient, tg: Telegra
             category=settings.category,
             margin_coin=settings.margin_coin,
             margin_mode=settings.margin_mode,
-            reduce_only=True,  # builder omits reduceOnly in hedge-mode; posSide controls close.
+            reduce_only=True,  # hedge-mode close uses side + posSide.
             client_oid=f"emclose-{symbol.lower()}-{side}-{oid}",
         )
         payload_preview = client.place_order(intent, dry_run=True)
