@@ -73,7 +73,7 @@ def _make_entry_intent(settings: Settings, symbol: str, signal: Any, qty: str, i
     side = "buy" if signal.signal == "LONG" else "sell"
     pos_side = "long" if signal.signal == "LONG" else "short"
     oid = str(int(time.time() * 1000))[-10:]
-    prefix = "v08lo" if signal.signal == "LONG" else "v08so"
+    prefix = "v09lo" if signal.signal == "LONG" else "v09so"
     client_oid = f"{prefix}-{symbol.lower()}-{oid}"[:32]
     tp = format_price(signal.take_profit_price, instrument) if settings.use_exchange_tpsl and signal.take_profit_price else None
     sl = format_price(signal.stop_price, instrument) if settings.use_exchange_tpsl and signal.stop_price else None
@@ -109,7 +109,7 @@ def run_strategy_exec(settings: Settings, client: BitgetUTAClient, tg: TelegramB
     live = not settings.dry_run
     if live and settings.strategy_live_confirm != CONFIRM_PHRASE:
         msg = f"DRY_RUN=false이지만 STRATEGY_LIVE_CONFIRM가 없습니다. 실제 자동매매를 하려면 {CONFIRM_PHRASE}가 필요합니다."
-        tg.send(f"🛑 <b>v0.7 STRATEGY_EXEC 중단</b>\n{msg}")
+        tg.send(f"🛑 <b>v0.9 STRATEGY_EXEC 중단</b>\n{msg}")
         raise RuntimeError(msg)
 
     assets = client.assets()
@@ -124,7 +124,7 @@ def run_strategy_exec(settings: Settings, client: BitgetUTAClient, tg: TelegramB
 
     if notify_policy == "always":
         tg.send(
-            f"🧠 <b>Index Sniper Pro v0.8 STRATEGY_EXEC {mode_label}</b>\n"
+            f"🧠 <b>Index Sniper Pro v0.9 STRATEGY_EXEC {mode_label}</b>\n"
             f"실주문: {'있음' if live else '없음'}\n"
             f"대상: {', '.join(settings.symbols)}\n"
             f"계좌 사용비율: {settings.capital_ratio * 100:.2f}% / 레버리지 {settings.leverage}x\n"
@@ -203,7 +203,7 @@ def run_strategy_exec(settings: Settings, client: BitgetUTAClient, tg: TelegramB
             append_jsonl(settings.log_dir, "events.jsonl", {"type": "strategy_symbol_error", "symbol": symbol, "error": str(exc)})
         reports.append(item)
 
-    print(f"===== STRATEGY EXEC v0.7 {mode_label} =====")
+    print(f"===== STRATEGY EXEC v0.9 {mode_label} =====")
     print(_short(reports, 50000))
 
     active = [r for r in reports if r.get("signal", {}).get("signal") in {"LONG", "SHORT"}]
@@ -212,7 +212,7 @@ def run_strategy_exec(settings: Settings, client: BitgetUTAClient, tg: TelegramB
     blocked = [r for r in active if not r.get("action_allowed")]
 
     lines = [
-        f"✅ <b>v0.8 STRATEGY_EXEC {mode_label} 완료</b>",
+        f"✅ <b>v0.9 STRATEGY_EXEC {mode_label} 완료</b>",
         f"실주문: {'있음' if live else '없음'}",
         "Exchange preset TP/SL 포함" if settings.use_exchange_tpsl else "Exchange preset TP/SL 미사용",
     ]

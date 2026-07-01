@@ -80,55 +80,158 @@ def mode_strategy_exec() -> None:
     run_strategy_exec(settings, client, tg, notify_policy="always")
 
 
+def _write_loop_status(settings, loop_name: str, status: dict) -> None:
+    """Persist loop health so status_sniper.sh can show whether the bot is alive."""
+    from pathlib import Path
+    import json
+    from datetime import datetime, timezone
+    root = Path(__file__).resolve().parent
+    data_dir = root / "data"
+    data_dir.mkdir(parents=True, exist_ok=True)
+    payload = {"loop": loop_name, "updated_at": datetime.now(timezone.utc).isoformat(), **status}
+    tmp = data_dir / "loop_status.json.tmp"
+    tmp.write_text(json.dumps(payload, ensure_ascii=False, indent=2), encoding="utf-8")
+    tmp.replace(data_dir / "loop_status.json")
+
+
+def _append_heartbeat_log(message: str) -> None:
+    from pathlib import Path
+    from datetime import datetime, timezone
+    root = Path(__file__).resolve().parent
+    log_dir = root / "logs"
+    log_dir.mkdir(parents=True, exist_ok=True)
+    with (log_dir / "heartbeat.log").open("a", encoding="utf-8") as f:
+        f.write(f"{datetime.now(timezone.utc).isoformat()} {message}\n")
+
+
+def _send_heartbeat(tg: TelegramBot, text: str) -> None:
+    ok = tg.send(text)
+    _append_heartbeat_log(("telegram_ok " if ok else "telegram_failed ") + text.replace("\n", " | "))
+
+
 def mode_strategy_loop_dry() -> None:
     import time
+    from datetime import datetime, timezone
     settings, client, tg = make_client_and_tg()
+    loop_name = "strategy-loop-dry"
+    mode = "DRY"
+    cycle = 0
+    error_count = 0
+    started_at = datetime.now(timezone.utc).isoformat()
+    heartbeat_seconds = max(60, settings.strategy_heartbeat_minutes * 60)
+    last_heartbeat = 0.0
+    _write_loop_status(settings, loop_name, {"mode": mode, "dry_run": True, "cycle": cycle, "started_at": started_at, "status": "starting"})
     if settings.notify_loop_start:
         tg.send(
             f"🟢 <b>v{__version__} 전략 드라이 루프 시작</b>\n"
             f"실주문 없음\n"
+            f"대상: {', '.join(settings.symbols)}\n"
             f"주기: {settings.loop_seconds}초\n"
+            f"Heartbeat: {settings.strategy_heartbeat_minutes}분\n"
             "알림정책: HOLD 무음 / 신호·오류·heartbeat만 알림"
         )
-    last_heartbeat = time.time()
+    # v0.9: startup heartbeat also proves the heartbeat path works.
+    if settings.notify_heartbeat:
+        _send_heartbeat(tg, f"❤️ <b>Index Sniper Pro v{__version__} heartbeat 시작</b>\n모드: {mode}\n실주문 없음")
+        last_heartbeat = time.time()
     while True:
+        cycle += 1
+        cycle_started = datetime.now(timezone.utc).isoformat()
+        last_error = ""
         try:
-            run_strategy_exec(settings, client, tg, notify_policy="important")
+            reports = run_strategy_exec(settings, client, tg, notify_policy="important")
+            signals = [r.get("symbol") for r in reports if r.get("signal", {}).get("signal") in {"LONG", "SHORT"}]
+            _write_loop_status(settings, loop_name, {
+                "mode": mode, "dry_run": True, "cycle": cycle, "started_at": started_at,
+                "last_cycle_at": cycle_started, "last_cycle_ok": True,
+                "last_signal_symbols": signals, "error_count": error_count,
+                "status": "running",
+            })
         except Exception as exc:
+            error_count += 1
+            last_error = str(exc)
+            _write_loop_status(settings, loop_name, {
+                "mode": mode, "dry_run": True, "cycle": cycle, "started_at": started_at,
+                "last_cycle_at": cycle_started, "last_cycle_ok": False,
+                "last_error": last_error, "error_count": error_count,
+                "status": "running_with_errors",
+            })
             if settings.notify_error:
-                tg.send(f"⚠️ <b>v{__version__} 전략 드라이 루프 오류</b>\n{exc}")
+                tg.send(f"⚠️ <b>v{__version__} 전략 드라이 루프 오류</b>\ncycle {cycle}\n{last_error[:1000]}")
         now = time.time()
-        if settings.notify_heartbeat and now - last_heartbeat >= settings.strategy_heartbeat_minutes * 60:
-            tg.send(f"❤️ Index Sniper Pro v{__version__} dry-loop alive")
+        if settings.notify_heartbeat and now - last_heartbeat >= heartbeat_seconds:
+            _send_heartbeat(
+                tg,
+                f"❤️ <b>Index Sniper Pro v{__version__} alive</b>\n"
+                f"모드: {mode}\n실주문 없음\ncycle: {cycle}\nerrors: {error_count}\nlast: {datetime.now(timezone.utc).strftime('%Y-%m-%d %H:%M:%S UTC')}"
+            )
             last_heartbeat = now
         time.sleep(max(10, settings.loop_seconds))
 
 
 def mode_strategy_exec_loop() -> None:
     import time
+    from datetime import datetime, timezone
     settings, client, tg = make_client_and_tg()
+    loop_name = "strategy-exec-loop"
     mode = "LIVE" if not settings.dry_run else "DRY"
+    cycle = 0
+    error_count = 0
+    started_at = datetime.now(timezone.utc).isoformat()
+    heartbeat_seconds = max(60, settings.strategy_heartbeat_minutes * 60)
+    last_heartbeat = 0.0
+    _write_loop_status(settings, loop_name, {"mode": mode, "dry_run": settings.dry_run, "cycle": cycle, "started_at": started_at, "status": "starting"})
     if settings.notify_loop_start:
         tg.send(
             f"🟢 <b>v{__version__} 전략 실행 루프 시작</b>\n"
             f"모드: {mode}\n"
             f"실주문: {'있음' if not settings.dry_run else '없음'}\n"
+            f"대상: {', '.join(settings.symbols)}\n"
             f"주기: {settings.loop_seconds}초\n"
+            f"Heartbeat: {settings.strategy_heartbeat_minutes}분\n"
             "알림정책: HOLD 무음 / 신호·오류·heartbeat만 알림"
         )
-    last_heartbeat = time.time()
+    if settings.notify_heartbeat:
+        _send_heartbeat(
+            tg,
+            f"❤️ <b>Index Sniper Pro v{__version__} heartbeat 시작</b>\n"
+            f"모드: {mode}\n실주문: {'있음' if not settings.dry_run else '없음'}"
+        )
+        last_heartbeat = time.time()
     while True:
+        cycle += 1
+        cycle_started = datetime.now(timezone.utc).isoformat()
+        last_error = ""
         try:
-            run_strategy_exec(settings, client, tg, notify_policy="important")
+            reports = run_strategy_exec(settings, client, tg, notify_policy="important")
+            signals = [r.get("symbol") for r in reports if r.get("signal", {}).get("signal") in {"LONG", "SHORT"}]
+            executed = [r.get("symbol") for r in reports if r.get("order_result") is not None and r.get("action_allowed")]
+            _write_loop_status(settings, loop_name, {
+                "mode": mode, "dry_run": settings.dry_run, "cycle": cycle, "started_at": started_at,
+                "last_cycle_at": cycle_started, "last_cycle_ok": True,
+                "last_signal_symbols": signals, "last_executed_symbols": executed,
+                "error_count": error_count, "status": "running",
+            })
         except Exception as exc:
+            error_count += 1
+            last_error = str(exc)
+            _write_loop_status(settings, loop_name, {
+                "mode": mode, "dry_run": settings.dry_run, "cycle": cycle, "started_at": started_at,
+                "last_cycle_at": cycle_started, "last_cycle_ok": False,
+                "last_error": last_error, "error_count": error_count,
+                "status": "running_with_errors",
+            })
             if settings.notify_error:
-                tg.send(f"⚠️ <b>v{__version__} 전략 실행 루프 오류</b>\n{exc}")
+                tg.send(f"⚠️ <b>v{__version__} 전략 실행 루프 오류</b>\ncycle {cycle}\n{last_error[:1000]}")
         now = time.time()
-        if settings.notify_heartbeat and now - last_heartbeat >= settings.strategy_heartbeat_minutes * 60:
-            tg.send(f"❤️ Index Sniper Pro v{__version__} alive ({mode})")
+        if settings.notify_heartbeat and now - last_heartbeat >= heartbeat_seconds:
+            _send_heartbeat(
+                tg,
+                f"❤️ <b>Index Sniper Pro v{__version__} alive</b>\n"
+                f"모드: {mode}\n실주문: {'있음' if not settings.dry_run else '없음'}\ncycle: {cycle}\nerrors: {error_count}\nlast: {datetime.now(timezone.utc).strftime('%Y-%m-%d %H:%M:%S UTC')}"
+            )
             last_heartbeat = now
         time.sleep(max(10, settings.loop_seconds))
-
 
 def main() -> None:
     parser = argparse.ArgumentParser(description="Index Sniper Pro")

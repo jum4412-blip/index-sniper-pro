@@ -1,42 +1,36 @@
-# index-sniper-pro v0.8
+# index-sniper-pro v0.9
 
-## v0.8 변경점
+고정 프로젝트: `index-sniper-pro`
 
-- HOLD 상태 텔레그램 알림 기본 OFF
-- 루프 시작 알림 1회
-- 신호 발생 / 주문 예정 / 주문 실행 / 오류만 알림
-- 하트비트는 `STRATEGY_HEARTBEAT_MINUTES`마다 1회
-- 중복 screen 정리 스크립트 추가
+## v0.9 목표
+- v0.8의 2분 HOLD 알림 방지 유지
+- heartbeat 시작 알림 추가
+- 1시간 생존알림 강화
+- `data/loop_status.json`으로 루프 상태 저장
+- `logs/heartbeat.log` 저장
+- watchdog wrapper로 루프가 죽으면 자동 재시작
+- 기본 DRY_RUN=true, 실주문 없음
 
-## 알림 정책 기본값
-
-```env
-NOTIFY_HOLD_SUMMARY=false
-NOTIFY_LOOP_START=true
-NOTIFY_HEARTBEAT=true
-NOTIFY_SIGNAL=true
-NOTIFY_ERROR=true
-NOTIFY_BLOCKED_SIGNAL=true
-STRATEGY_HEARTBEAT_MINUTES=60
-LOOP_SECONDS=300
-```
-
-## 기존 루프 중지
+## 실행
 
 ```bash
 bash stop_sniper.sh
+bash test_heartbeat.sh
+bash start_exec_dry.sh
+bash status_sniper.sh
 ```
 
-## 조용한 드라이런 루프 시작
+## 로그
 
 ```bash
-bash start_exec_dry_quiet.sh
+tail -f logs/sniper-exec-dry.log
 ```
 
-## 로그 보기
+나가기: `Ctrl + C`
 
-```bash
-bash view_log.sh
+## 안전
+실거래 전에는 반드시 다음이 유지되어야 함.
+
+```env
+DRY_RUN=true
 ```
-
-`DRY_RUN=true` 상태에서는 실주문이 나가지 않습니다.
