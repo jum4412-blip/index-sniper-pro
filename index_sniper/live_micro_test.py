@@ -115,7 +115,7 @@ def run_micro_live_test(settings: Settings, client: BitgetUTAClient, tg: Telegra
         f"symbol: {symbol}\n"
         f"qty: {qty}\n"
         f"approx notional: {notional:.6f} USDT\n"
-        "시장가 LONG 진입 후 즉시 reduceOnly 청산 시도"
+        "시장가 LONG 진입 후 즉시 hedge-mode 청산 시도"
     )
 
     result: dict[str, Any] = {
@@ -159,6 +159,6 @@ def run_micro_live_test(settings: Settings, client: BitgetUTAClient, tg: Telegra
                 result["emergency_close_error"] = str(close_exc)
                 tg.send(f"🛑 <b>긴급 청산 실패</b>\n{symbol} {qty}\n즉시 Bitget 앱에서 포지션 확인 필요\n{close_exc}")
         tg.send(f"⚠️ <b>MICRO TEST 실패/확인 필요</b>\n{symbol}\n{exc}")
-    print("===== MICRO LIVE TEST v0.4 =====")
+    print("===== MICRO LIVE TEST v1.2 HOTFIX =====")
     print(_short(result, 30000))
     return result

@@ -8,6 +8,7 @@ from index_sniper import __version__
 from index_sniper.config import load_settings
 from index_sniper.exchange.bitget_uta import BitgetUTAClient
 from index_sniper.live_micro_test import run_micro_live_test
+from index_sniper.emergency_close import run_emergency_close
 from index_sniper.order_dry_run import run_dry_order_check
 from index_sniper.preflight import run_preflight
 from index_sniper.strategy_dry_run import run_strategy_dry
@@ -68,6 +69,11 @@ def mode_preflight() -> None:
 def mode_micro_live_test() -> None:
     settings, client, tg = make_client_and_tg()
     run_micro_live_test(settings, client, tg)
+
+
+def mode_emergency_close() -> None:
+    settings, client, tg = make_client_and_tg()
+    run_emergency_close(settings, client, tg)
 
 
 def mode_strategy_dry() -> None:
@@ -235,7 +241,7 @@ def mode_strategy_exec_loop() -> None:
 
 def main() -> None:
     parser = argparse.ArgumentParser(description="Index Sniper Pro")
-    parser.add_argument("--mode", choices=["check", "order-dry", "preflight", "micro-live-test", "strategy-dry", "strategy-loop-dry", "strategy-exec", "strategy-exec-loop"], default="check")
+    parser.add_argument("--mode", choices=["check", "order-dry", "preflight", "micro-live-test", "emergency-close", "strategy-dry", "strategy-loop-dry", "strategy-exec", "strategy-exec-loop"], default="check")
     args = parser.parse_args()
     if args.mode == "check":
         mode_check()
@@ -245,6 +251,8 @@ def main() -> None:
         mode_preflight()
     elif args.mode == "micro-live-test":
         mode_micro_live_test()
+    elif args.mode == "emergency-close":
+        mode_emergency_close()
     elif args.mode == "strategy-dry":
         mode_strategy_dry()
     elif args.mode == "strategy-loop-dry":

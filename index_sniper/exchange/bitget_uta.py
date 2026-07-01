@@ -166,7 +166,14 @@ class BitgetUTAClient:
         }
         if intent.client_oid:
             body["clientOid"] = intent.client_oid
-        if intent.reduce_only:
+        # Bitget UTA hedge-mode close logic:
+        # - Close long  = side=sell + posSide=long
+        # - Close short = side=buy  + posSide=short
+        # UTA rejects orders that send posSide and reduceOnly together in hedge-mode
+        # (error 25238). Our account uses hedge-mode, so close intents keep posSide
+        # and intentionally omit reduceOnly. In one-way mode, posSide would be blank
+        # and reduceOnly can be sent.
+        if intent.reduce_only and not intent.pos_side:
             body["reduceOnly"] = "yes"
         if not intent.reduce_only:
             if intent.take_profit:

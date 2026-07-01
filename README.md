@@ -89,3 +89,26 @@ bash stop_sniper.sh
 ```
 
 주의: stop_sniper.sh는 봇 프로세스만 멈춥니다. 거래소에 이미 열린 포지션이 있으면 Bitget 앱/웹에서 직접 확인해야 합니다.
+
+
+## v1.2 HOTFIX: Bitget UTA hedge-mode close fix
+
+Bitget UTA hedge-mode에서는 청산 주문에 `posSide`와 `reduceOnly`를 동시에 보내면 오류 25238이 발생할 수 있다.
+따라서 v1.2부터 hedge-mode 청산은 다음 형태로 보낸다.
+
+- Long 청산: `side=sell`, `posSide=long`
+- Short 청산: `side=buy`, `posSide=short`
+- `reduceOnly`는 hedge-mode 청산 payload에서 제외
+
+마이크로 테스트 중 청산 실패가 있었으면 먼저 Bitget 앱에서 포지션을 확인한다.
+포지션이 남아 있으면 아래 명령으로 BTCUSDT 긴급 청산을 시도할 수 있다.
+
+```bash
+DRY_RUN=false EMERGENCY_CLOSE_CONFIRM=I_UNDERSTAND_CLOSE_POSITION EMERGENCY_CLOSE_SYMBOL=BTCUSDT bash run_emergency_close.sh
+```
+
+그 다음 마이크로 테스트를 다시 실행한다.
+
+```bash
+DRY_RUN=false LIVE_TEST_CONFIRM=I_UNDERSTAND_REAL_ORDER LIVE_TEST_SYMBOL=BTCUSDT bash run_micro_live_test.sh
+```
