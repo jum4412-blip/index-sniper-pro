@@ -1,1 +1,1 @@
-__version__ = "1.4.0-external-signal"
+__version__ = "1.5.0-external-stable"

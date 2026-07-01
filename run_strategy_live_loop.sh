@@ -18,4 +18,4 @@ if ! grep -q '^LIVE_START_CONFIRM=START_LIVE_INDEX_SNIPER' .env; then
   exit 1
 fi
 source venv/bin/activate
-python main.py --mode strategy-exec-loop
+PYTHONUNBUFFERED=1 python -u main.py --mode strategy-exec-loop

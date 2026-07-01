@@ -31,7 +31,7 @@ def _fmt_price(x: float | None) -> str:
 def run_strategy_dry(settings: Settings, client: BitgetUTAClient, tg: TelegramBot) -> list[dict[str, Any]]:
     if not settings.dry_run:
         msg = "strategy-dry는 DRY_RUN=true에서만 실행합니다."
-        tg.send(f"🛑 <b>v1.4 STRATEGY_DRY 중단</b>\n{msg}")
+        tg.send(f"🛑 <b>v1.5 STRATEGY_DRY 중단</b>\n{msg}")
         raise RuntimeError(msg)
 
     assets = client.assets()
@@ -40,7 +40,7 @@ def run_strategy_dry(settings: Settings, client: BitgetUTAClient, tg: TelegramBo
     reports: list[dict[str, Any]] = []
 
     tg.send(
-        "🧠 <b>Index Sniper Pro v1.4 STRATEGY_DRY</b>\n"
+        "🧠 <b>Index Sniper Pro v1.5 STRATEGY_DRY</b>\n"
         "실주문 없음\n"
         f"대상: {', '.join(settings.symbols)}\n"
         f"Daily breakout: {settings.strategy_interval}, K: {settings.k_value}\n"
@@ -100,7 +100,7 @@ def run_strategy_dry(settings: Settings, client: BitgetUTAClient, tg: TelegramBo
 
     errors = [r for r in reports if "error" in r]
     active = [r for r in reports if r.get("signal", {}).get("signal") in {"LONG", "SHORT"}]
-    lines = ["✅ <b>v1.4 STRATEGY_DRY 완료</b>", "실주문 없음", "SP500/NDX는 외부 데이터 우선, BTC는 Bitget 데이터 사용"]
+    lines = ["✅ <b>v1.5 STRATEGY_DRY 완료</b>", "실주문 없음", "SP500/NDX는 외부 데이터 우선, BTC는 Bitget 데이터 사용"]
     if errors:
         lines.append("⚠️ 오류 심볼: " + ", ".join(r["symbol"] for r in errors))
     if active:

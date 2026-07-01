@@ -65,9 +65,9 @@ def run_dry_order_check(settings: Settings, client: BitgetUTAClient, tg: Telegra
             )
             oid = str(int(time.time() * 1000))[-10:]
             long_open = client.place_order(OrderIntent(symbol=symbol, side="buy", pos_side="long", qty=size_plan.final_qty, category=settings.category, margin_coin=settings.margin_coin, margin_mode=settings.margin_mode, client_oid=f"drylo-{symbol}-{oid}"), dry_run=True)
-            long_close = client.place_order(OrderIntent(symbol=symbol, side="sell", pos_side="long", qty=size_plan.final_qty, category=settings.category, margin_coin=settings.margin_coin, margin_mode=settings.margin_mode, reduce_only=True, client_oid=f"drylc-{symbol}-{oid}"), dry_run=True)
+            long_close = client.place_order(OrderIntent(symbol=symbol, side="sell", pos_side="long", qty=size_plan.final_qty, category=settings.category, margin_coin=settings.margin_coin, margin_mode=settings.margin_mode , client_oid=f"drylc-{symbol}-{oid}"), dry_run=True)
             short_open = client.place_order(OrderIntent(symbol=symbol, side="sell", pos_side="short", qty=size_plan.final_qty, category=settings.category, margin_coin=settings.margin_coin, margin_mode=settings.margin_mode, client_oid=f"dryso-{symbol}-{oid}"), dry_run=True)
-            short_close = client.place_order(OrderIntent(symbol=symbol, side="buy", pos_side="short", qty=size_plan.final_qty, category=settings.category, margin_coin=settings.margin_coin, margin_mode=settings.margin_mode, reduce_only=True, client_oid=f"drysc-{symbol}-{oid}"), dry_run=True)
+            short_close = client.place_order(OrderIntent(symbol=symbol, side="buy", pos_side="short", qty=size_plan.final_qty, category=settings.category, margin_coin=settings.margin_coin, margin_mode=settings.margin_mode , client_oid=f"drysc-{symbol}-{oid}"), dry_run=True)
             item.update({
                 "price": price,
                 "current_leverage": current_leverage,

@@ -129,7 +129,7 @@ class Settings:
     risk_state_path: str
     daily_loss_guard_enabled: bool
 
-    # External signal data v1.4
+    # External signal data v1.5
     external_signal_enabled: bool
     external_signal_symbols: list[str]
     external_provider_order: str
@@ -229,8 +229,8 @@ def load_settings() -> Settings:
 
         external_signal_enabled=_bool(os.getenv("EXTERNAL_SIGNAL_ENABLED"), True),
         external_signal_symbols=_symbols(os.getenv("EXTERNAL_SIGNAL_SYMBOLS", "SP500USDT,NDX100USDT")),
-        external_provider_order=os.getenv("EXTERNAL_PROVIDER_ORDER", "YAHOO,STOOQ").strip(),
-        external_yahoo_symbol_map=_symbol_map(os.getenv("EXTERNAL_YAHOO_SYMBOL_MAP", "SP500USDT:ES=F,NDX100USDT:NQ=F")),
+        external_provider_order=os.getenv("EXTERNAL_PROVIDER_ORDER", "STOOQ,YAHOO").strip(),
+        external_yahoo_symbol_map=_symbol_map(os.getenv("EXTERNAL_YAHOO_SYMBOL_MAP", "SP500USDT:ES=F|^GSPC,NDX100USDT:NQ=F|^NDX")),
         external_stooq_symbol_map=_symbol_map(os.getenv("EXTERNAL_STOOQ_SYMBOL_MAP", "SP500USDT:^spx,NDX100USDT:^ndx")),
         external_yahoo_range=os.getenv("EXTERNAL_YAHOO_RANGE", "2y").strip(),
         external_yahoo_interval=os.getenv("EXTERNAL_YAHOO_INTERVAL", "1d").strip(),

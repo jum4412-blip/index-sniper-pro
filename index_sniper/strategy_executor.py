@@ -75,7 +75,7 @@ def _fmt_price(x: float | str | None) -> str:
 def _signal_for_symbol(settings: Settings, client: BitgetUTAClient, symbol: str):
     """Build a signal for one Bitget symbol.
 
-    v1.4 external signal rule:
+    v1.5 external signal rule:
     - BTCUSDT keeps using Bitget candles.
     - SP500USDT/NDX100USDT can use external futures/index history for trend, ATR, and Larry breakout levels.
     - Bitget price is still used as the final execution price. External OHLC is scaled to Bitget price level.
@@ -85,51 +85,82 @@ def _signal_for_symbol(settings: Settings, client: BitgetUTAClient, symbol: str)
 
     external_symbols = {s.upper() for s in settings.external_signal_symbols}
     if settings.external_signal_enabled and symbol.upper() in external_symbols:
-        external = fetch_external_daily_for_symbol(
-            symbol=symbol,
-            bitget_price=price,
-            provider_order=settings.external_provider_order,
-            yahoo_map=settings.external_yahoo_symbol_map,
-            stooq_map=settings.external_stooq_symbol_map,
-            yahoo_range=settings.external_yahoo_range,
-            yahoo_interval=settings.external_yahoo_interval,
-            timeout=settings.external_timeout_seconds,
-            limit=settings.external_candle_limit,
-            max_staleness_hours=settings.external_max_staleness_hours,
-            max_scale_deviation_pct=settings.external_max_scale_deviation_pct,
-        )
-        daily_candles = external.candles
-        warmup_candles = None
-        signal = build_breakout_signal_adaptive(
-            symbol=symbol,
-            daily_candles=daily_candles,
-            trend_candles=None,
-            current_price=price,
-            k_value=settings.k_value,
-            ema_fast_period=settings.ema_fast,
-            ema_slow_period=settings.ema_slow,
-            atr_period=settings.atr_period,
-            atr_stop_mult=settings.atr_stop_mult,
-            atr_take_profit_mult=settings.atr_take_profit_mult,
-            warmup_trend_interval=settings.warmup_trend_interval,
-            warmup_ema_fast=settings.warmup_ema_fast,
-            warmup_ema_slow=settings.warmup_ema_slow,
-            fallback_ema_fast=settings.fallback_ema_fast,
-            fallback_ema_slow=settings.fallback_ema_slow,
-            min_atr_period=settings.min_atr_period,
-        )
-        signal = replace(
-            signal,
-            trend_mode=f"EXT_{external.provider}_{signal.trend_mode}",
-            trend_interval=f"EXT_{settings.external_yahoo_interval.upper() if external.provider == 'YAHOO' else '1D'}",
-            warmup_mode=False,
-            data_quality=(
-                f"external_{external.provider}:{external.provider_symbol}"
-                f":scaled_to_bitget:ratio={external.scale_ratio:.8f}"
-                f":age_hours={external.age_hours:.1f}"
-            ),
-        )
-        return signal, price, instrument, daily_candles, warmup_candles
+        try:
+            external = fetch_external_daily_for_symbol(
+                symbol=symbol,
+                bitget_price=price,
+                provider_order=settings.external_provider_order,
+                yahoo_map=settings.external_yahoo_symbol_map,
+                stooq_map=settings.external_stooq_symbol_map,
+                yahoo_range=settings.external_yahoo_range,
+                yahoo_interval=settings.external_yahoo_interval,
+                timeout=settings.external_timeout_seconds,
+                limit=settings.external_candle_limit,
+                max_staleness_hours=settings.external_max_staleness_hours,
+                max_scale_deviation_pct=settings.external_max_scale_deviation_pct,
+            )
+            daily_candles = external.candles
+            warmup_candles = None
+            signal = build_breakout_signal_adaptive(
+                symbol=symbol,
+                daily_candles=daily_candles,
+                trend_candles=None,
+                current_price=price,
+                k_value=settings.k_value,
+                ema_fast_period=settings.ema_fast,
+                ema_slow_period=settings.ema_slow,
+                atr_period=settings.atr_period,
+                atr_stop_mult=settings.atr_stop_mult,
+                atr_take_profit_mult=settings.atr_take_profit_mult,
+                warmup_trend_interval=settings.warmup_trend_interval,
+                warmup_ema_fast=settings.warmup_ema_fast,
+                warmup_ema_slow=settings.warmup_ema_slow,
+                fallback_ema_fast=settings.fallback_ema_fast,
+                fallback_ema_slow=settings.fallback_ema_slow,
+                min_atr_period=settings.min_atr_period,
+            )
+            signal = replace(
+                signal,
+                trend_mode=f"EXT_{external.provider}_{signal.trend_mode}",
+                trend_interval=f"EXT_{settings.external_yahoo_interval.upper() if external.provider == 'YAHOO' else '1D'}",
+                warmup_mode=False,
+                data_quality=(
+                    f"external_{external.provider}:{external.provider_symbol}"
+                    f":scaled_to_bitget:ratio={external.scale_ratio:.8f}"
+                    f":age_hours={external.age_hours:.1f}"
+                ),
+            )
+            return signal, price, instrument, daily_candles, warmup_candles
+        except Exception as exc:
+            # Survival rule: index external data is a hard gate. If long-history data is unavailable,
+            # do not raise a symbol error that can spam alerts. Return a HOLD signal and block trading.
+            # Orders still require a LONG/SHORT signal, so this cannot create a live order.
+            reason = f"external data unavailable; trading disabled for {symbol}: {str(exc)[:300]}"
+            signal = BreakoutSignal(
+                symbol=symbol,
+                signal="HOLD",
+                reason=reason,
+                current_price=price,
+                current_open=price,
+                previous_high=price,
+                previous_low=price,
+                previous_range=0.0,
+                long_target=price,
+                short_target=price,
+                ema_fast=None,
+                ema_slow=None,
+                atr=None,
+                stop_price=None,
+                take_profit_price=None,
+                trend_mode="EXT_DATA_UNAVAILABLE",
+                trend_interval="EXT",
+                trend_candle_count=0,
+                daily_candle_count=0,
+                atr_period_used=None,
+                warmup_mode=False,
+                data_quality="external_unavailable",
+            )
+            return signal, price, instrument, [], None
 
     daily_response = client.candles(
         symbol=symbol,
@@ -311,7 +342,7 @@ def _select_survival_candidates(settings: Settings, reports: list[dict[str, Any]
 def run_strategy_exec(settings: Settings, client: BitgetUTAClient, tg: TelegramBot, notify_policy: str = "always") -> list[dict[str, Any]]:
     """Run one strategy execution cycle.
 
-    v1.4 EXTERNAL/SURVIVAL change:
+    v1.5 EXTERNAL/SURVIVAL change:
     - Build every symbol report first.
     - If more than one symbol has a valid signal, choose only the highest-scoring candidate.
     - SP500USDT and NDX100USDT are treated as one correlated US-index group.
@@ -320,13 +351,13 @@ def run_strategy_exec(settings: Settings, client: BitgetUTAClient, tg: TelegramB
     live = not settings.dry_run
     if live and settings.strategy_live_confirm != CONFIRM_PHRASE:
         msg = f"DRY_RUN=false이지만 STRATEGY_LIVE_CONFIRM가 없습니다. 실제 자동매매를 하려면 {CONFIRM_PHRASE}가 필요합니다."
-        tg.send(f"🛑 <b>v1.4 STRATEGY_EXEC 중단</b>\n{msg}")
+        tg.send(f"🛑 <b>v1.5 STRATEGY_EXEC 중단</b>\n{msg}")
         raise RuntimeError(msg)
     if live:
         live_errors = _live_safety_errors(settings)
         if live_errors:
             msg = "LIVE 안전 조건 불일치: " + "; ".join(live_errors)
-            tg.send(f"🛑 <b>v1.4 LIVE 안전장치 중단</b>\n{msg}")
+            tg.send(f"🛑 <b>v1.5 LIVE 안전장치 중단</b>\n{msg}")
             raise RuntimeError(msg)
 
     assets = client.assets()
@@ -344,7 +375,7 @@ def run_strategy_exec(settings: Settings, client: BitgetUTAClient, tg: TelegramB
 
     if notify_policy == "always":
         tg.send(
-            f"🧠 <b>Index Sniper Pro v1.4 EXTERNAL/SURVIVAL STRATEGY_EXEC {mode_label}</b>\n"
+            f"🧠 <b>Index Sniper Pro v1.5 EXTERNAL/SURVIVAL STRATEGY_EXEC {mode_label}</b>\n"
             f"실주문: {'있음' if live else '없음'}\n"
             f"대상: {', '.join(settings.symbols)}\n"
             f"계좌 사용비율: {settings.capital_ratio * 100:.2f}% / 레버리지 {settings.leverage}x\n"
@@ -495,7 +526,7 @@ def run_strategy_exec(settings: Settings, client: BitgetUTAClient, tg: TelegramB
         if r.get("signal", {}).get("signal") in {"LONG", "SHORT"} and not r.get("action_allowed"):
             append_jsonl(settings.log_dir, "events.jsonl", {"type": "strategy_signal_blocked", "symbol": r["symbol"], "signal": r["signal"], "checks": r.get("checks"), "survival_signal_score": r.get("survival_signal_score")})
 
-    print(f"===== STRATEGY EXEC v1.4 EXTERNAL/SURVIVAL {mode_label} =====")
+    print(f"===== STRATEGY EXEC v1.5 EXTERNAL/SURVIVAL {mode_label} =====")
     print(_short(reports, 50000))
 
     active = [r for r in reports if r.get("signal", {}).get("signal") in {"LONG", "SHORT"}]
@@ -504,7 +535,7 @@ def run_strategy_exec(settings: Settings, client: BitgetUTAClient, tg: TelegramB
     blocked = [r for r in active if not r.get("action_allowed")]
 
     lines = [
-        f"✅ <b>v1.4 EXTERNAL/SURVIVAL STRATEGY_EXEC {mode_label} 완료</b>",
+        f"✅ <b>v1.5 EXTERNAL/SURVIVAL STRATEGY_EXEC {mode_label} 완료</b>",
         f"실주문: {'있음' if live else '없음'}",
         "원칙: 많이 버는 것보다 오래 살아남기",
         "Exchange preset TP/SL 포함" if settings.use_exchange_tpsl else "Exchange preset TP/SL 미사용",

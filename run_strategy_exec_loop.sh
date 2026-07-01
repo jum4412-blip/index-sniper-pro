@@ -1,4 +1,4 @@
 #!/usr/bin/env bash
 set -euo pipefail
 source venv/bin/activate
-python main.py --mode strategy-exec-loop
+PYTHONUNBUFFERED=1 python -u main.py --mode strategy-exec-loop

@@ -1,4 +1,4 @@
-# Index Sniper Pro v1.4 External Signal Engine
+# Index Sniper Pro v1.5 External Signal Engine
 
 고정 프로젝트명: `index-sniper-pro`
 
@@ -8,15 +8,15 @@
 - `BTCUSDT`는 Bitget 캔들로 신호를 만든다.
 - `SP500USDT`, `NDX100USDT`는 외부 장기 차트 데이터로 추세/ATR/변동성 돌파 기준을 만든다.
 - 외부 데이터는 판단용이고, 최종 돌파 확인과 주문 가격은 Bitget 가격을 기준으로 한다.
-- 외부 데이터가 실패하거나 오래됐거나 Bitget 가격과 괴리가 너무 크면 해당 심볼은 거래하지 않는다.
+- 외부 데이터가 실패하거나 오래됐거나 Bitget 가격과 괴리가 너무 크면 해당 심볼은 HOLD로 처리하고 거래하지 않는다. 이 경우 주문 오류가 아니라 데이터 게이트 차단이다.
 
 ## 외부 데이터 기본값
 
 ```env
 EXTERNAL_SIGNAL_ENABLED=true
 EXTERNAL_SIGNAL_SYMBOLS=SP500USDT,NDX100USDT
-EXTERNAL_PROVIDER_ORDER=YAHOO,STOOQ
-EXTERNAL_YAHOO_SYMBOL_MAP=SP500USDT:ES=F,NDX100USDT:NQ=F
+EXTERNAL_PROVIDER_ORDER=STOOQ,YAHOO
+EXTERNAL_YAHOO_SYMBOL_MAP=SP500USDT:ES=F|^GSPC,NDX100USDT:NQ=F|^NDX
 EXTERNAL_STOOQ_SYMBOL_MAP=SP500USDT:^spx,NDX100USDT:^ndx
 EXTERNAL_YAHOO_RANGE=2y
 EXTERNAL_YAHOO_INTERVAL=1d
@@ -26,7 +26,7 @@ EXTERNAL_MAX_STALENESS_HOURS=120
 EXTERNAL_MAX_SCALE_DEVIATION_PCT=20
 ```
 
-기본적으로 Yahoo의 `ES=F`, `NQ=F`를 우선 사용한다. 실패하면 Stooq의 `^spx`, `^ndx`를 시도한다.
+v1.5부터 AWS에서 Yahoo 연결이 리셋되는 경우를 줄이기 위해 Stooq를 먼저 시도한다. Yahoo는 `query1`과 `query2`를 재시도하며, 각 심볼은 `|`로 여러 fallback ticker를 둘 수 있다.
 
 ## 업데이트 순서
 
