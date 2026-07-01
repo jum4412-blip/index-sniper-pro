@@ -34,3 +34,22 @@ if [ -f logs/sniper-exec-dry.log ]; then
 else
   echo "no logs/sniper-exec-dry.log yet"
 fi
+
+echo
+echo "===== observer snapshot ====="
+if [ -f data/market_observer.json ]; then
+  python - <<'PY'
+import json
+from pathlib import Path
+p = Path('data/market_observer.json')
+try:
+    data = json.loads(p.read_text(encoding='utf-8'))
+    print(f"updated_at: {data.get('updated_at')} | mode: {data.get('mode')} | dry_run: {data.get('dry_run')}")
+    for obs in data.get('observations', []):
+        print(f"- {obs.get('symbol')}: {obs.get('human')} | status={obs.get('status')} score={obs.get('survival_signal_score')}")
+except Exception as e:
+    print(f"observer snapshot parse error: {e}")
+PY
+else
+  echo "no data/market_observer.json yet"
+fi

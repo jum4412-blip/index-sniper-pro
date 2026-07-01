@@ -129,7 +129,7 @@ class Settings:
     risk_state_path: str
     daily_loss_guard_enabled: bool
 
-    # External signal data v1.5
+    # External signal data v1.5/v1.6
     external_signal_enabled: bool
     external_signal_symbols: list[str]
     external_provider_order: str
@@ -141,6 +141,13 @@ class Settings:
     external_candle_limit: int
     external_max_staleness_hours: float
     external_max_scale_deviation_pct: float
+
+    # Observation engine v1.6
+    observation_enabled: bool
+    observation_latest_path: str
+    observation_jsonl: str
+    observation_csv: str
+    observation_near_target_pct: float
 
 
 def load_settings() -> Settings:
@@ -238,4 +245,10 @@ def load_settings() -> Settings:
         external_candle_limit=int(os.getenv("EXTERNAL_CANDLE_LIMIT", "260")),
         external_max_staleness_hours=float(os.getenv("EXTERNAL_MAX_STALENESS_HOURS", "120")),
         external_max_scale_deviation_pct=float(os.getenv("EXTERNAL_MAX_SCALE_DEVIATION_PCT", "20")),
+
+        observation_enabled=_bool(os.getenv("OBSERVATION_ENABLED"), True),
+        observation_latest_path=os.getenv("OBSERVATION_LATEST_PATH", "data/market_observer.json").strip(),
+        observation_jsonl=os.getenv("OBSERVATION_JSONL", "signal_observer.jsonl").strip(),
+        observation_csv=os.getenv("OBSERVATION_CSV", "signal_distance.csv").strip(),
+        observation_near_target_pct=float(os.getenv("OBSERVATION_NEAR_TARGET_PCT", "0.20")),
     )

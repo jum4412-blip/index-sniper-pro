@@ -1,1 +1,1 @@
-__version__ = "1.5.0-external-stable"
+__version__ = "1.6.0-observer"

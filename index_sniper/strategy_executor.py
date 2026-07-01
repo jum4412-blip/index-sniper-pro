@@ -16,6 +16,7 @@ from index_sniper.state import StrategyState, utc_day
 from index_sniper.strategy.breakout import BreakoutSignal, build_breakout_signal_adaptive
 from index_sniper.strategy.indicators import parse_candles
 from index_sniper.strategy.external_data import fetch_external_daily_for_symbol
+from index_sniper.observer import observation_summary_line, persist_observations
 from index_sniper.telegram.bot import TelegramBot
 from index_sniper.utils.formatting import format_price
 
@@ -75,7 +76,7 @@ def _fmt_price(x: float | str | None) -> str:
 def _signal_for_symbol(settings: Settings, client: BitgetUTAClient, symbol: str):
     """Build a signal for one Bitget symbol.
 
-    v1.5 external signal rule:
+    v1.6 external signal rule:
     - BTCUSDT keeps using Bitget candles.
     - SP500USDT/NDX100USDT can use external futures/index history for trend, ATR, and Larry breakout levels.
     - Bitget price is still used as the final execution price. External OHLC is scaled to Bitget price level.
@@ -342,7 +343,7 @@ def _select_survival_candidates(settings: Settings, reports: list[dict[str, Any]
 def run_strategy_exec(settings: Settings, client: BitgetUTAClient, tg: TelegramBot, notify_policy: str = "always") -> list[dict[str, Any]]:
     """Run one strategy execution cycle.
 
-    v1.5 EXTERNAL/SURVIVAL change:
+    v1.6 EXTERNAL/SURVIVAL + OBSERVER change:
     - Build every symbol report first.
     - If more than one symbol has a valid signal, choose only the highest-scoring candidate.
     - SP500USDT and NDX100USDT are treated as one correlated US-index group.
@@ -351,13 +352,13 @@ def run_strategy_exec(settings: Settings, client: BitgetUTAClient, tg: TelegramB
     live = not settings.dry_run
     if live and settings.strategy_live_confirm != CONFIRM_PHRASE:
         msg = f"DRY_RUN=false이지만 STRATEGY_LIVE_CONFIRM가 없습니다. 실제 자동매매를 하려면 {CONFIRM_PHRASE}가 필요합니다."
-        tg.send(f"🛑 <b>v1.5 STRATEGY_EXEC 중단</b>\n{msg}")
+        tg.send(f"🛑 <b>v1.6 STRATEGY_EXEC 중단</b>\n{msg}")
         raise RuntimeError(msg)
     if live:
         live_errors = _live_safety_errors(settings)
         if live_errors:
             msg = "LIVE 안전 조건 불일치: " + "; ".join(live_errors)
-            tg.send(f"🛑 <b>v1.5 LIVE 안전장치 중단</b>\n{msg}")
+            tg.send(f"🛑 <b>v1.6 LIVE 안전장치 중단</b>\n{msg}")
             raise RuntimeError(msg)
 
     assets = client.assets()
@@ -375,7 +376,7 @@ def run_strategy_exec(settings: Settings, client: BitgetUTAClient, tg: TelegramB
 
     if notify_policy == "always":
         tg.send(
-            f"🧠 <b>Index Sniper Pro v1.5 EXTERNAL/SURVIVAL STRATEGY_EXEC {mode_label}</b>\n"
+            f"🧠 <b>Index Sniper Pro v1.6 EXTERNAL/SURVIVAL OBSERVER STRATEGY_EXEC {mode_label}</b>\n"
             f"실주문: {'있음' if live else '없음'}\n"
             f"대상: {', '.join(settings.symbols)}\n"
             f"계좌 사용비율: {settings.capital_ratio * 100:.2f}% / 레버리지 {settings.leverage}x\n"
@@ -526,7 +527,21 @@ def run_strategy_exec(settings: Settings, client: BitgetUTAClient, tg: TelegramB
         if r.get("signal", {}).get("signal") in {"LONG", "SHORT"} and not r.get("action_allowed"):
             append_jsonl(settings.log_dir, "events.jsonl", {"type": "strategy_signal_blocked", "symbol": r["symbol"], "signal": r["signal"], "checks": r.get("checks"), "survival_signal_score": r.get("survival_signal_score")})
 
-    print(f"===== STRATEGY EXEC v1.5 EXTERNAL/SURVIVAL {mode_label} =====")
+    # 5) v1.6 Observation engine: write a machine-readable latest snapshot, append JSONL/CSV,
+    # and attach concise observation data to each report. This does not change order logic.
+    try:
+        persist_observations(
+            settings,
+            reports,
+            mode_label=mode_label,
+            equity_guard=equity_guard,
+            global_open_before=global_open_before,
+            survival_group_open_before=survival_group_open_before,
+        )
+    except Exception as exc:
+        append_jsonl(settings.log_dir, "events.jsonl", {"type": "observation_write_error", "error": str(exc)})
+
+    print(f"===== STRATEGY EXEC v1.6 EXTERNAL/SURVIVAL OBSERVER {mode_label} =====")
     print(_short(reports, 50000))
 
     active = [r for r in reports if r.get("signal", {}).get("signal") in {"LONG", "SHORT"}]
@@ -535,7 +550,7 @@ def run_strategy_exec(settings: Settings, client: BitgetUTAClient, tg: TelegramB
     blocked = [r for r in active if not r.get("action_allowed")]
 
     lines = [
-        f"✅ <b>v1.5 EXTERNAL/SURVIVAL STRATEGY_EXEC {mode_label} 완료</b>",
+        f"✅ <b>v1.6 EXTERNAL/SURVIVAL OBSERVER STRATEGY_EXEC {mode_label} 완료</b>",
         f"실주문: {'있음' if live else '없음'}",
         "원칙: 많이 버는 것보다 오래 살아남기",
         "Exchange preset TP/SL 포함" if settings.use_exchange_tpsl else "Exchange preset TP/SL 미사용",
@@ -563,7 +578,9 @@ def run_strategy_exec(settings: Settings, client: BitgetUTAClient, tg: TelegramB
             lines.append(f"- {r['symbol']}: ERROR {r['error'][:100]}")
             continue
         s = r["signal"]
-        lines.append(f"- {r['symbol']}: {s['signal']} / {s['reason']} / trend {s.get('trend_mode')} / score {r.get('survival_signal_score')} / size x{r.get('effective_size_multiplier')} / now {_fmt_price(s.get('current_price'))}, L {_fmt_price(s.get('long_target'))}, S {_fmt_price(s.get('short_target'))}")
+        obs_line = observation_summary_line(r)
+        tail = f" | {obs_line}" if obs_line else ""
+        lines.append(f"- {r['symbol']}: {s['signal']} / {s['reason']} / trend {s.get('trend_mode')} / score {r.get('survival_signal_score')} / size x{r.get('effective_size_multiplier')} / now {_fmt_price(s.get('current_price'))}, L {_fmt_price(s.get('long_target'))}, S {_fmt_price(s.get('short_target'))}{tail}")
     if notify_policy == "always":
         should_send = True
     else:
