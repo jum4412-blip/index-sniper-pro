@@ -9,8 +9,7 @@ from index_sniper.config import Settings
 from index_sniper.exchange.bitget_uta import BitgetUTAClient, OrderIntent
 from index_sniper.position import open_positions
 from index_sniper.risk.sizing import build_size_plan, extract_instrument, extract_symbol_config, extract_usdt_equity_available
-from index_sniper.strategy.breakout import build_breakout_signal_adaptive
-from index_sniper.strategy.indicators import parse_candles
+from index_sniper.strategy_executor import _signal_for_symbol
 from index_sniper.telegram.bot import TelegramBot
 
 
@@ -32,7 +31,7 @@ def _fmt_price(x: float | None) -> str:
 def run_strategy_dry(settings: Settings, client: BitgetUTAClient, tg: TelegramBot) -> list[dict[str, Any]]:
     if not settings.dry_run:
         msg = "strategy-dry는 DRY_RUN=true에서만 실행합니다."
-        tg.send(f"🛑 <b>v0.7 STRATEGY_DRY 중단</b>\n{msg}")
+        tg.send(f"🛑 <b>v1.4 STRATEGY_DRY 중단</b>\n{msg}")
         raise RuntimeError(msg)
 
     assets = client.assets()
@@ -41,7 +40,7 @@ def run_strategy_dry(settings: Settings, client: BitgetUTAClient, tg: TelegramBo
     reports: list[dict[str, Any]] = []
 
     tg.send(
-        "🧠 <b>Index Sniper Pro v0.7 STRATEGY_DRY</b>\n"
+        "🧠 <b>Index Sniper Pro v1.4 STRATEGY_DRY</b>\n"
         "실주문 없음\n"
         f"대상: {', '.join(settings.symbols)}\n"
         f"Daily breakout: {settings.strategy_interval}, K: {settings.k_value}\n"
@@ -61,32 +60,7 @@ def run_strategy_dry(settings: Settings, client: BitgetUTAClient, tg: TelegramBo
             current_leverage = int(sym_cfg.get("leverage") or 0) if sym_cfg else None
             current_margin_mode = sym_cfg.get("marginMode") if sym_cfg else None
 
-            daily_response = client.candles(symbol=symbol, category=settings.category, interval=settings.strategy_interval, limit=settings.strategy_candle_limit, candle_type="market")
-            daily_candles = parse_candles(daily_response)
-
-            warmup_candles = None
-            if settings.adaptive_trend and len(daily_candles) < settings.ema_slow:
-                warmup_response = client.candles(symbol=symbol, category=settings.category, interval=settings.warmup_trend_interval, limit=settings.warmup_trend_candle_limit, candle_type="market")
-                warmup_candles = parse_candles(warmup_response)
-
-            signal = build_breakout_signal_adaptive(
-                symbol=symbol,
-                daily_candles=daily_candles,
-                trend_candles=warmup_candles,
-                current_price=price,
-                k_value=settings.k_value,
-                ema_fast_period=settings.ema_fast,
-                ema_slow_period=settings.ema_slow,
-                atr_period=settings.atr_period,
-                atr_stop_mult=settings.atr_stop_mult,
-                atr_take_profit_mult=settings.atr_take_profit_mult,
-                warmup_trend_interval=settings.warmup_trend_interval,
-                warmup_ema_fast=settings.warmup_ema_fast,
-                warmup_ema_slow=settings.warmup_ema_slow,
-                fallback_ema_fast=settings.fallback_ema_fast,
-                fallback_ema_slow=settings.fallback_ema_slow,
-                min_atr_period=settings.min_atr_period,
-            )
+            signal, _, _, daily_candles, warmup_candles = _signal_for_symbol(settings, client, symbol)
 
             effective_size_multiplier = settings.fallback_size_multiplier if signal.warmup_mode else 1.0
             effective_capital_ratio = settings.capital_ratio * max(0.0, effective_size_multiplier)
@@ -126,7 +100,7 @@ def run_strategy_dry(settings: Settings, client: BitgetUTAClient, tg: TelegramBo
 
     errors = [r for r in reports if "error" in r]
     active = [r for r in reports if r.get("signal", {}).get("signal") in {"LONG", "SHORT"}]
-    lines = ["✅ <b>v0.7 STRATEGY_DRY 완료</b>", "실주문 없음", "1D EMA60 부족 심볼은 4H EMA50/200 warmup 사용"]
+    lines = ["✅ <b>v1.4 STRATEGY_DRY 완료</b>", "실주문 없음", "SP500/NDX는 외부 데이터 우선, BTC는 Bitget 데이터 사용"]
     if errors:
         lines.append("⚠️ 오류 심볼: " + ", ".join(r["symbol"] for r in errors))
     if active:

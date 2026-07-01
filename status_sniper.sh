@@ -5,7 +5,7 @@ echo "===== screen ====="
 screen -ls || true
 echo
 echo "===== .env safety ====="
-grep -E '^(DRY_RUN|SYMBOLS|LEVERAGE|CAPITAL_RATIO|RISK_PROFILE|MAX_OPEN_POSITIONS|MAX_DAILY_LOSS_PCT|SURVIVAL_|STRATEGY_HEARTBEAT_MINUTES|LOOP_SECONDS)=' .env || true
+grep -E '^(DRY_RUN|SYMBOLS|LEVERAGE|CAPITAL_RATIO|RISK_PROFILE|MAX_OPEN_POSITIONS|MAX_DAILY_LOSS_PCT|SURVIVAL_|EXTERNAL_|STRATEGY_HEARTBEAT_MINUTES|LOOP_SECONDS)=' .env || true
 echo
 echo "===== loop status ====="
 if [ -f data/loop_status.json ]; then

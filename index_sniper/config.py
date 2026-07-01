@@ -27,6 +27,22 @@ def _symbols(value: str | None) -> list[str]:
     return [s.strip().upper() for s in value.split(",") if s.strip()]
 
 
+def _symbol_map(value: str | None) -> dict[str, str]:
+    result: dict[str, str] = {}
+    if not value:
+        return result
+    for part in value.split(","):
+        part = part.strip()
+        if not part or ":" not in part:
+            continue
+        left, right = part.split(":", 1)
+        left = left.strip().upper()
+        right = right.strip()
+        if left and right:
+            result[left] = right
+    return result
+
+
 @dataclass(frozen=True)
 class Settings:
     bitget_api_key: str
@@ -113,6 +129,19 @@ class Settings:
     risk_state_path: str
     daily_loss_guard_enabled: bool
 
+    # External signal data v1.4
+    external_signal_enabled: bool
+    external_signal_symbols: list[str]
+    external_provider_order: str
+    external_yahoo_symbol_map: dict[str, str]
+    external_stooq_symbol_map: dict[str, str]
+    external_yahoo_range: str
+    external_yahoo_interval: str
+    external_timeout_seconds: int
+    external_candle_limit: int
+    external_max_staleness_hours: float
+    external_max_scale_deviation_pct: float
+
 
 def load_settings() -> Settings:
     load_dotenv(ROOT / ".env")
@@ -197,4 +226,16 @@ def load_settings() -> Settings:
         max_order_notional_usdt=float(os.getenv("MAX_ORDER_NOTIONAL_USDT", "250")),
         risk_state_path=os.getenv("RISK_STATE_PATH", "data/equity_guard.json").strip(),
         daily_loss_guard_enabled=_bool(os.getenv("DAILY_LOSS_GUARD_ENABLED"), True),
+
+        external_signal_enabled=_bool(os.getenv("EXTERNAL_SIGNAL_ENABLED"), True),
+        external_signal_symbols=_symbols(os.getenv("EXTERNAL_SIGNAL_SYMBOLS", "SP500USDT,NDX100USDT")),
+        external_provider_order=os.getenv("EXTERNAL_PROVIDER_ORDER", "YAHOO,STOOQ").strip(),
+        external_yahoo_symbol_map=_symbol_map(os.getenv("EXTERNAL_YAHOO_SYMBOL_MAP", "SP500USDT:ES=F,NDX100USDT:NQ=F")),
+        external_stooq_symbol_map=_symbol_map(os.getenv("EXTERNAL_STOOQ_SYMBOL_MAP", "SP500USDT:^spx,NDX100USDT:^ndx")),
+        external_yahoo_range=os.getenv("EXTERNAL_YAHOO_RANGE", "2y").strip(),
+        external_yahoo_interval=os.getenv("EXTERNAL_YAHOO_INTERVAL", "1d").strip(),
+        external_timeout_seconds=int(os.getenv("EXTERNAL_TIMEOUT_SECONDS", "10")),
+        external_candle_limit=int(os.getenv("EXTERNAL_CANDLE_LIMIT", "260")),
+        external_max_staleness_hours=float(os.getenv("EXTERNAL_MAX_STALENESS_HOURS", "120")),
+        external_max_scale_deviation_pct=float(os.getenv("EXTERNAL_MAX_SCALE_DEVIATION_PCT", "20")),
     )

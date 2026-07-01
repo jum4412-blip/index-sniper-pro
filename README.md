@@ -1,114 +1,71 @@
-# index-sniper-pro v1.1 SURVIVAL
+# Index Sniper Pro v1.4 External Signal Engine
 
-Bitget UTA 전용 자동매매 프로젝트입니다. 이 버전은 “1등보다 생존”을 선택한 운용 규칙을 기본값으로 둡니다.
+고정 프로젝트명: `index-sniper-pro`
 
-## v1.1 핵심 변경점
+## 핵심 원칙
 
-- SP500USDT / NDX100USDT / BTCUSDT 고정 운용
-- Larry Williams 변동성 돌파 + EMA 추세 필터 + ATR TP/SL
-- SURVIVAL risk profile 기본 적용
-- SP500USDT와 NDX100USDT를 같은 미국지수 위험 버킷으로 취급
-- 미국지수 버킷은 동시에 1개 포지션만 허용
-- 전체 오픈 포지션 최대 2개
-- 한 사이클 신규 진입 최대 1개
-- 하루 심볼당 신규 진입 1회
-- 돌파선 1틱 터치가 아니라 ATR 0.05 이상 추가 돌파 확인
-- 여러 신호가 동시에 나오면 survival score가 가장 높은 1개만 선택
-- Daily equity loss guard 기본 -1.00%
-- 기본값은 DRY_RUN=true로 실주문 없음
+- 주문/체결/포지션 관리는 계속 Bitget UTA에서 수행한다.
+- `BTCUSDT`는 Bitget 캔들로 신호를 만든다.
+- `SP500USDT`, `NDX100USDT`는 외부 장기 차트 데이터로 추세/ATR/변동성 돌파 기준을 만든다.
+- 외부 데이터는 판단용이고, 최종 돌파 확인과 주문 가격은 Bitget 가격을 기준으로 한다.
+- 외부 데이터가 실패하거나 오래됐거나 Bitget 가격과 괴리가 너무 크면 해당 심볼은 거래하지 않는다.
 
-## 설치
+## 외부 데이터 기본값
+
+```env
+EXTERNAL_SIGNAL_ENABLED=true
+EXTERNAL_SIGNAL_SYMBOLS=SP500USDT,NDX100USDT
+EXTERNAL_PROVIDER_ORDER=YAHOO,STOOQ
+EXTERNAL_YAHOO_SYMBOL_MAP=SP500USDT:ES=F,NDX100USDT:NQ=F
+EXTERNAL_STOOQ_SYMBOL_MAP=SP500USDT:^spx,NDX100USDT:^ndx
+EXTERNAL_YAHOO_RANGE=2y
+EXTERNAL_YAHOO_INTERVAL=1d
+EXTERNAL_TIMEOUT_SECONDS=10
+EXTERNAL_CANDLE_LIMIT=260
+EXTERNAL_MAX_STALENESS_HOURS=120
+EXTERNAL_MAX_SCALE_DEVIATION_PCT=20
+```
+
+기본적으로 Yahoo의 `ES=F`, `NQ=F`를 우선 사용한다. 실패하면 Stooq의 `^spx`, `^ndx`를 시도한다.
+
+## 업데이트 순서
+
+실전 봇이 켜져 있다면 먼저 멈춘다.
 
 ```bash
+cd ~/index-sniper-pro
+bash stop_sniper.sh
+```
+
+GitHub 업로드 후 EC2에서:
+
+```bash
+cd ~/index-sniper-pro
+git pull
 bash install.sh
 ```
 
-## 기본 확인
+`.env`에 위 외부 데이터 설정을 추가한다.
+
+실주문 없는 외부 신호 점검:
 
 ```bash
-bash run_check.sh
-bash run_preflight.sh
-bash run_strategy_exec_dry.sh
+bash run_external_signal_check.sh
 ```
 
-## 드라이런 루프
-
-```bash
-bash start_exec_dry.sh
-bash status_sniper.sh
-```
-
-## 실전 전용 프리플라이트
-
-실주문 없이 전략 엔진을 강제로 드라이런으로 점검합니다.
+실전 프리플라이트:
 
 ```bash
 bash run_live_preflight.sh
 ```
 
-## 실전 자동매매 시작 전 필수 .env
-
-처음 실전은 아래처럼 보수적으로 시작합니다.
-
-```env
-DRY_RUN=false
-LIVE_TRADING_ENABLED=true
-LEVERAGE=5
-CAPITAL_RATIO=0.10
-RISK_PROFILE=SURVIVAL
-MAX_OPEN_POSITIONS=2
-MAX_NEW_POSITIONS_PER_CYCLE=1
-MAX_DAILY_ENTRIES_PER_SYMBOL=1
-SURVIVAL_CORRELATED_GROUP=SP500USDT,NDX100USDT
-SURVIVAL_MAX_CORRELATED_OPEN=1
-SURVIVAL_MAX_LIVE_OPEN_POSITIONS=2
-SURVIVAL_SELECT_BEST_SIGNAL=true
-SURVIVAL_MIN_BREAKOUT_ATR=0.05
-MAX_LIVE_CAPITAL_RATIO=0.10
-MAX_ORDER_NOTIONAL_USDT=250
-MAX_DAILY_LOSS_PCT=1.00
-SYMBOLS=SP500USDT,NDX100USDT,BTCUSDT
-STRATEGY_LIVE_CONFIRM=I_UNDERSTAND_AUTO_TRADING
-LIVE_START_CONFIRM=START_LIVE_INDEX_SNIPER
-```
-
-실전 시작:
+정상 확인 후 실전 루프:
 
 ```bash
-bash stop_sniper.sh
-bash reset_equity_guard.sh
-bash run_live_preflight.sh
 bash start_live_guarded.sh
 bash status_sniper.sh
 ```
 
-중지:
+## 주의
 
-```bash
-bash stop_sniper.sh
-```
-
-주의: stop_sniper.sh는 봇 프로세스만 멈춥니다. 거래소에 이미 열린 포지션이 있으면 Bitget 앱/웹에서 직접 확인해야 합니다.
-
-
-## v1.3 NO-REDUCEONLY: Bitget UTA hedge-mode close fix
-
-Bitget UTA hedge-mode에서는 청산 주문에 `posSide`와 `one-way close flag`를 동시에 보내면 오류 25238이 발생할 수 있다.
-따라서 v1.2부터 hedge-mode 청산은 다음 형태로 보낸다.
-
-- Long 청산: `side=sell`, `posSide=long`
-- Short 청산: `side=buy`, `posSide=short`
-- `one-way close flag`는 hedge-mode 청산 payload에서 제외
-
-마이크로 테스트 중 청산 실패가 있었으면 먼저 Bitget 앱에서 포지션을 확인한다.
-포지션이 남아 있으면 아래 명령으로 BTCUSDT 긴급 청산을 시도할 수 있다.
-
-```bash
-DRY_RUN=false EMERGENCY_CLOSE_CONFIRM=I_UNDERSTAND_CLOSE_POSITION EMERGENCY_CLOSE_SYMBOL=BTCUSDT bash run_emergency_close.sh
-```
-
-그 다음 마이크로 테스트를 다시 실행한다.
-
-```bash
-DRY_RUN=false LIVE_TEST_CONFIRM=I_UNDERSTAND_REAL_ORDER LIVE_TEST_SYMBOL=BTCUSDT bash run_micro_live_test.sh
-```
+`DRY_RUN=false` 상태에서 `start_live_guarded.sh`를 실행하면 실제 신호 발생 시 주문이 나간다. 실전 전에는 반드시 `run_external_signal_check.sh`와 `run_live_preflight.sh`를 먼저 통과시킨다.
