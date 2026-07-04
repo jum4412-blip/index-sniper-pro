@@ -15,6 +15,7 @@ from index_sniper.strategy_dry_run import run_strategy_dry
 from index_sniper.strategy_executor import run_strategy_exec
 from index_sniper.telegram.bot import TelegramBot
 from index_sniper.weekend_flat import weekend_flat_window, weekend_flat_human, close_index_positions_if_due
+from index_sniper.position_manager import evaluate_positions
 
 
 def _short(data: object, limit: int = 5000) -> str:
@@ -130,6 +131,22 @@ def mode_weekend_flat_status() -> None:
         f"symbols: {', '.join(window.symbols)}\n"
         f"close_preview_count: {len(result.get('attempted', []))}"
     )
+
+
+def mode_position_manager() -> None:
+    settings, client, tg = make_client_and_tg()
+    rows = evaluate_positions(settings, client, tg)
+    data = [r.to_dict() for r in rows]
+    print("===== POSITION MANAGER =====")
+    print(_short(data, 20000))
+    if rows:
+        lines = [f"🧭 <b>v{__version__} POSITION MANAGER</b>"]
+        for r in rows[:5]:
+            lines.append(f"- {r.symbol} {r.side.upper()} qty {r.qty} status {r.status} R {r.r_multiple} hold {r.hold_hours}h")
+        tg.send("\n".join(lines))
+    else:
+        tg.send(f"✅ <b>v{__version__} POSITION MANAGER</b>\n현재 열린 포지션 없음")
+
 
 def mode_strategy_loop_dry() -> None:
     import time
@@ -257,7 +274,7 @@ def mode_strategy_exec_loop() -> None:
 
 def main() -> None:
     parser = argparse.ArgumentParser(description="Index Sniper Pro")
-    parser.add_argument("--mode", choices=["check", "order-dry", "preflight", "micro-live-test", "emergency-close", "strategy-dry", "strategy-loop-dry", "strategy-exec", "strategy-exec-loop", "weekend-flat-status"], default="check")
+    parser.add_argument("--mode", choices=["check", "order-dry", "preflight", "micro-live-test", "emergency-close", "strategy-dry", "strategy-loop-dry", "strategy-exec", "strategy-exec-loop", "weekend-flat-status", "position-manager"], default="check")
     args = parser.parse_args()
     if args.mode == "check":
         mode_check()
@@ -279,6 +296,8 @@ def main() -> None:
         mode_strategy_exec_loop()
     elif args.mode == "weekend-flat-status":
         mode_weekend_flat_status()
+    elif args.mode == "position-manager":
+        mode_position_manager()
 
 
 if __name__ == "__main__":

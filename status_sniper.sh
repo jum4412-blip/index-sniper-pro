@@ -5,7 +5,7 @@ echo "===== screen ====="
 screen -ls || true
 echo
 echo "===== .env safety ====="
-grep -E '^(DRY_RUN|SYMBOLS|LEVERAGE|CAPITAL_RATIO|RISK_PROFILE|MAX_OPEN_POSITIONS|MAX_DAILY_LOSS_PCT|SURVIVAL_|EXTERNAL_|STRATEGY_HEARTBEAT_MINUTES|LOOP_SECONDS|INDEX_WEEKEND)=' .env || true
+grep -E '^(DRY_RUN|SYMBOLS|LEVERAGE|CAPITAL_RATIO|RISK_PROFILE|MAX_OPEN_POSITIONS|MAX_DAILY_LOSS_PCT|SURVIVAL_|EXTERNAL_|ANTI_CHASE|MAX_ENTRY_EXTENSION_ATR|POSITION_|STRATEGY_HEARTBEAT_MINUTES|LOOP_SECONDS|INDEX_WEEKEND)=' .env || true
 echo
 echo "===== loop status ====="
 if [ -f data/loop_status.json ]; then
@@ -52,4 +52,27 @@ except Exception as e:
 PY
 else
   echo "no data/market_observer.json yet"
+fi
+
+
+echo
+echo "===== position manager ====="
+if [ -f data/position_manager.json ]; then
+  python3 - <<'PY'
+import json
+from pathlib import Path
+p=Path('data/position_manager.json')
+try:
+    data=json.loads(p.read_text(encoding='utf-8'))
+    print(f"updated_at: {data.get('updated_at')}")
+    positions=data.get('positions', [])
+    if not positions:
+        print('no open positions recorded')
+    for r in positions:
+        print(f"- {r.get('symbol')} {str(r.get('side')).upper()} qty={r.get('qty')} status={r.get('status')} action={r.get('action')} R={r.get('r_multiple')} hold={r.get('hold_hours')}h reason={r.get('reason')}")
+except Exception as e:
+    print(f"position manager parse error: {e}")
+PY
+else
+  echo "no data/position_manager.json yet"
 fi

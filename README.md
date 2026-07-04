@@ -1,25 +1,31 @@
-# index-sniper-pro v1.7 Weekend Flat
+# Index Sniper Pro v2.1 — Survival Momentum + Backtest
 
-고정 프로젝트: `index-sniper-pro`
+실전 봇의 철학은 그대로 유지한다.
 
-## v1.7 핵심
+- 메인: 추세추종 / 타임시리즈 모멘텀
+- 진입 방아쇠: 래리 윌리엄스식 변동성 돌파
+- 리스크: ATR 손절·익절, 일일 손실 제한
+- 운영: SP500/NDX 주말 미보유, BTC는 24시간
+- 추가 방어: Anti-Chase Filter, 지수 상관 그룹 제한, Position Manager
 
-- 기존 전략/진입 기준은 유지
-- SP500USDT / NDX100USDT 주말 보유 금지 규칙 추가
-- BTCUSDT는 주말 규칙 제외
-- 금요일 뉴욕시간 15:30 이후 지수 신규 진입 차단
-- 금요일 뉴욕시간 16:30 이후 지수 포지션 자동 청산 시도
-- 토요일 전체 / 일요일 뉴욕시간 18:30 전까지 지수 신규 진입 차단
-- `.env`를 10% 생존형 운용으로 바꾸는 `apply_live_10pct.sh` 추가
-- `run_weekend_flat_check.sh`로 현재 주말 플랫 상태 확인
+## v2.1 추가: Backtest Engine
 
-## 중요한 원칙
+3년 또는 5년치 과거 차트로 현재 전략의 근사 백테스트를 수행한다.
 
-기존 포지션은 사용자가 수동으로 정리한 뒤 업데이트/재시작한다.
-`DRY_RUN=false` 상태에서는 실제 주문 가능 상태다.
-실전 전에는 반드시 `run_live_preflight.sh`를 통과시킨다.
+데이터 기본값:
 
-## 설치/업데이트
+- BTCUSDT: Yahoo `BTC-USD`
+- SP500USDT: Yahoo `ES=F` → `^GSPC`, Stooq `^spx` fallback
+- NDX100USDT: Yahoo `NQ=F` → `^NDX`, Stooq `^ndx` fallback
+
+중요한 한계:
+
+- 백테스트는 Bitget 실제 체결·호가·펀딩비를 완벽하게 재현하지 않는다.
+- 일봉 OHLC 기반이라 같은 날 TP/SL이 모두 닿으면 보수적으로 SL 먼저로 처리한다.
+- SP500/NDX는 Bitget 상품 히스토리가 짧기 때문에 외부 선물/지수 데이터를 proxy로 사용한다.
+- 따라서 결과는 “전략 검증용 근사치”이지 수익 보장이 아니다.
+
+## 설치
 
 ```bash
 cd ~/index-sniper-pro
@@ -27,51 +33,59 @@ git pull
 bash install.sh
 ```
 
-## 10% 운용 설정
-
-기존 포지션을 정리한 뒤 실행한다.
+## 3년 백테스트
 
 ```bash
 cd ~/index-sniper-pro
-bash apply_live_10pct.sh
+bash run_backtest_3y.sh
 ```
 
-확인:
+## 5년 백테스트
 
 ```bash
-grep -E 'DRY_RUN|LIVE_TRADING_ENABLED|CAPITAL_RATIO|MAX_ORDER_NOTIONAL_USDT|MAX_DAILY_LOSS_PCT|INDEX_WEEKEND' .env
+cd ~/index-sniper-pro
+bash run_backtest_5y.sh
 ```
 
-## 주말 플랫 상태 확인
+데이터를 다시 받고 싶으면:
 
 ```bash
-bash run_weekend_flat_check.sh
+bash run_backtest_5y.sh --refresh
 ```
 
-## 실전 전 점검
+## 결과 보기
+
+```bash
+bash view_backtest.sh
+```
+
+결과 파일:
+
+- `backtests/backtest_summary_latest.txt`
+- `backtests/backtest_summary_latest.json`
+- `backtests/equity_curve_latest.csv`
+- `backtests/trades_latest.csv`
+- `backtests/signals_latest.csv`
+- `backtests/data/*.csv`
+
+## 실전 봇 점검
+
+```bash
+bash status_sniper.sh
+bash view_observer.sh
+bash run_position_manager.sh
+```
+
+## 실전 시작
+
+실전은 백테스트와 별도다. 실전 시작 전에는 반드시 포지션과 미체결 주문을 Bitget 앱에서 확인한다.
 
 ```bash
 bash stop_sniper.sh
 bash run_check.sh
 bash run_live_preflight.sh
 bash run_weekend_flat_check.sh
-```
-
-## 실전 시작
-
-```bash
-bash reset_equity_guard.sh
+bash run_position_manager.sh
 bash start_live_guarded.sh
 bash status_sniper.sh
 ```
-
-## 종료
-
-```bash
-bash stop_sniper.sh
-```
-
-## 주의
-
-`stop_sniper.sh`는 봇만 정지한다. 이미 열린 포지션은 사용자가 Bitget 앱에서 확인해야 한다.
-주말 플랫 기능은 v1.7부터 지수 포지션 자동 정리를 시도하지만, 실전에서는 Bitget 앱에서 포지션/미체결 주문을 최종 확인해야 한다.

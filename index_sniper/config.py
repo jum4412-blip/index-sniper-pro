@@ -158,6 +158,26 @@ class Settings:
     index_weekend_force_flat_after_et: str
     index_weekend_reopen_after_et: str
 
+    # v2.0 signal-quality / anti-chase filter
+    anti_chase_enabled: bool
+    anti_chase_symbols: list[str]
+    anti_chase_extreme_up_pct: float
+    anti_chase_extreme_down_pct: float
+    anti_chase_extreme_range_atr: float
+    anti_chase_extreme_long_size_multiplier: float
+    anti_chase_extreme_short_size_multiplier: float
+    max_entry_extension_atr: float
+
+    # v2.0 position manager
+    position_manager_enabled: bool
+    position_manager_latest_path: str
+    position_manager_alert_state_path: str
+    position_warn_after_hours: float
+    position_max_hold_hours_index: float
+    position_max_hold_hours_btc: float
+    position_breakeven_alert_r: float
+    position_manager_auto_close: bool
+
 
 def load_settings() -> Settings:
     load_dotenv(ROOT / ".env")
@@ -268,4 +288,22 @@ def load_settings() -> Settings:
         index_weekend_block_new_after_et=os.getenv("INDEX_WEEKEND_BLOCK_NEW_AFTER_ET", "15:30").strip(),
         index_weekend_force_flat_after_et=os.getenv("INDEX_WEEKEND_FORCE_FLAT_AFTER_ET", "16:30").strip(),
         index_weekend_reopen_after_et=os.getenv("INDEX_WEEKEND_REOPEN_AFTER_ET", "18:30").strip(),
+
+        anti_chase_enabled=_bool(os.getenv("ANTI_CHASE_ENABLED"), True),
+        anti_chase_symbols=_symbols(os.getenv("ANTI_CHASE_SYMBOLS", "SP500USDT,NDX100USDT,BTCUSDT")),
+        anti_chase_extreme_up_pct=float(os.getenv("ANTI_CHASE_EXTREME_UP_PCT", "7.0")),
+        anti_chase_extreme_down_pct=float(os.getenv("ANTI_CHASE_EXTREME_DOWN_PCT", "7.0")),
+        anti_chase_extreme_range_atr=float(os.getenv("ANTI_CHASE_EXTREME_RANGE_ATR", "1.8")),
+        anti_chase_extreme_long_size_multiplier=float(os.getenv("ANTI_CHASE_EXTREME_LONG_SIZE_MULTIPLIER", "0.0")),
+        anti_chase_extreme_short_size_multiplier=float(os.getenv("ANTI_CHASE_EXTREME_SHORT_SIZE_MULTIPLIER", "0.0")),
+        max_entry_extension_atr=float(os.getenv("MAX_ENTRY_EXTENSION_ATR", "0.40")),
+
+        position_manager_enabled=_bool(os.getenv("POSITION_MANAGER_ENABLED"), True),
+        position_manager_latest_path=os.getenv("POSITION_MANAGER_LATEST_PATH", "data/position_manager.json").strip(),
+        position_manager_alert_state_path=os.getenv("POSITION_MANAGER_ALERT_STATE_PATH", "data/position_alert_state.json").strip(),
+        position_warn_after_hours=float(os.getenv("POSITION_WARN_AFTER_HOURS", "24")),
+        position_max_hold_hours_index=float(os.getenv("POSITION_MAX_HOLD_HOURS_INDEX", "48")),
+        position_max_hold_hours_btc=float(os.getenv("POSITION_MAX_HOLD_HOURS_BTC", "72")),
+        position_breakeven_alert_r=float(os.getenv("POSITION_BREAKEVEN_ALERT_R", "1.0")),
+        position_manager_auto_close=_bool(os.getenv("POSITION_MANAGER_AUTO_CLOSE"), False),
     )
