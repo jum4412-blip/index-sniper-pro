@@ -47,6 +47,7 @@ class BacktestConfig:
     short_only_symbols: tuple[str, ...] = ()
     long_disabled_symbols: tuple[str, ...] = ()
     short_disabled_symbols: tuple[str, ...] = ()
+    record_signals: bool = True
 
 
 @dataclass
@@ -248,6 +249,18 @@ def _check_exit(p: Position, candle: Candle, cfg: BacktestConfig) -> tuple[float
     return None
 
 
+class _SignalSink(list):
+    """List-like signal logger that can be disabled for large optimizer runs."""
+
+    def __init__(self, enabled: bool = True):
+        super().__init__()
+        self.enabled = enabled
+
+    def append(self, item):  # type: ignore[override]
+        if self.enabled:
+            super().append(item)
+
+
 def run_portfolio_backtest(symbol_candles: dict[str, list[Candle]], cfg: BacktestConfig) -> dict:
     candles_by_date: dict[str, dict[str, Candle]] = {}
     index_by_date: dict[str, dict[str, int]] = {}
@@ -261,7 +274,7 @@ def run_portfolio_backtest(symbol_candles: dict[str, list[Candle]], cfg: Backtes
     equity_realized = cfg.initial_equity
     positions: list[Position] = []
     trades: list[Trade] = []
-    signal_logs: list[SignalLog] = []
+    signal_logs: list[SignalLog] = _SignalSink(cfg.record_signals)
     curve: list[dict] = []
     daily_entries: dict[tuple[str, str], int] = {}
     symbol_count = max(len(symbol_candles), 1)

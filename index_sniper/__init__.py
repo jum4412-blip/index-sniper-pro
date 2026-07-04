@@ -1,1 +1,1 @@
-__version__ = "2.0.0-survival-momentum"
+__version__ = "2.3.0-btc-optimizer"

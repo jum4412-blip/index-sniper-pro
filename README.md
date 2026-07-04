@@ -1,126 +1,179 @@
-# Index Sniper Pro v2.2 — Backtest Decomposition Matrix
+# Index Sniper Pro v2.3 BTC Optimizer
 
-이 버전은 v2.1 백테스트 엔진에 **분해 백테스트**를 추가한 버전이다.
+This version keeps the v2.2 decomposed backtest tools and adds a **BTC-only optimizer**.
 
-목표는 단순히 “전체 수익률”을 보는 것이 아니라, 어떤 조합이 돈을 벌고 어떤 조합이 손실을 만드는지 분리해서 보는 것이다.
+Main purpose:
 
-## 추가 기능
+- Backtest **BTCUSDT only**.
+- Keep **BT_CAPITAL_RATIO=0.30** for backtests.
+- Sweep leverage **1x through 10x**.
+- Test multiple parameter combinations: K value, EMA pair, ATR stop/take-profit, extension filter, anti-chase filter, and side mode.
+- Compare 3-year and 5-year results so a setting that only worked in one window does not fool us.
 
-- BTC only
-- SP500 only
-- NDX100 only
-- BTC + SP500
-- BTC + NDX100
-- SP500 + NDX100
-- BTC + SP500 + NDX100
-- SP500/NDX long-only
-- BTC long/short + indices long-only
-- BTC long-only
-- BTC short-only
+Important: this is a **backtest research upgrade**. It does not automatically change live trading unless you deliberately edit live keys such as `SYMBOLS`, `CAPITAL_RATIO`, and `LEVERAGE`.
 
-각 조합별로 아래 지표를 비교한다.
+---
 
-- return_pct
-- max_drawdown_pct
-- return_over_mdd
-- trade_count
-- win_rate_pct
-- profit_factor
-- avg_net_pnl
-- max_win_streak
-- max_loss_streak
-- symbol별 net_pnl
-
-## 중요한 한계
-
-- SP500/NDX는 Bitget 과거 데이터가 짧기 때문에 Yahoo/Stooq 외부 차트를 proxy로 사용한다.
-- 일봉 OHLC 기반이라 같은 날 TP/SL이 모두 닿으면 보수적으로 SL 먼저 처리한다.
-- 펀딩비, 실제 Bitget 호가, 체결 지연, 실시간 스프레드는 완벽히 재현하지 않는다.
-- 이 결과는 수익 보장이 아니라 전략 선별용 근사치다.
-
-## 설치
+## Apply BTC-only backtest settings
 
 ```bash
 cd ~/index-sniper-pro
-git pull
-bash install.sh
+bash apply_backtest_btc30_optimizer.sh
 ```
 
-## 백테스트 전용 30% 설정 적용
-
-실전 설정과 백테스트 설정은 분리한다. 백테스트만 30%로 돌리고 싶으면:
-
-```bash
-bash apply_backtest_30pct.sh
-```
-
-확인:
-
-```bash
-grep -E 'BT_INITIAL_EQUITY|BT_CAPITAL_RATIO|BT_LEVERAGE|BT_MAX_ORDER_NOTIONAL_USDT|BT_K_VALUE' .env
-```
-
-정상 예시:
+This sets:
 
 ```text
+BT_SYMBOLS=BTCUSDT
 BT_INITIAL_EQUITY=1374
 BT_CAPITAL_RATIO=0.30
-BT_LEVERAGE=5
 BT_MAX_ORDER_NOTIONAL_USDT=1000
-BT_K_VALUE=0.50
+BT_OPT_MAX_ORDER_NOTIONAL_USDT=999999
 ```
 
-## 일반 백테스트
+The regular backtest cap stays at `BT_MAX_ORDER_NOTIONAL_USDT=1000`, but the BTC optimizer uses `BT_OPT_MAX_ORDER_NOTIONAL_USDT=999999`. This separate optimizer cap is intentional. If the optimizer stayed capped at `1000`, leverage above about 2.4x would be flattened and the 1x~10x sweep would not be meaningful.
+
+---
+
+## First: leverage-only BTC test
+
+Fastest check.
 
 ```bash
-bash run_backtest_3y.sh --refresh
-bash run_backtest_5y.sh --refresh
-bash view_backtest.sh
+bash run_btc_leverage_sweep_5y.sh --refresh
+bash run_btc_leverage_sweep_3y.sh --refresh
 ```
 
-## 분해 백테스트
-
-3년:
-
-```bash
-bash run_backtest_matrix_3y.sh --refresh
-```
-
-5년:
-
-```bash
-bash run_backtest_matrix_5y.sh --refresh
-```
-
-결과 보기:
-
-```bash
-bash view_backtest_matrix.sh
-```
-
-## 특정 시나리오만 실행
-
-예: BTC only, BTC + SP500, 전체 index long-only만 실행:
-
-```bash
-bash run_backtest_matrix_5y.sh --scenarios btc_only_ls,btc_sp500_ls,all_index_long_only
-```
-
-## 결과 파일
+It tests:
 
 ```text
-backtests/backtest_matrix_latest.txt
-backtests/backtest_matrix_latest.csv
-backtests/backtest_matrix_latest.json
-backtests/matrix_runs/<label>/
+BTC long/short
+BTC long-only
+BTC short-only
+leverage 1x~10x
+current base strategy parameters
 ```
 
-## 실전 봇과 분리
+---
 
-분해 백테스트는 실주문을 전혀 넣지 않는다. 실전 봇은 별도로 `start_live_guarded.sh`로만 실행된다.
+## Second: BTC optimizer quick run
 
-실전 봇 상태 확인:
+Recommended first optimizer run.
 
 ```bash
-bash status_sniper.sh
+bash run_btc_optimizer_quick_5y.sh --refresh
+bash run_btc_optimizer_quick_3y.sh --refresh
 ```
+
+Or run 5y + 3y + comparison in one command:
+
+```bash
+PRESET=quick bash run_btc_optimizer_compare_3y_5y.sh --refresh
+```
+
+---
+
+## Third: default optimizer
+
+Larger grid.
+
+```bash
+bash run_btc_optimizer_5y.sh --refresh
+bash run_btc_optimizer_3y.sh --refresh
+python3 -m index_sniper.backtest.btc_optimizer_compare
+```
+
+Or:
+
+```bash
+PRESET=default bash run_btc_optimizer_compare_3y_5y.sh --refresh
+```
+
+---
+
+## Wide optimizer
+
+This is much heavier. Use only after quick/default results look promising.
+
+```bash
+PRESET=wide bash run_btc_optimizer_compare_3y_5y.sh --refresh --top 50 --top-detail 20
+```
+
+---
+
+## View results
+
+```bash
+bash view_btc_optimizer.sh
+```
+
+Main files:
+
+```text
+backtests/btc_optimizer_latest.txt
+backtests/btc_optimizer_latest.csv
+backtests/btc_optimizer_5y_latest.txt
+backtests/btc_optimizer_5y_latest.csv
+backtests/btc_optimizer_3y_latest.txt
+backtests/btc_optimizer_3y_latest.csv
+backtests/btc_optimizer_compare_latest.txt
+backtests/btc_optimizer_compare_latest.csv
+backtests/btc_optimizer_runs/
+```
+
+---
+
+## Custom examples
+
+Only test leverage 1x~10x, long/short only:
+
+```bash
+python3 -m index_sniper.backtest.btc_optimizer --years 5 --preset leverage --side-modes ls --refresh
+```
+
+Test custom K and EMA combinations:
+
+```bash
+python3 -m index_sniper.backtest.btc_optimizer \
+  --years 5 \
+  --preset default \
+  --leverages 1-10 \
+  --k-values 0.25,0.35,0.45,0.55,0.65 \
+  --ema-pairs 10/40,20/60,30/90 \
+  --stop-values 1.0,1.3,1.6 \
+  --tp-values 1.8,2.2,2.8 \
+  --side-modes ls,long,short \
+  --refresh
+```
+
+---
+
+## Environment cleanup
+
+If you see warnings like:
+
+```text
+Python-dotenv could not parse statement starting at line ...
+```
+
+run:
+
+```bash
+bash clean_dotenv_parse_errors.sh
+```
+
+It backs up `.env`, removes invalid pasted lines, and saves the removed lines separately.
+
+---
+
+## Interpretation rule
+
+Do not pick the strategy with the highest 5-year return alone. Prefer a setting that survives both 5y and 3y:
+
+- 5y return strong
+- 3y return positive
+- MDD not insane
+- Profit factor above 1.15 if possible
+- Calmar better than the current baseline
+- No extreme dependence on only one market regime
+
