@@ -14,6 +14,7 @@ from index_sniper.preflight import run_preflight
 from index_sniper.strategy_dry_run import run_strategy_dry
 from index_sniper.strategy_executor import run_strategy_exec
 from index_sniper.telegram.bot import TelegramBot
+from index_sniper.weekend_flat import weekend_flat_window, weekend_flat_human, close_index_positions_if_due
 
 
 def _short(data: object, limit: int = 5000) -> str:
@@ -114,6 +115,21 @@ def _send_heartbeat(tg: TelegramBot, text: str) -> None:
     ok = tg.send(text)
     _append_heartbeat_log(("telegram_ok " if ok else "telegram_failed ") + text.replace("\n", " | "))
 
+
+
+def mode_weekend_flat_status() -> None:
+    settings, client, tg = make_client_and_tg()
+    window = weekend_flat_window(settings)
+    result = close_index_positions_if_due(settings, client, tg, dry_run=True, window=window)
+    print("===== WEEKEND FLAT STATUS =====")
+    print(_short({"window": window.to_dict(), "dry_run_close_preview": result}, 20000))
+    tg.send(
+        f"🧭 <b>v{__version__} WEEKEND FLAT CHECK</b>\n"
+        f"{weekend_flat_human(window)}\n"
+        f"NY: {window.now_ny}\n"
+        f"symbols: {', '.join(window.symbols)}\n"
+        f"close_preview_count: {len(result.get('attempted', []))}"
+    )
 
 def mode_strategy_loop_dry() -> None:
     import time
@@ -241,7 +257,7 @@ def mode_strategy_exec_loop() -> None:
 
 def main() -> None:
     parser = argparse.ArgumentParser(description="Index Sniper Pro")
-    parser.add_argument("--mode", choices=["check", "order-dry", "preflight", "micro-live-test", "emergency-close", "strategy-dry", "strategy-loop-dry", "strategy-exec", "strategy-exec-loop"], default="check")
+    parser.add_argument("--mode", choices=["check", "order-dry", "preflight", "micro-live-test", "emergency-close", "strategy-dry", "strategy-loop-dry", "strategy-exec", "strategy-exec-loop", "weekend-flat-status"], default="check")
     args = parser.parse_args()
     if args.mode == "check":
         mode_check()
@@ -261,6 +277,8 @@ def main() -> None:
         mode_strategy_exec()
     elif args.mode == "strategy-exec-loop":
         mode_strategy_exec_loop()
+    elif args.mode == "weekend-flat-status":
+        mode_weekend_flat_status()
 
 
 if __name__ == "__main__":

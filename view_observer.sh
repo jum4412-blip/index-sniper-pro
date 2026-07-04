@@ -3,7 +3,7 @@ set -euo pipefail
 cd "$(dirname "$0")"
 echo "===== latest observer snapshot ====="
 if [ -f data/market_observer.json ]; then
-  python - <<'PY'
+  python3 - <<'PY'
 import json
 from pathlib import Path
 p = Path('data/market_observer.json')

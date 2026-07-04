@@ -1,94 +1,25 @@
-# Index Sniper Pro v1.6 Observer
+# index-sniper-pro v1.7 Weekend Flat
 
-고정 프로젝트명: `index-sniper-pro`
+고정 프로젝트: `index-sniper-pro`
 
-## 핵심 원칙
+## v1.7 핵심
 
-- 주문/체결/포지션 관리는 계속 Bitget UTA에서 수행한다.
-- `BTCUSDT`는 Bitget 캔들로 신호를 만든다.
-- `SP500USDT`, `NDX100USDT`는 외부 장기 차트 데이터로 추세/ATR/변동성 돌파 기준을 만든다.
-- 외부 데이터는 판단용이고, 최종 돌파 확인과 주문 가격은 Bitget 가격을 기준으로 한다.
-- 외부 데이터가 실패하거나 오래됐거나 Bitget 가격과 괴리가 너무 크면 해당 심볼은 HOLD로 처리하고 거래하지 않는다.
-- v1.6은 주문 로직을 바꾸지 않는다. 관찰/기록/설명 기능만 강화한다.
+- 기존 전략/진입 기준은 유지
+- SP500USDT / NDX100USDT 주말 보유 금지 규칙 추가
+- BTCUSDT는 주말 규칙 제외
+- 금요일 뉴욕시간 15:30 이후 지수 신규 진입 차단
+- 금요일 뉴욕시간 16:30 이후 지수 포지션 자동 청산 시도
+- 토요일 전체 / 일요일 뉴욕시간 18:30 전까지 지수 신규 진입 차단
+- `.env`를 10% 생존형 운용으로 바꾸는 `apply_live_10pct.sh` 추가
+- `run_weekend_flat_check.sh`로 현재 주말 플랫 상태 확인
 
-## v1.6에서 추가된 관찰 기능
+## 중요한 원칙
 
-봇은 매 루프마다 각 종목에 대해 아래 정보를 저장한다.
+기존 포지션은 사용자가 수동으로 정리한 뒤 업데이트/재시작한다.
+`DRY_RUN=false` 상태에서는 실제 주문 가능 상태다.
+실전 전에는 반드시 `run_live_preflight.sh`를 통과시킨다.
 
-- 지금 봇이 롱을 기다리는지, 숏을 기다리는지, 데이터 오류로 막혔는지
-- 현재가에서 롱 기준가까지 남은 거리
-- 현재가에서 숏 기준가까지 남은 거리
-- 감시 중인 타점까지 남은 거리와 퍼센트
-- ATR 기준 남은 거리
-- trend rejected breakout 기록
-- 생존형 점수, 차단된 조건, 수량 계획
-
-저장 위치:
-
-```text
-data/market_observer.json      # 최신 관찰 스냅샷. 사람이 보기 좋음.
-logs/signal_observer.jsonl     # 매 루프/종목별 JSONL 누적 기록. 분석용.
-logs/signal_distance.csv       # 타점까지 남은 거리 CSV. 엑셀/통계 분석용.
-logs/events.jsonl              # 주문/차단/오류 이벤트 로그.
-logs/trades.csv                # 실제 주문 또는 dry-run 주문 기록.
-```
-
-확인 명령:
-
-```bash
-bash view_observer.sh
-```
-
-현재 상태까지 같이 보려면:
-
-```bash
-bash status_sniper.sh
-```
-
-실주문 없이 관찰 스냅샷만 새로 만들려면:
-
-```bash
-bash run_observer_snapshot.sh
-```
-
-`run_observer_snapshot.sh`는 강제로 `DRY_RUN=true`로 실행한다. 실주문은 나가지 않는다.
-
-## 외부 데이터 기본값
-
-```env
-EXTERNAL_SIGNAL_ENABLED=true
-EXTERNAL_SIGNAL_SYMBOLS=SP500USDT,NDX100USDT
-EXTERNAL_PROVIDER_ORDER=STOOQ,YAHOO
-EXTERNAL_YAHOO_SYMBOL_MAP=SP500USDT:ES=F|^GSPC,NDX100USDT:NQ=F|^NDX
-EXTERNAL_STOOQ_SYMBOL_MAP=SP500USDT:^spx,NDX100USDT:^ndx
-EXTERNAL_YAHOO_RANGE=2y
-EXTERNAL_YAHOO_INTERVAL=1d
-EXTERNAL_TIMEOUT_SECONDS=10
-EXTERNAL_CANDLE_LIMIT=260
-EXTERNAL_MAX_STALENESS_HOURS=120
-EXTERNAL_MAX_SCALE_DEVIATION_PCT=20
-```
-
-## v1.6 관찰 설정
-
-```env
-OBSERVATION_ENABLED=true
-OBSERVATION_LATEST_PATH=data/market_observer.json
-OBSERVATION_JSONL=signal_observer.jsonl
-OBSERVATION_CSV=signal_distance.csv
-OBSERVATION_NEAR_TARGET_PCT=0.20
-```
-
-## 업데이트 순서
-
-실전 봇이 켜져 있다면 먼저 멈춘다.
-
-```bash
-cd ~/index-sniper-pro
-bash stop_sniper.sh
-```
-
-GitHub 업로드 후 EC2에서:
+## 설치/업데이트
 
 ```bash
 cd ~/index-sniper-pro
@@ -96,35 +27,51 @@ git pull
 bash install.sh
 ```
 
-구버전 잔재 확인:
+## 10% 운용 설정
+
+기존 포지션을 정리한 뒤 실행한다.
 
 ```bash
-grep -R "reduceOnly" -n index_sniper main.py || true
+cd ~/index-sniper-pro
+bash apply_live_10pct.sh
 ```
 
-정상은 아무것도 안 나오는 것이다.
-
-실주문 없는 관찰/외부 신호 점검:
+확인:
 
 ```bash
-bash run_external_signal_check.sh
-bash run_observer_snapshot.sh
-bash view_observer.sh
+grep -E 'DRY_RUN|LIVE_TRADING_ENABLED|CAPITAL_RATIO|MAX_ORDER_NOTIONAL_USDT|MAX_DAILY_LOSS_PCT|INDEX_WEEKEND' .env
 ```
 
-실전 프리플라이트:
+## 주말 플랫 상태 확인
 
 ```bash
+bash run_weekend_flat_check.sh
+```
+
+## 실전 전 점검
+
+```bash
+bash stop_sniper.sh
+bash run_check.sh
 bash run_live_preflight.sh
+bash run_weekend_flat_check.sh
 ```
 
-정상 확인 후 실전 루프:
+## 실전 시작
 
 ```bash
+bash reset_equity_guard.sh
 bash start_live_guarded.sh
 bash status_sniper.sh
 ```
 
+## 종료
+
+```bash
+bash stop_sniper.sh
+```
+
 ## 주의
 
-`DRY_RUN=false` 상태에서 `start_live_guarded.sh`를 실행하면 실제 신호 발생 시 주문이 나간다. 실전 전에는 반드시 `run_external_signal_check.sh`, `run_observer_snapshot.sh`, `run_live_preflight.sh`를 먼저 통과시킨다.
+`stop_sniper.sh`는 봇만 정지한다. 이미 열린 포지션은 사용자가 Bitget 앱에서 확인해야 한다.
+주말 플랫 기능은 v1.7부터 지수 포지션 자동 정리를 시도하지만, 실전에서는 Bitget 앱에서 포지션/미체결 주문을 최종 확인해야 한다.

@@ -18,6 +18,13 @@ from index_sniper.strategy.indicators import parse_candles
 from index_sniper.strategy.external_data import fetch_external_daily_for_symbol
 from index_sniper.observer import observation_summary_line, persist_observations
 from index_sniper.telegram.bot import TelegramBot
+from index_sniper.weekend_flat import (
+    close_index_positions_if_due,
+    index_new_entry_allowed,
+    is_index_weekend_symbol,
+    weekend_flat_human,
+    weekend_flat_window,
+)
 from index_sniper.utils.formatting import format_price
 
 CONFIRM_PHRASE = "I_UNDERSTAND_AUTO_TRADING"
@@ -343,11 +350,12 @@ def _select_survival_candidates(settings: Settings, reports: list[dict[str, Any]
 def run_strategy_exec(settings: Settings, client: BitgetUTAClient, tg: TelegramBot, notify_policy: str = "always") -> list[dict[str, Any]]:
     """Run one strategy execution cycle.
 
-    v1.6 EXTERNAL/SURVIVAL + OBSERVER change:
+    v1.7 EXTERNAL/SURVIVAL + OBSERVER + WEEKEND FLAT change:
     - Build every symbol report first.
     - If more than one symbol has a valid signal, choose only the highest-scoring candidate.
     - SP500USDT and NDX100USDT are treated as one correlated US-index group.
     - In SURVIVAL profile, only one correlated index position can be open at a time.
+    - SP500/NDX can block new entries and auto-flat before weekends by NY time.
     """
     live = not settings.dry_run
     if live and settings.strategy_live_confirm != CONFIRM_PHRASE:
@@ -361,6 +369,16 @@ def run_strategy_exec(settings: Settings, client: BitgetUTAClient, tg: TelegramB
             tg.send(f"🛑 <b>v1.6 LIVE 안전장치 중단</b>\n{msg}")
             raise RuntimeError(msg)
 
+    mode_label = "LIVE" if live else "DRY"
+    weekend_window = weekend_flat_window(settings)
+    weekend_flat_result = close_index_positions_if_due(
+        settings,
+        client,
+        tg,
+        dry_run=settings.dry_run,
+        window=weekend_window,
+    )
+
     assets = client.assets()
     settings_response = client.settings()
     equity, available = extract_usdt_equity_available(assets)
@@ -371,7 +389,6 @@ def run_strategy_exec(settings: Settings, client: BitgetUTAClient, tg: TelegramB
     candidate_intents: dict[int, OrderIntent] = {}
     global_open_before = _global_open_count(settings, client)
     survival_group_open_before = _survival_group_open_count(settings, client)
-    mode_label = "LIVE" if live else "DRY"
     survival_group = _survival_group_set(settings)
 
     if notify_policy == "always":
@@ -421,6 +438,7 @@ def run_strategy_exec(settings: Settings, client: BitgetUTAClient, tg: TelegramB
             group_limit_ok = True
             if settings.risk_profile == "SURVIVAL" and is_index_group:
                 group_limit_ok = survival_group_open_before < settings.survival_max_correlated_open
+            index_weekend_entry_ok = index_new_entry_allowed(settings, symbol, weekend_window)
             breakout_strength_ok = True
             if settings.risk_profile == "SURVIVAL" and signal.signal in {"LONG", "SHORT"}:
                 breakout_strength_ok = breakout_atr_distance >= settings.survival_min_breakout_atr
@@ -438,6 +456,7 @@ def run_strategy_exec(settings: Settings, client: BitgetUTAClient, tg: TelegramB
                 "daily_loss_guard_ok": equity_guard.ok,
                 "warmup_allowed": (not signal.warmup_mode) or settings.live_allow_warmup_entries,
                 "survival_correlated_group_ok": group_limit_ok,
+                "index_weekend_entry_ok": index_weekend_entry_ok,
                 "survival_breakout_strength_ok": breakout_strength_ok,
                 "survival_min_score_ok": score >= settings.survival_min_signal_score if signal.signal in {"LONG", "SHORT"} else False,
                 "survival_best_candidate_ok": False,
@@ -462,6 +481,8 @@ def run_strategy_exec(settings: Settings, client: BitgetUTAClient, tg: TelegramB
                 "open_position_count": len(opens),
                 "global_open_before": global_open_before,
                 "survival_group_open_before": survival_group_open_before,
+                "weekend_flat": weekend_window.to_dict(),
+                "weekend_flat_enforcement": weekend_flat_result,
                 "daily_entries_today": daily_count,
                 "equity_guard": equity_guard.to_dict(),
                 "signal": signal.to_dict(),
@@ -541,7 +562,7 @@ def run_strategy_exec(settings: Settings, client: BitgetUTAClient, tg: TelegramB
     except Exception as exc:
         append_jsonl(settings.log_dir, "events.jsonl", {"type": "observation_write_error", "error": str(exc)})
 
-    print(f"===== STRATEGY EXEC v1.6 EXTERNAL/SURVIVAL OBSERVER {mode_label} =====")
+    print(f"===== STRATEGY EXEC v1.7 EXTERNAL/SURVIVAL OBSERVER WEEKEND-FLAT {mode_label} =====")
     print(_short(reports, 50000))
 
     active = [r for r in reports if r.get("signal", {}).get("signal") in {"LONG", "SHORT"}]
@@ -550,13 +571,18 @@ def run_strategy_exec(settings: Settings, client: BitgetUTAClient, tg: TelegramB
     blocked = [r for r in active if not r.get("action_allowed")]
 
     lines = [
-        f"✅ <b>v1.6 EXTERNAL/SURVIVAL OBSERVER STRATEGY_EXEC {mode_label} 완료</b>",
+        f"✅ <b>v1.7 EXTERNAL/SURVIVAL OBSERVER WEEKEND-FLAT STRATEGY_EXEC {mode_label} 완료</b>",
         f"실주문: {'있음' if live else '없음'}",
         "원칙: 많이 버는 것보다 오래 살아남기",
         "Exchange preset TP/SL 포함" if settings.use_exchange_tpsl else "Exchange preset TP/SL 미사용",
         f"Daily loss guard: {'OK' if equity_guard.ok else 'BLOCK'} {equity_guard.loss_pct:.3f}% / {equity_guard.max_daily_loss_pct:.3f}%",
         f"Index group open: {survival_group_open_before} / {settings.survival_max_correlated_open}",
+        f"Weekend flat: {weekend_flat_human(weekend_window)}",
     ]
+    if weekend_flat_result.get("attempted"):
+        lines.append("🛑 Weekend flat close check:")
+        for a in weekend_flat_result.get("attempted", [])[:3]:
+            lines.append(f"- {a.get('symbol')} {a.get('side')} qty {a.get('qty')} dry={a.get('dry_run')}")
     if errors:
         lines.append("⚠️ 오류: " + ", ".join(r["symbol"] for r in errors))
     if executed:

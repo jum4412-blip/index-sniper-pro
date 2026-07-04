@@ -149,6 +149,15 @@ class Settings:
     observation_csv: str
     observation_near_target_pct: float
 
+    # Weekend flat manager v1.7
+    index_weekend_flat_enabled: bool
+    index_weekend_flat_symbols: list[str]
+    index_weekend_flat_auto_close: bool
+    index_weekend_timezone: str
+    index_weekend_block_new_after_et: str
+    index_weekend_force_flat_after_et: str
+    index_weekend_reopen_after_et: str
+
 
 def load_settings() -> Settings:
     load_dotenv(ROOT / ".env")
@@ -251,4 +260,12 @@ def load_settings() -> Settings:
         observation_jsonl=os.getenv("OBSERVATION_JSONL", "signal_observer.jsonl").strip(),
         observation_csv=os.getenv("OBSERVATION_CSV", "signal_distance.csv").strip(),
         observation_near_target_pct=float(os.getenv("OBSERVATION_NEAR_TARGET_PCT", "0.20")),
+
+        index_weekend_flat_enabled=_bool(os.getenv("INDEX_WEEKEND_FLAT"), True),
+        index_weekend_flat_symbols=_symbols(os.getenv("INDEX_WEEKEND_FLAT_SYMBOLS", "SP500USDT,NDX100USDT")),
+        index_weekend_flat_auto_close=_bool(os.getenv("INDEX_WEEKEND_AUTO_CLOSE"), True),
+        index_weekend_timezone=os.getenv("INDEX_WEEKEND_TIMEZONE", "America/New_York").strip(),
+        index_weekend_block_new_after_et=os.getenv("INDEX_WEEKEND_BLOCK_NEW_AFTER_ET", "15:30").strip(),
+        index_weekend_force_flat_after_et=os.getenv("INDEX_WEEKEND_FORCE_FLAT_AFTER_ET", "16:30").strip(),
+        index_weekend_reopen_after_et=os.getenv("INDEX_WEEKEND_REOPEN_AFTER_ET", "18:30").strip(),
     )
