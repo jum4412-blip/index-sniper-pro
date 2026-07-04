@@ -1,1 +1,1 @@
-__version__ = "2.3.0-btc-optimizer"
+__version__ = "2.4.0-btc-no-ma-optimizer"

@@ -39,8 +39,9 @@ def _write_csv(path: Path, rows: list[dict]) -> None:
 
 
 def _format_line(i: int, r: dict) -> str:
+    ma_label = "EMA " + str(r.get("ema_fast")) + "/" + str(r.get("ema_slow")) if r.get("ma_mode") == "ema" else "NO_MA both=" + str(r.get("no_ma_both_breakout_mode"))
     return (
-        f"{i:02d}. {r['side_mode']} lev {r['leverage']}x K {r['k_value']} EMA {r['ema_fast']}/{r['ema_slow']} "
+        f"{i:02d}. {r['side_mode']} {ma_label} lev {r['leverage']}x K {r['k_value']} "
         f"SL {r['atr_stop_mult']} TP {r['atr_take_profit_mult']} EXT {r['max_entry_extension_atr']} "
         f"AC {r['anti_chase_extreme_up_pct']}/{r['anti_chase_extreme_range_atr']} | "
         f"5y ret {r['return_5y_pct']}% MDD {r['mdd_5y_pct']}% Calmar {r['calmar_5y']} | "
@@ -88,6 +89,9 @@ def main() -> None:
         row = {
             "strategy_id": r5["strategy_id"],
             "side_mode": r5["side_mode"],
+            "ma_mode": r5.get("ma_mode", "ema"),
+            "use_ema_filter": r5.get("use_ema_filter", "True"),
+            "no_ma_both_breakout_mode": r5.get("no_ma_both_breakout_mode", "skip"),
             "leverage": r5["leverage"],
             "k_value": r5["k_value"],
             "ema_fast": r5["ema_fast"],

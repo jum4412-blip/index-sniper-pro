@@ -40,6 +40,8 @@ def cfg_from_env(args) -> BacktestConfig:
         k_value=float(os.getenv("BT_K_VALUE", os.getenv("K_VALUE", "0.50"))),
         ema_fast=int(os.getenv("BT_EMA_FAST", os.getenv("EMA_FAST", "20"))),
         ema_slow=int(os.getenv("BT_EMA_SLOW", os.getenv("EMA_SLOW", "60"))),
+        use_ema_filter=_bool(os.getenv("BT_USE_EMA_FILTER", os.getenv("USE_EMA_FILTER", "true")), True),
+        no_ma_both_breakout_mode=os.getenv("BT_NO_MA_BOTH_BREAKOUT_MODE", os.getenv("NO_MA_BOTH_BREAKOUT_MODE", "skip")),
         atr_period=int(os.getenv("BT_ATR_PERIOD", os.getenv("ATR_PERIOD", "14"))),
         atr_stop_mult=float(os.getenv("BT_ATR_STOP_MULT", os.getenv("ATR_STOP_MULT", "1.30"))),
         atr_take_profit_mult=float(os.getenv("BT_ATR_TAKE_PROFIT_MULT", os.getenv("ATR_TAKE_PROFIT_MULT", "2.00"))),

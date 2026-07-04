@@ -125,7 +125,7 @@ def _side_cfg(base: BacktestConfig, side_mode: str) -> BacktestConfig:
 
 def _strategy_id(row: dict[str, Any]) -> str:
     keys = [
-        "side_mode", "leverage", "k_value", "ema_fast", "ema_slow", "atr_stop_mult", "atr_take_profit_mult",
+        "side_mode", "ma_mode", "no_ma_both_breakout_mode", "leverage", "k_value", "ema_fast", "ema_slow", "atr_stop_mult", "atr_take_profit_mult",
         "survival_min_breakout_atr", "max_entry_extension_atr", "anti_chase_enabled",
         "anti_chase_extreme_up_pct", "anti_chase_extreme_down_pct", "anti_chase_extreme_range_atr",
     ]
@@ -145,6 +145,9 @@ def _row_from_result(result: dict, years: int, side_mode: str, cfg: BacktestConf
         "years": years,
         "symbol": SYMBOL,
         "side_mode": side_mode,
+        "ma_mode": "ema" if cfg.use_ema_filter else "none",
+        "use_ema_filter": cfg.use_ema_filter,
+        "no_ma_both_breakout_mode": cfg.no_ma_both_breakout_mode,
         "start_equity": round(start, 6),
         "end_equity": round(end, 6),
         "return_pct": round(ret, 6),
@@ -221,8 +224,9 @@ def _write_summary_txt(path: Path, rows: list[dict], years: int, base: BacktestC
 
 
 def _format_rank_line(i: int, r: dict) -> str:
+    ma_label = "EMA " + str(r.get("ema_fast")) + "/" + str(r.get("ema_slow")) if r.get("ma_mode") == "ema" else "NO_MA both=" + str(r.get("no_ma_both_breakout_mode"))
     return (
-        f"{i:02d}. {r['side_mode']} lev {r['leverage']}x K {r['k_value']} EMA {r['ema_fast']}/{r['ema_slow']} "
+        f"{i:02d}. {r['side_mode']} {ma_label} lev {r['leverage']}x K {r['k_value']} "
         f"SL {r['atr_stop_mult']} TP {r['atr_take_profit_mult']} EXT {r['max_entry_extension_atr']} "
         f"AC {r['anti_chase_extreme_up_pct']}/{r['anti_chase_extreme_range_atr']} | "
         f"ret {r['return_pct']}% CAGR {r['cagr_pct']}% MDD {r['max_drawdown_pct']}% "
@@ -246,6 +250,72 @@ def _grid_from_args(args) -> list[dict[str, Any]]:
             "anti_range_values": [1.8],
             "side_modes": ["ls", "long", "short"],
             "anti_enabled_values": [True],
+            "ma_modes": ["ema"],
+            "no_ma_both_modes": ["skip"],
+        }
+    elif preset == "no_ma_leverage":
+        defaults = {
+            "leverages": list(range(1, 11)),
+            "k_values": [0.50],
+            "ema_pairs": [(20, 60)],
+            "stop_values": [1.30],
+            "tp_values": [2.00],
+            "min_breakout_values": [0.05],
+            "extension_values": [0.40],
+            "anti_up_values": [7.0],
+            "anti_range_values": [1.8],
+            "side_modes": ["ls", "long", "short"],
+            "anti_enabled_values": [True],
+            "ma_modes": ["none"],
+            "no_ma_both_modes": ["skip", "stronger"],
+        }
+    elif preset == "no_ma_quick":
+        defaults = {
+            "leverages": list(range(1, 11)),
+            "k_values": [0.25, 0.35, 0.50, 0.65, 0.80],
+            "ema_pairs": [(20, 60)],
+            "stop_values": [0.8, 1.0, 1.3, 1.6],
+            "tp_values": [1.5, 2.0, 2.8, 3.5],
+            "min_breakout_values": [0.0, 0.05, 0.10],
+            "extension_values": [0.25, 0.40, 0.65],
+            "anti_up_values": [5.0, 7.0, 10.0],
+            "anti_range_values": [1.5, 1.8, 2.2],
+            "side_modes": ["ls", "long", "short"],
+            "anti_enabled_values": [True],
+            "ma_modes": ["none"],
+            "no_ma_both_modes": ["skip", "stronger"],
+        }
+    elif preset == "ma_mix":
+        defaults = {
+            "leverages": list(range(1, 11)),
+            "k_values": [0.35, 0.50, 0.65],
+            "ema_pairs": [(10, 40), (20, 60), (30, 90)],
+            "stop_values": [1.0, 1.3, 1.6],
+            "tp_values": [2.0, 2.8, 3.5],
+            "min_breakout_values": [0.05],
+            "extension_values": [0.25, 0.40, 0.65],
+            "anti_up_values": [7.0],
+            "anti_range_values": [1.8],
+            "side_modes": ["ls", "long", "short"],
+            "anti_enabled_values": [True],
+            "ma_modes": ["ema", "none"],
+            "no_ma_both_modes": ["skip", "stronger"],
+        }
+    elif preset == "no_ma_wide":
+        defaults = {
+            "leverages": list(range(1, 11)),
+            "k_values": [0.20, 0.25, 0.35, 0.45, 0.55, 0.65, 0.80, 1.00],
+            "ema_pairs": [(20, 60)],
+            "stop_values": [0.6, 0.8, 1.0, 1.3, 1.6, 2.0],
+            "tp_values": [1.2, 1.5, 2.0, 2.8, 3.5, 4.5, 6.0],
+            "min_breakout_values": [0.0, 0.05, 0.10, 0.20],
+            "extension_values": [0.15, 0.25, 0.40, 0.65, 1.00],
+            "anti_up_values": [5.0, 7.0, 10.0, 14.0],
+            "anti_range_values": [1.2, 1.5, 1.8, 2.2, 3.0],
+            "side_modes": ["ls", "long", "short"],
+            "anti_enabled_values": [True],
+            "ma_modes": ["none"],
+            "no_ma_both_modes": ["skip", "stronger", "candle"],
         }
     elif preset == "quick":
         defaults = {
@@ -260,6 +330,8 @@ def _grid_from_args(args) -> list[dict[str, Any]]:
             "anti_range_values": [1.8],
             "side_modes": ["ls", "long", "short"],
             "anti_enabled_values": [True],
+            "ma_modes": ["ema"],
+            "no_ma_both_modes": ["skip"],
         }
     elif preset == "wide":
         defaults = {
@@ -274,6 +346,8 @@ def _grid_from_args(args) -> list[dict[str, Any]]:
             "anti_range_values": [1.5, 1.8, 2.2],
             "side_modes": ["ls", "long", "short"],
             "anti_enabled_values": [True],
+            "ma_modes": ["ema"],
+            "no_ma_both_modes": ["skip"],
         }
     else:  # default
         defaults = {
@@ -288,6 +362,8 @@ def _grid_from_args(args) -> list[dict[str, Any]]:
             "anti_range_values": [1.8],
             "side_modes": ["ls", "long", "short"],
             "anti_enabled_values": [True],
+            "ma_modes": ["ema"],
+            "no_ma_both_modes": ["skip"],
         }
 
     leverages = _parse_int_range_or_list(args.leverages, defaults["leverages"])
@@ -300,18 +376,30 @@ def _grid_from_args(args) -> list[dict[str, Any]]:
     anti_up_values = _parse_float_list(args.anti_up_values, defaults["anti_up_values"])
     anti_range_values = _parse_float_list(args.anti_range_values, defaults["anti_range_values"])
     side_modes = [x.strip().lower() for x in (args.side_modes or ",".join(defaults["side_modes"])).split(",") if x.strip()]
+    ma_modes = [x.strip().lower() for x in (args.ma_modes or ",".join(defaults["ma_modes"])).split(",") if x.strip()]
+    no_ma_both_modes = [x.strip().lower() for x in (args.no_ma_both_modes or ",".join(defaults["no_ma_both_modes"])).split(",") if x.strip()]
     anti_enabled_values = list(defaults["anti_enabled_values"])
     if args.include_anti_off:
         anti_enabled_values = [True, False]
 
     grid = []
-    for lev, k, (fast, slow), stop, tp, min_b, ext, anti_up, anti_range, side_mode, anti_enabled in itertools.product(
-        leverages, k_values, ema_pairs, stop_values, tp_values, min_breakout_values, extension_values, anti_up_values, anti_range_values, side_modes, anti_enabled_values
+    for ma_mode, lev, k, (fast, slow), stop, tp, min_b, ext, anti_up, anti_range, side_mode, anti_enabled, both_mode in itertools.product(
+        ma_modes, leverages, k_values, ema_pairs, stop_values, tp_values, min_breakout_values, extension_values, anti_up_values, anti_range_values, side_modes, anti_enabled_values, no_ma_both_modes
     ):
         if tp <= 0 or stop <= 0:
             continue
+        if ma_mode not in {"ema", "none", "no_ma"}:
+            raise ValueError(f"ma mode must be ema or none, got {ma_mode}")
+        if both_mode not in {"skip", "stronger", "candle"}:
+            raise ValueError(f"no-ma both mode must be skip, stronger, or candle, got {both_mode}")
+        # EMA runs do not need multiple no-MA both-hit modes.
+        if ma_mode == "ema" and both_mode != "skip":
+            continue
         grid.append(
             {
+                "ma_mode": "none" if ma_mode in {"none", "no_ma"} else "ema",
+                "use_ema_filter": not (ma_mode in {"none", "no_ma"}),
+                "no_ma_both_breakout_mode": both_mode,
                 "leverage": float(lev),
                 "k_value": float(k),
                 "ema_fast": int(fast),
@@ -329,7 +417,6 @@ def _grid_from_args(args) -> list[dict[str, Any]]:
         )
     return grid
 
-
 def _cfg_for_combo(base: BacktestConfig, combo: dict[str, Any]) -> BacktestConfig:
     cfg = replace(
         base,
@@ -337,6 +424,8 @@ def _cfg_for_combo(base: BacktestConfig, combo: dict[str, Any]) -> BacktestConfi
         k_value=combo["k_value"],
         ema_fast=combo["ema_fast"],
         ema_slow=combo["ema_slow"],
+        use_ema_filter=combo["use_ema_filter"],
+        no_ma_both_breakout_mode=combo["no_ma_both_breakout_mode"],
         atr_stop_mult=combo["atr_stop_mult"],
         atr_take_profit_mult=combo["atr_take_profit_mult"],
         survival_min_breakout_atr=combo["survival_min_breakout_atr"],
@@ -353,14 +442,16 @@ def _cfg_for_combo(base: BacktestConfig, combo: dict[str, Any]) -> BacktestConfi
 
 
 def main() -> None:
-    parser = argparse.ArgumentParser(description="Index Sniper Pro v2.3 BTC-only leverage/parameter optimizer")
+    parser = argparse.ArgumentParser(description="Index Sniper Pro v2.4 BTC-only MA/no-MA leverage/parameter optimizer")
     parser.add_argument("--years", type=int, default=5)
     parser.add_argument("--refresh", action="store_true")
     parser.add_argument("--label", default="")
-    parser.add_argument("--preset", choices=["leverage", "quick", "default", "wide"], default="default")
+    parser.add_argument("--preset", choices=["leverage", "quick", "default", "wide", "no_ma_leverage", "no_ma_quick", "no_ma_wide", "ma_mix"], default="default")
     parser.add_argument("--leverages", default="1-10", help="e.g. 1-10 or 1,2,3,5,10")
     parser.add_argument("--k-values", default="")
     parser.add_argument("--ema-pairs", default="", help="e.g. 10/40,20/60,30/90")
+    parser.add_argument("--ma-modes", default="", help="ema,none. none disables moving-average trend filter")
+    parser.add_argument("--no-ma-both-modes", default="", help="skip,stronger,candle for days where both upper/lower targets hit without MA")
     parser.add_argument("--stop-values", default="")
     parser.add_argument("--tp-values", default="")
     parser.add_argument("--min-breakout-values", default="")
@@ -443,6 +534,8 @@ def main() -> None:
                 "k_value": row["k_value"],
                 "ema_fast": row["ema_fast"],
                 "ema_slow": row["ema_slow"],
+                "use_ema_filter": row["use_ema_filter"],
+                "no_ma_both_breakout_mode": row["no_ma_both_breakout_mode"],
                 "atr_stop_mult": row["atr_stop_mult"],
                 "atr_take_profit_mult": row["atr_take_profit_mult"],
                 "survival_min_breakout_atr": row["survival_min_breakout_atr"],

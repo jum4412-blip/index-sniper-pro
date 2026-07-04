@@ -26,6 +26,8 @@ class BacktestConfig:
     k_value: float = 0.50
     ema_fast: int = 20
     ema_slow: int = 60
+    use_ema_filter: bool = True
+    no_ma_both_breakout_mode: str = "skip"  # skip | stronger | candle
     atr_period: int = 14
     atr_stop_mult: float = 1.30
     atr_take_profit_mult: float = 2.00
@@ -128,8 +130,10 @@ def _indicator_at(candles: list[Candle], idx: int, cfg: BacktestConfig) -> Indic
         return IndicatorRow(None, None, None, None, None)
     hist = candles[: prev_idx + 1]
     closes = [c.close for c in hist]
-    fast = ema(closes, cfg.ema_fast)
-    slow = ema(closes, cfg.ema_slow)
+    # v2.4: allow a pure volatility-breakout test with no EMA trend filter.
+    # We still keep ATR and previous-day anti-chase inputs.
+    fast = ema(closes, cfg.ema_fast) if cfg.use_ema_filter else None
+    slow = ema(closes, cfg.ema_slow) if cfg.use_ema_filter else None
     trs = true_ranges(hist)
     atr = sum(trs[-cfg.atr_period:]) / cfg.atr_period if len(trs) >= cfg.atr_period else None
     prev_change = None
@@ -317,33 +321,84 @@ def run_portfolio_backtest(symbol_candles: dict[str, list[Candle]], cfg: Backtes
                     signal_logs.append(SignalLog(d, symbol, "BLOCKED", "", day_candles[symbol].open, day_candles[symbol].high, day_candles[symbol].low, day_candles[symbol].close, None, None, None, None, None, "index_friday_entry_block"))
                     continue
                 idx = index_by_date[d].get(symbol)
-                if idx is None or idx < max(cfg.ema_slow, cfg.atr_period) + 1:
+                required_history = max(cfg.atr_period, cfg.ema_slow if cfg.use_ema_filter else 0) + 1
+                if idx is None or idx < required_history:
                     continue
                 c = day_candles[symbol]
                 ind = _indicator_at(candles, idx, cfg)
-                if ind.ema_fast is None or ind.ema_slow is None or ind.atr is None or ind.atr <= 0:
+                if ind.atr is None or ind.atr <= 0:
+                    continue
+                if cfg.use_ema_filter and (ind.ema_fast is None or ind.ema_slow is None):
                     continue
                 long_t, short_t = _targets(candles, idx, cfg)
-                bullish = ind.ema_fast > ind.ema_slow
-                bearish = ind.ema_fast < ind.ema_slow
                 side: Side | None = None
                 entry_target = 0.0
                 trigger_strength = 0.0
                 reason = "no_signal"
-                if bullish and c.high >= long_t + ind.atr * cfg.survival_min_breakout_atr:
-                    side = "long"
-                    entry_target = max(long_t, c.open) if c.open > long_t else long_t
-                    trigger_strength = max(0.0, c.high - long_t) / ind.atr
-                    reason = "long_breakout_bullish"
-                elif bearish and c.low <= short_t - ind.atr * cfg.survival_min_breakout_atr:
-                    side = "short"
-                    entry_target = min(short_t, c.open) if c.open < short_t else short_t
-                    trigger_strength = max(0.0, short_t - c.low) / ind.atr
-                    reason = "short_breakout_bearish"
-                elif c.high >= long_t and not bullish:
-                    reason = "upper_breakout_trend_rejected"
-                elif c.low <= short_t and not bearish:
-                    reason = "lower_breakout_trend_rejected"
+                long_hit = c.high >= long_t + ind.atr * cfg.survival_min_breakout_atr
+                short_hit = c.low <= short_t - ind.atr * cfg.survival_min_breakout_atr
+                if cfg.use_ema_filter:
+                    bullish = (ind.ema_fast or 0.0) > (ind.ema_slow or 0.0)
+                    bearish = (ind.ema_fast or 0.0) < (ind.ema_slow or 0.0)
+                    if bullish and long_hit:
+                        side = "long"
+                        entry_target = max(long_t, c.open) if c.open > long_t else long_t
+                        trigger_strength = max(0.0, c.high - long_t) / ind.atr
+                        reason = "long_breakout_bullish"
+                    elif bearish and short_hit:
+                        side = "short"
+                        entry_target = min(short_t, c.open) if c.open < short_t else short_t
+                        trigger_strength = max(0.0, short_t - c.low) / ind.atr
+                        reason = "short_breakout_bearish"
+                    elif c.high >= long_t and not bullish:
+                        reason = "upper_breakout_trend_rejected"
+                    elif c.low <= short_t and not bearish:
+                        reason = "lower_breakout_trend_rejected"
+                else:
+                    # v2.4 pure volatility breakout: no EMA direction filter.
+                    # If both upper/lower breakout touch in the same daily candle, exact intraday order is unknown.
+                    # Modes:
+                    # - skip: conservative, ignore both-hit days.
+                    # - stronger: choose the side with larger ATR-normalized follow-through.
+                    # - candle: choose long on green candle and short on red candle.
+                    long_strength = max(0.0, c.high - long_t) / ind.atr if long_hit else 0.0
+                    short_strength = max(0.0, short_t - c.low) / ind.atr if short_hit else 0.0
+                    if long_hit and short_hit:
+                        mode = (cfg.no_ma_both_breakout_mode or "skip").strip().lower()
+                        if mode == "stronger":
+                            if long_strength >= short_strength:
+                                side = "long"
+                                entry_target = max(long_t, c.open) if c.open > long_t else long_t
+                                trigger_strength = long_strength
+                                reason = "no_ma_both_breakout_choose_long_stronger"
+                            else:
+                                side = "short"
+                                entry_target = min(short_t, c.open) if c.open < short_t else short_t
+                                trigger_strength = short_strength
+                                reason = "no_ma_both_breakout_choose_short_stronger"
+                        elif mode == "candle":
+                            if c.close >= c.open:
+                                side = "long"
+                                entry_target = max(long_t, c.open) if c.open > long_t else long_t
+                                trigger_strength = long_strength
+                                reason = "no_ma_both_breakout_choose_long_green"
+                            else:
+                                side = "short"
+                                entry_target = min(short_t, c.open) if c.open < short_t else short_t
+                                trigger_strength = short_strength
+                                reason = "no_ma_both_breakout_choose_short_red"
+                        else:
+                            reason = "no_ma_both_breakout_skipped"
+                    elif long_hit:
+                        side = "long"
+                        entry_target = max(long_t, c.open) if c.open > long_t else long_t
+                        trigger_strength = long_strength
+                        reason = "no_ma_long_breakout"
+                    elif short_hit:
+                        side = "short"
+                        entry_target = min(short_t, c.open) if c.open < short_t else short_t
+                        trigger_strength = short_strength
+                        reason = "no_ma_short_breakout"
                 if side is None:
                     signal_logs.append(SignalLog(d, symbol, "HOLD", "", c.open, c.high, c.low, c.close, long_t, short_t, ind.ema_fast, ind.ema_slow, ind.atr, reason))
                     continue
