@@ -43,6 +43,10 @@ class BacktestConfig:
     block_index_friday_entries: bool = True
     weekend_flat_index: bool = True
     conservative_intraday_order: bool = True
+    long_only_symbols: tuple[str, ...] = ()
+    short_only_symbols: tuple[str, ...] = ()
+    long_disabled_symbols: tuple[str, ...] = ()
+    short_disabled_symbols: tuple[str, ...] = ()
 
 
 @dataclass
@@ -141,6 +145,19 @@ def _targets(candles: list[Candle], idx: int, cfg: BacktestConfig) -> tuple[floa
     prev = candles[idx - 1]
     prev_range = max(prev.high - prev.low, 0.0)
     return current.open + prev_range * cfg.k_value, current.open - prev_range * cfg.k_value
+
+
+def _side_allowed(symbol: str, side: Side, cfg: BacktestConfig) -> bool:
+    symbol = symbol.upper()
+    if symbol in set(s.upper() for s in cfg.long_disabled_symbols) and side == "long":
+        return False
+    if symbol in set(s.upper() for s in cfg.short_disabled_symbols) and side == "short":
+        return False
+    if symbol in set(s.upper() for s in cfg.long_only_symbols) and side != "long":
+        return False
+    if symbol in set(s.upper() for s in cfg.short_only_symbols) and side != "short":
+        return False
+    return True
 
 
 def _anti_chase_block(side: Side, ind: IndicatorRow, cfg: BacktestConfig) -> str | None:
@@ -316,6 +333,9 @@ def run_portfolio_backtest(symbol_candles: dict[str, list[Candle]], cfg: Backtes
                     reason = "lower_breakout_trend_rejected"
                 if side is None:
                     signal_logs.append(SignalLog(d, symbol, "HOLD", "", c.open, c.high, c.low, c.close, long_t, short_t, ind.ema_fast, ind.ema_slow, ind.atr, reason))
+                    continue
+                if not _side_allowed(symbol, side, cfg):
+                    signal_logs.append(SignalLog(d, symbol, "BLOCKED", side.upper(), c.open, c.high, c.low, c.close, long_t, short_t, ind.ema_fast, ind.ema_slow, ind.atr, f"side_disabled_{side}"))
                     continue
                 # Late gap/extension block.
                 extension = 0.0

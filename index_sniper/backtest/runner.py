@@ -25,6 +25,12 @@ def _symbols(v: str | None) -> list[str]:
     return [s.strip().upper() for s in v.split(",") if s.strip()]
 
 
+def _tuple_symbols(v: str | None) -> tuple[str, ...]:
+    if not v:
+        return ()
+    return tuple(s.strip().upper() for s in v.split(",") if s.strip())
+
+
 def cfg_from_env(args) -> BacktestConfig:
     return BacktestConfig(
         initial_equity=float(os.getenv("BT_INITIAL_EQUITY", os.getenv("BACKTEST_INITIAL_EQUITY", "1374"))),
@@ -50,6 +56,10 @@ def cfg_from_env(args) -> BacktestConfig:
         max_index_group_open=int(os.getenv("BT_MAX_INDEX_GROUP_OPEN", os.getenv("SURVIVAL_MAX_CORRELATED_OPEN", "1"))),
         block_index_friday_entries=_bool(os.getenv("BT_BLOCK_INDEX_FRIDAY_ENTRIES"), True),
         weekend_flat_index=_bool(os.getenv("BT_WEEKEND_FLAT_INDEX", os.getenv("INDEX_WEEKEND_FLAT", "true")), True),
+        long_only_symbols=_tuple_symbols(os.getenv("BT_LONG_ONLY_SYMBOLS")),
+        short_only_symbols=_tuple_symbols(os.getenv("BT_SHORT_ONLY_SYMBOLS")),
+        long_disabled_symbols=_tuple_symbols(os.getenv("BT_LONG_DISABLED_SYMBOLS")),
+        short_disabled_symbols=_tuple_symbols(os.getenv("BT_SHORT_DISABLED_SYMBOLS")),
     )
 
 
