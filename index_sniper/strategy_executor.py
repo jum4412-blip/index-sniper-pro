@@ -11,6 +11,7 @@ from index_sniper.event_log import append_jsonl, append_trade_csv
 from index_sniper.exchange.bitget_uta import BitgetUTAClient, OrderIntent
 from index_sniper.position import open_positions
 from index_sniper.risk.equity_guard import check_daily_equity_guard
+from index_sniper.risk.live_guard import check_live_guard
 from index_sniper.risk.sizing import build_size_plan, extract_instrument, extract_symbol_config, extract_usdt_equity_available
 from index_sniper.state import StrategyState, utc_day
 from index_sniper.strategy.breakout import BreakoutSignal, build_breakout_signal_adaptive
@@ -128,6 +129,14 @@ def _signal_for_symbol(settings: Settings, client: BitgetUTAClient, symbol: str)
                 fallback_ema_fast=settings.fallback_ema_fast,
                 fallback_ema_slow=settings.fallback_ema_slow,
                 min_atr_period=settings.min_atr_period,
+                use_ema_filter=settings.use_ema_filter,
+                no_ma_both_breakout_mode=settings.no_ma_both_breakout_mode,
+                survival_min_breakout_atr=settings.survival_min_breakout_atr,
+                whipsaw_filter_enabled=settings.whipsaw_filter_enabled,
+                whipsaw_filter_symbols=settings.whipsaw_filter_symbols,
+                whipsaw_filter_lookback_days=settings.whipsaw_filter_lookback_days,
+                whipsaw_min_efficiency_ratio=settings.whipsaw_min_efficiency_ratio,
+                whipsaw_max_flip_ratio=settings.whipsaw_max_flip_ratio,
             )
             signal = replace(
                 signal,
@@ -207,6 +216,9 @@ def _signal_for_symbol(settings: Settings, client: BitgetUTAClient, symbol: str)
         fallback_ema_fast=settings.fallback_ema_fast,
         fallback_ema_slow=settings.fallback_ema_slow,
         min_atr_period=settings.min_atr_period,
+        use_ema_filter=settings.use_ema_filter,
+        no_ma_both_breakout_mode=settings.no_ma_both_breakout_mode,
+        survival_min_breakout_atr=settings.survival_min_breakout_atr,
     )
     return signal, price, instrument, daily_candles, warmup_candles
 
@@ -368,7 +380,7 @@ def run_strategy_exec(settings: Settings, client: BitgetUTAClient, tg: TelegramB
         live_errors = _live_safety_errors(settings)
         if live_errors:
             msg = "LIVE 안전 조건 불일치: " + "; ".join(live_errors)
-            tg.send(f"🛑 <b>v2.0 LIVE 안전장치 중단</b>\n{msg}")
+            tg.send(f"🛑 <b>v2.6 LIVE 안전장치 중단</b>\n{msg}")
             raise RuntimeError(msg)
 
     mode_label = "LIVE" if live else "DRY"
@@ -385,6 +397,7 @@ def run_strategy_exec(settings: Settings, client: BitgetUTAClient, tg: TelegramB
     settings_response = client.settings()
     equity, available = extract_usdt_equity_available(assets)
     equity_guard = check_daily_equity_guard(settings, equity=equity, available=available)
+    live_guard = check_live_guard(settings, equity=equity, available=available)
     state = StrategyState(settings.strategy_state_path)
     today = utc_day()
     reports: list[dict[str, Any]] = []
@@ -403,14 +416,16 @@ def run_strategy_exec(settings: Settings, client: BitgetUTAClient, tg: TelegramB
 
     if notify_policy == "always":
         tg.send(
-            f"🧠 <b>Index Sniper Pro v2.0 SURVIVAL MOMENTUM STRATEGY_EXEC {mode_label}</b>\n"
+            f"🧠 <b>Index Sniper Pro v2.6 BTC 5X WHIPSAW GUARD STRATEGY_EXEC {mode_label}</b>\n"
             f"실주문: {'있음' if live else '없음'}\n"
             f"대상: {', '.join(settings.symbols)}\n"
             f"계좌 사용비율: {settings.capital_ratio * 100:.2f}% / 레버리지 {settings.leverage}x\n"
             f"Risk profile: {settings.risk_profile}\n"
             f"Index group: {', '.join(settings.survival_correlated_group)} max open {settings.survival_max_correlated_open}\n"
             f"TP/SL preset: {settings.use_exchange_tpsl}\n"
+            f"Whipsaw filter: {'ON' if settings.whipsaw_filter_enabled else 'OFF'} ER>={settings.whipsaw_min_efficiency_ratio:.2f} flip<={settings.whipsaw_max_flip_ratio:.2f}\n"
             f"daily loss guard: {'OK' if equity_guard.ok else 'BLOCK'} ({equity_guard.loss_pct:.3f}% / {equity_guard.max_daily_loss_pct:.3f}%)\n"
+            f"live guard: {'OK' if live_guard.ok else 'BLOCK'} (MDD {live_guard.drawdown_pct:.2f}% / {live_guard.mdd_block_pct:.2f}%, month {live_guard.monthly_loss_pct:.2f}% / {live_guard.monthly_loss_block_pct:.2f}%)\n"
             f"open positions before: {global_open_before} / max {settings.max_open_positions}"
         )
 
@@ -466,6 +481,7 @@ def run_strategy_exec(settings: Settings, client: BitgetUTAClient, tg: TelegramB
                 "global_open_limit_ok": global_open_before < settings.max_open_positions,
                 "cycle_entry_limit_ok": True,
                 "daily_loss_guard_ok": equity_guard.ok,
+                "live_guard_ok": live_guard.ok,
                 "warmup_allowed": (not signal.warmup_mode) or settings.live_allow_warmup_entries,
                 "survival_correlated_group_ok": group_limit_ok,
                 "index_weekend_entry_ok": index_weekend_entry_ok,
@@ -500,6 +516,7 @@ def run_strategy_exec(settings: Settings, client: BitgetUTAClient, tg: TelegramB
                 "anti_chase": anti_chase.to_dict(),
                 "daily_entries_today": daily_count,
                 "equity_guard": equity_guard.to_dict(),
+                "live_guard": live_guard.to_dict(),
                 "signal": signal.to_dict(),
                 "breakout_atr_distance": breakout_atr_distance,
                 "survival_signal_score": score,
@@ -591,6 +608,7 @@ def run_strategy_exec(settings: Settings, client: BitgetUTAClient, tg: TelegramB
         "원칙: 많이 버는 것보다 오래 살아남기",
         "Exchange preset TP/SL 포함" if settings.use_exchange_tpsl else "Exchange preset TP/SL 미사용",
         f"Daily loss guard: {'OK' if equity_guard.ok else 'BLOCK'} {equity_guard.loss_pct:.3f}% / {equity_guard.max_daily_loss_pct:.3f}%",
+        f"Live guard: {'OK' if live_guard.ok else 'BLOCK'} MDD {live_guard.drawdown_pct:.2f}%/{live_guard.mdd_block_pct:.2f}% month {live_guard.monthly_loss_pct:.2f}%/{live_guard.monthly_loss_block_pct:.2f}%",
         f"Index group open: {survival_group_open_before} / {settings.survival_max_correlated_open}",
         f"Weekend flat: {weekend_flat_human(weekend_window)}",
         f"Position manager: {len(position_manager_report)} open position(s) observed",

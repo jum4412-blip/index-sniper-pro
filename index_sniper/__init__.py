@@ -1,1 +1,1 @@
-__version__ = "2.4.0-btc-no-ma-optimizer"
+__version__ = "2.6.0-btc-5x-whipsaw-guard"

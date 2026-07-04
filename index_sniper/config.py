@@ -85,6 +85,15 @@ class Settings:
     min_atr_period: int
     atr_stop_mult: float
     atr_take_profit_mult: float
+    use_ema_filter: bool
+    no_ma_both_breakout_mode: str
+
+    # v2.6 whipsaw / sideways market filter
+    whipsaw_filter_enabled: bool
+    whipsaw_filter_symbols: list[str]
+    whipsaw_filter_lookback_days: int
+    whipsaw_min_efficiency_ratio: float
+    whipsaw_max_flip_ratio: float
 
     # Runtime
     loop_seconds: int
@@ -128,6 +137,13 @@ class Settings:
     max_order_notional_usdt: float
     risk_state_path: str
     daily_loss_guard_enabled: bool
+
+    # v2.6 BTC live guard
+    live_guard_enabled: bool
+    live_guard_state_path: str
+    live_guard_monthly_loss_block_pct: float
+    live_guard_mdd_block_pct: float
+    live_guard_drawdown_warn_pct: float
 
     # External signal data v1.5/v1.6
     external_signal_enabled: bool
@@ -224,6 +240,14 @@ def load_settings() -> Settings:
         min_atr_period=int(os.getenv("MIN_ATR_PERIOD", "10")),
         atr_stop_mult=float(os.getenv("ATR_STOP_MULT", "1.30")),
         atr_take_profit_mult=float(os.getenv("ATR_TAKE_PROFIT_MULT", "2.00")),
+        use_ema_filter=_bool(os.getenv("USE_EMA_FILTER"), True),
+        no_ma_both_breakout_mode=os.getenv("NO_MA_BOTH_BREAKOUT_MODE", "skip").strip().lower(),
+
+        whipsaw_filter_enabled=_bool(os.getenv("WHIPSAW_FILTER_ENABLED"), False),
+        whipsaw_filter_symbols=_symbols(os.getenv("WHIPSAW_FILTER_SYMBOLS", "BTCUSDT")),
+        whipsaw_filter_lookback_days=int(os.getenv("WHIPSAW_FILTER_LOOKBACK_DAYS", "10")),
+        whipsaw_min_efficiency_ratio=float(os.getenv("WHIPSAW_MIN_EFFICIENCY_RATIO", "0.22")),
+        whipsaw_max_flip_ratio=float(os.getenv("WHIPSAW_MAX_FLIP_RATIO", "0.60")),
 
         loop_seconds=int(os.getenv("LOOP_SECONDS", "300")),
         heartbeat_minutes=int(os.getenv("HEARTBEAT_MINUTES", "60")),
@@ -262,6 +286,12 @@ def load_settings() -> Settings:
         max_order_notional_usdt=float(os.getenv("MAX_ORDER_NOTIONAL_USDT", "250")),
         risk_state_path=os.getenv("RISK_STATE_PATH", "data/equity_guard.json").strip(),
         daily_loss_guard_enabled=_bool(os.getenv("DAILY_LOSS_GUARD_ENABLED"), True),
+
+        live_guard_enabled=_bool(os.getenv("LIVE_GUARD_ENABLED"), False),
+        live_guard_state_path=os.getenv("LIVE_GUARD_STATE_PATH", "data/live_guard_v26.json").strip(),
+        live_guard_monthly_loss_block_pct=float(os.getenv("LIVE_GUARD_MONTHLY_LOSS_BLOCK_PCT", "15.0")),
+        live_guard_mdd_block_pct=float(os.getenv("LIVE_GUARD_MDD_BLOCK_PCT", "25.0")),
+        live_guard_drawdown_warn_pct=float(os.getenv("LIVE_GUARD_DRAWDOWN_WARN_PCT", "15.0")),
 
         external_signal_enabled=_bool(os.getenv("EXTERNAL_SIGNAL_ENABLED"), True),
         external_signal_symbols=_symbols(os.getenv("EXTERNAL_SIGNAL_SYMBOLS", "SP500USDT,NDX100USDT")),

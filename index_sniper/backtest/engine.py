@@ -39,6 +39,11 @@ class BacktestConfig:
     anti_chase_extreme_up_pct: float = 7.0
     anti_chase_extreme_down_pct: float = 7.0
     anti_chase_extreme_range_atr: float = 1.8
+    whipsaw_filter_enabled: bool = False
+    whipsaw_filter_symbols: tuple[str, ...] = ()
+    whipsaw_filter_lookback_days: int = 10
+    whipsaw_min_efficiency_ratio: float = 0.22
+    whipsaw_max_flip_ratio: float = 0.60
     max_open_positions: int = 2
     max_new_positions_per_day: int = 1
     max_index_group_open: int = 1
@@ -181,6 +186,46 @@ def _anti_chase_block(side: Side, ind: IndicatorRow, cfg: BacktestConfig) -> str
         if p is not None and p < 0 and r is not None and r >= cfg.anti_chase_extreme_range_atr:
             return f"anti_chase_prev_down_range_{r:.2f}ATR"
     return None
+
+
+def _whipsaw_metrics_backtest(candles: list[Candle], idx: int, lookback_days: int) -> tuple[float | None, float | None, int]:
+    lookback = max(3, int(lookback_days or 0))
+    # At idx, the current candle is not completed yet. Use candles through idx-1 only.
+    end = idx
+    start = end - (lookback + 1)
+    if start < 0:
+        return None, None, max(0, end - 1)
+    closes = [c.close for c in candles[start:end]]
+    moves = [closes[i] - closes[i - 1] for i in range(1, len(closes))]
+    abs_sum = sum(abs(x) for x in moves)
+    direct = abs(closes[-1] - closes[0]) if closes else 0.0
+    efficiency = (direct / abs_sum) if abs_sum > 0 else 0.0
+    signs = [1 if x > 0 else -1 if x < 0 else 0 for x in moves]
+    signs = [s for s in signs if s != 0]
+    if len(signs) <= 1:
+        flip_ratio = 0.0
+    else:
+        flips = sum(1 for i in range(1, len(signs)) if signs[i] != signs[i - 1])
+        flip_ratio = flips / (len(signs) - 1)
+    return efficiency, flip_ratio, len(moves)
+
+
+def _whipsaw_block(symbol: str, candles: list[Candle], idx: int, cfg: BacktestConfig) -> str | None:
+    if not cfg.whipsaw_filter_enabled:
+        return None
+    symbols = {s.upper() for s in cfg.whipsaw_filter_symbols or ()}
+    if symbols and symbol.upper() not in symbols:
+        return None
+    eff, flip, n = _whipsaw_metrics_backtest(candles, idx, cfg.whipsaw_filter_lookback_days)
+    reasons = []
+    if eff is not None and eff < cfg.whipsaw_min_efficiency_ratio:
+        reasons.append(f"eff_{eff:.3f}_lt_{cfg.whipsaw_min_efficiency_ratio:.3f}")
+    if flip is not None and flip > cfg.whipsaw_max_flip_ratio:
+        reasons.append(f"flip_{flip:.3f}_gt_{cfg.whipsaw_max_flip_ratio:.3f}")
+    if reasons:
+        return "whipsaw_filter_" + "_".join(reasons) + f"_n{n}"
+    return None
+
 
 
 def _size(equity: float, price: float, symbol_count: int, cfg: BacktestConfig) -> tuple[float, float]:
@@ -401,6 +446,10 @@ def run_portfolio_backtest(symbol_candles: dict[str, list[Candle]], cfg: Backtes
                         reason = "no_ma_short_breakout"
                 if side is None:
                     signal_logs.append(SignalLog(d, symbol, "HOLD", "", c.open, c.high, c.low, c.close, long_t, short_t, ind.ema_fast, ind.ema_slow, ind.atr, reason))
+                    continue
+                whipsaw_reason = _whipsaw_block(symbol, candles, idx, cfg) if not cfg.use_ema_filter else None
+                if whipsaw_reason:
+                    signal_logs.append(SignalLog(d, symbol, "BLOCKED", side.upper(), c.open, c.high, c.low, c.close, long_t, short_t, ind.ema_fast, ind.ema_slow, ind.atr, whipsaw_reason))
                     continue
                 if not _side_allowed(symbol, side, cfg):
                     signal_logs.append(SignalLog(d, symbol, "BLOCKED", side.upper(), c.open, c.high, c.low, c.close, long_t, short_t, ind.ema_fast, ind.ema_slow, ind.atr, f"side_disabled_{side}"))

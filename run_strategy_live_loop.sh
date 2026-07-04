@@ -17,5 +17,12 @@ if ! grep -q '^LIVE_START_CONFIRM=START_LIVE_INDEX_SNIPER' .env; then
   echo "🛑 .env에 LIVE_START_CONFIRM=START_LIVE_INDEX_SNIPER 확인문구가 필요합니다."
   exit 1
 fi
-source venv/bin/activate
+if [ -d .venv ]; then
+  source .venv/bin/activate
+elif [ -d venv ]; then
+  source venv/bin/activate
+else
+  echo "🛑 가상환경(.venv 또는 venv)을 찾을 수 없습니다. python3 -m venv .venv 후 설치가 필요합니다."
+  exit 1
+fi
 PYTHONUNBUFFERED=1 python -u main.py --mode strategy-exec-loop

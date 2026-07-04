@@ -1,35 +1,16 @@
-# Index Sniper Pro v2.5 Partial Exit Patch
+# Index Sniper Pro v2.6 BTC 5x Whipsaw Guard Patch
 
-Adds BTC No-MA partial-exit backtest tools.
+BTC 전용 5배 No-MA 실전 후보 패치입니다. 횡보장 휩쏘를 줄이기 위해 아래 방어를 추가합니다.
 
-Default profile: `p50_be_25`
+- BTCUSDT only
+- No-MA volatility breakout
+- long/short both=stronger
+- capital ratio 30%, leverage 5x
+- notional cap 2500 USDT
+- stronger breakout confirmation: `SURVIVAL_MIN_BREAKOUT_ATR=0.15`
+- late entry cap: `MAX_ENTRY_EXTENSION_ATR=0.30`
+- anti-chase tightened: 6% / 1.5 ATR
+- whipsaw filter: efficiency >= 0.22 and flip ratio <= 0.60 over 10 completed daily candles
+- live guard: monthly loss block 8%, MDD block 18%, drawdown warning 10%
 
-- 50% take profit at +1.0 ATR
-- Move remaining stop to breakeven after first TP
-- Remaining 50% take profit at +2.5 ATR
-- BTC only / No-MA / long-short / both=stronger / 30% capital / leverage 1x-10x
-
-## Run
-
-```bash
-cd ~/index-sniper-pro
-source .venv/bin/activate
-bash run_btc_partial_exit_final_1y_5y.sh
-bash run_btc_partial_exit_risk_1y_3y.sh
-bash view_btc_partial_exit.sh
-```
-
-## Other profiles
-
-```bash
-PARTIAL_PROFILE=p40_30_30_be bash run_btc_partial_exit_final_1y_5y.sh
-PARTIAL_PROFILE=p50_be_20 bash run_btc_partial_exit_final_1y_5y.sh
-```
-
-## Output files
-
-- `backtests/btc_partial_final_latest.txt`
-- `backtests/btc_partial_risk_latest.txt`
-- `backtests/btc_partial_monthly_pnl_1y_<profile>_ls_stronger.txt`
-- `backtests/btc_partial_monthly_pnl_3y_<profile>_ls_stronger.txt`
-- `backtests/btc_partial_worst10_trades_<profile>_ls_stronger.txt`
+This patch does not force live trading on. Preflight first.

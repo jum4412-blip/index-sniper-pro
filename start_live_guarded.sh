@@ -19,6 +19,6 @@ if ! grep -q '^LIVE_START_CONFIRM=START_LIVE_INDEX_SNIPER' .env; then
 fi
 bash stop_sniper.sh >/dev/null 2>&1 || true
 mkdir -p logs data
-screen -dmS sniper-live bash -lc 'cd ~/index-sniper-pro && source venv/bin/activate && while true; do bash run_strategy_live_loop.sh >> logs/sniper-live.log 2>&1; echo "$(date -u +%FT%TZ) live loop exited; restarting in 30s" >> logs/sniper-live.log; sleep 30; done'
+screen -dmS sniper-live bash -lc 'cd ~/index-sniper-pro && if [ -d .venv ]; then source .venv/bin/activate; elif [ -d venv ]; then source venv/bin/activate; else echo "venv missing" >> logs/sniper-live.log; exit 1; fi && while true; do bash run_strategy_live_loop.sh >> logs/sniper-live.log 2>&1; echo "$(date -u +%FT%TZ) live loop exited; restarting in 30s" >> logs/sniper-live.log; sleep 30; done'
 echo "✅ sniper-live started"
 screen -ls
