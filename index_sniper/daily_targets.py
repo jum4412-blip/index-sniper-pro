@@ -3,7 +3,7 @@ from __future__ import annotations
 import argparse
 import json
 import os
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from typing import Any
 
@@ -39,11 +39,16 @@ def _pct_distance(now: float, target: float) -> float:
     return (target - now) / now * 100.0
 
 
-def _utc_dt_from_ms(ts: int | float | None) -> str:
+KST = timezone(timedelta(hours=9))
+
+
+def _utc_kst_dt_from_ms(ts: int | float | None) -> str:
     if not ts:
         return "unknown"
     try:
-        return datetime.fromtimestamp(float(ts) / 1000.0, tz=timezone.utc).strftime("%Y-%m-%d %H:%M UTC")
+        dt_utc = datetime.fromtimestamp(float(ts) / 1000.0, tz=timezone.utc)
+        dt_kst = dt_utc.astimezone(KST)
+        return f"{dt_utc.strftime('%Y-%m-%d %H:%M UTC')} / {dt_kst.strftime('%Y-%m-%d %H:%M KST')}"
     except Exception:
         return "unknown"
 
@@ -78,6 +83,7 @@ def build_daily_target_lines(settings: Settings, client: BitgetUTAClient) -> tup
         f"대상: {', '.join(settings.symbols)}",
         f"전략: {'No-MA' if not settings.use_ema_filter else 'EMA filter'} / K={settings.k_value:.2f} / both={settings.no_ma_both_breakout_mode}",
         f"TP/SL 기준: SL ATR×{settings.atr_stop_mult:.2f}, TP ATR×{settings.atr_take_profit_mult:.2f}",
+        "일봉 기준: UTC 00:00 = KST 09:00",
         "형식: 현재가 → 롱타겟 / 숏타겟",
     ]
     lines.extend(header)
@@ -87,7 +93,7 @@ def build_daily_target_lines(settings: Settings, client: BitgetUTAClient) -> tup
             signal, price, _instrument, daily_candles, _warmup = _signal_for_symbol(settings, client, symbol)
             current_candle = daily_candles[-1] if daily_candles else None
             previous_candle = daily_candles[-2] if len(daily_candles) >= 2 else None
-            target_day = _utc_dt_from_ms(getattr(current_candle, "ts", None))
+            target_day = _utc_kst_dt_from_ms(getattr(current_candle, "ts", None))
             target_day_keys.append(f"{symbol}:{target_day}")
 
             now = float(price)

@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import os
 import time
 from dataclasses import asdict, replace
 from datetime import datetime, timezone
@@ -18,6 +19,7 @@ from index_sniper.strategy.breakout import BreakoutSignal, build_breakout_signal
 from index_sniper.strategy.anti_chase import evaluate_anti_chase
 from index_sniper.position_manager import evaluate_positions
 from index_sniper.strategy.indicators import parse_candles
+from index_sniper.strategy.utc_daily import fetch_utc_daily_candles
 from index_sniper.strategy.external_data import fetch_external_daily_for_symbol
 from index_sniper.observer import observation_summary_line, persist_observations
 from index_sniper.telegram.bot import TelegramBot
@@ -181,16 +183,51 @@ def _signal_for_symbol(settings: Settings, client: BitgetUTAClient, symbol: str)
             )
             return signal, price, instrument, [], None
 
-    daily_response = client.candles(
-        symbol=symbol,
-        category=settings.category,
-        interval=settings.strategy_interval,
-        limit=settings.strategy_candle_limit,
-        candle_type="market",
+    daily_data_quality = None
+    use_utc_day_aggregation = (
+        symbol.upper() == "BTCUSDT"
+        and settings.strategy_interval.upper() == "1D"
+        and os.getenv("BTC_UTC_DAY_AGGREGATION_ENABLED", "true").strip().lower() in {"1", "true", "yes", "y", "on"}
     )
-    daily_candles = parse_candles(daily_response)
-    warmup_candles = None
-    if settings.adaptive_trend and len(daily_candles) < settings.ema_slow:
+
+    if use_utc_day_aggregation:
+        interval = os.getenv("UTC_DAY_INTRADAY_INTERVAL", "1H").strip() or "1H"
+        limit = int(os.getenv("UTC_DAY_INTRADAY_LIMIT", "500"))
+        try:
+            daily_candles = fetch_utc_daily_candles(
+                client,
+                symbol,
+                settings.category,
+                interval=interval,
+                limit=limit,
+                candle_type="market",
+            )
+            warmup_candles = None
+            daily_data_quality = f"UTC_DAY_AGGREGATED:{interval}:limit={limit}:session=00:00UTC/09:00KST"
+        except Exception as exc:
+            # Fall back to exchange daily candles rather than breaking the loop.
+            daily_response = client.candles(
+                symbol=symbol,
+                category=settings.category,
+                interval=settings.strategy_interval,
+                limit=settings.strategy_candle_limit,
+                candle_type="market",
+            )
+            daily_candles = parse_candles(daily_response)
+            warmup_candles = None
+            daily_data_quality = f"EXCHANGE_1D_FALLBACK_AFTER_UTC_AGG_ERROR:{str(exc)[:180]}"
+    else:
+        daily_response = client.candles(
+            symbol=symbol,
+            category=settings.category,
+            interval=settings.strategy_interval,
+            limit=settings.strategy_candle_limit,
+            candle_type="market",
+        )
+        daily_candles = parse_candles(daily_response)
+        warmup_candles = None
+
+    if settings.adaptive_trend and len(daily_candles) < settings.ema_slow and not use_utc_day_aggregation:
         warmup_response = client.candles(
             symbol=symbol,
             category=settings.category,
@@ -219,7 +256,14 @@ def _signal_for_symbol(settings: Settings, client: BitgetUTAClient, symbol: str)
         use_ema_filter=settings.use_ema_filter,
         no_ma_both_breakout_mode=settings.no_ma_both_breakout_mode,
         survival_min_breakout_atr=settings.survival_min_breakout_atr,
+        whipsaw_filter_enabled=settings.whipsaw_filter_enabled,
+        whipsaw_filter_symbols=settings.whipsaw_filter_symbols,
+        whipsaw_filter_lookback_days=settings.whipsaw_filter_lookback_days,
+        whipsaw_min_efficiency_ratio=settings.whipsaw_min_efficiency_ratio,
+        whipsaw_max_flip_ratio=settings.whipsaw_max_flip_ratio,
     )
+    if daily_data_quality:
+        signal = replace(signal, data_quality=daily_data_quality)
     return signal, price, instrument, daily_candles, warmup_candles
 
 
