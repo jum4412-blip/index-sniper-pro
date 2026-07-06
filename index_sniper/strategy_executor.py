@@ -10,7 +10,7 @@ from typing import Any
 from index_sniper.config import Settings
 from index_sniper.event_log import append_jsonl, append_trade_csv
 from index_sniper.exchange.bitget_uta import BitgetUTAClient, OrderIntent
-from index_sniper.position import open_positions, row_qty_decimal, row_side
+from index_sniper.position import open_positions
 from index_sniper.risk.equity_guard import check_daily_equity_guard
 from index_sniper.risk.live_guard import check_live_guard
 from index_sniper.risk.sizing import build_size_plan, extract_instrument, extract_symbol_config, extract_usdt_equity_available
@@ -23,6 +23,7 @@ from index_sniper.strategy.utc_daily import fetch_utc_daily_candles
 from index_sniper.strategy.external_data import fetch_external_daily_for_symbol
 from index_sniper.observer import observation_summary_line, persist_observations
 from index_sniper.telegram.bot import TelegramBot
+from index_sniper.alert_throttle import should_emit
 from index_sniper.weekend_flat import (
     close_index_positions_if_due,
     index_new_entry_allowed,
@@ -83,6 +84,87 @@ def _fmt_price(x: float | str | None) -> str:
     if abs(f) >= 1:
         return f"{f:.4f}"
     return f"{f:.8f}"
+
+
+
+def _env_bool(name: str, default: bool = False) -> bool:
+    raw = os.getenv(name)
+    if raw is None:
+        return default
+    return raw.strip().lower() in {"1", "true", "yes", "y", "on"}
+
+
+def _env_int(name: str, default: int) -> int:
+    raw = os.getenv(name)
+    if raw is None or not str(raw).strip():
+        return default
+    try:
+        return int(float(str(raw).strip()))
+    except Exception:
+        return default
+
+
+def _pos_side(pos: dict[str, Any]) -> str:
+    for key in ("posSide", "holdSide", "positionSide"):
+        value = str(pos.get(key, "") or "").strip().lower()
+        if value in {"long", "short"}:
+            return value
+    value = str(pos.get("side", "") or "").strip().lower()
+    if value in {"long", "short"}:
+        return value
+    # Bitget variants can describe long as buy/open_long and short as sell/open_short.
+    if value in {"buy", "open_long"}:
+        return "long"
+    if value in {"sell", "open_short"}:
+        return "short"
+    return ""
+
+
+def _has_opposite_position(open_pos: list[dict[str, Any]], signal_side: str) -> bool:
+    sig = str(signal_side or "").upper()
+    if sig not in {"LONG", "SHORT"}:
+        return False
+    opposite = "short" if sig == "LONG" else "long"
+    return any(_pos_side(p) == opposite for p in open_pos)
+
+
+def _alert_key(kind: str, reports: list[dict[str, Any]]) -> str:
+    parts: list[str] = [kind]
+    for r in reports:
+        sym = str(r.get("symbol", ""))
+        if "error" in r:
+            parts.append(f"{sym}:ERROR:{str(r.get('error'))[:180]}")
+            continue
+        sig = (r.get("signal") or {}).get("signal", "")
+        reason = (r.get("signal") or {}).get("reason", "")
+        bad = ",".join(k for k, v in ((r.get("checks") or {}).items()) if not v)
+        if sig in {"LONG", "SHORT"} or bad:
+            parts.append(f"{sym}:{sig}:{str(reason)[:120]}:{bad[:200]}")
+    return "|".join(parts)[:900]
+
+
+def _alert_cooldown_minutes(kind: str) -> int:
+    defaults = {
+        "error": 30,
+        "blocked": 360,
+        "active": 60,
+        "hold": 360,
+    }
+    env_name = {
+        "error": "ALERT_ERROR_COOLDOWN_MINUTES",
+        "blocked": "ALERT_BLOCKED_SIGNAL_COOLDOWN_MINUTES",
+        "active": "ALERT_ACTIVE_SIGNAL_COOLDOWN_MINUTES",
+        "hold": "ALERT_HOLD_COOLDOWN_MINUTES",
+    }.get(kind, "ALERT_COOLDOWN_MINUTES")
+    return _env_int(env_name, defaults.get(kind, 60))
+
+
+def _throttle_allows(kind: str, reports: list[dict[str, Any]]) -> bool:
+    if not _env_bool("ALERT_THROTTLE_ENABLED", True):
+        return True
+    path = os.getenv("ALERT_STATE_PATH", "data/alert_throttle_v29.json")
+    minutes = _alert_cooldown_minutes(kind)
+    return should_emit(_alert_key(kind, reports), minutes * 60, path)
 
 
 def _signal_for_symbol(settings: Settings, client: BitgetUTAClient, symbol: str):
@@ -293,68 +375,6 @@ def _make_entry_intent(settings: Settings, symbol: str, signal: Any, qty: str, i
     )
 
 
-def _env_bool(name: str, default: bool = False) -> bool:
-    value = os.getenv(name)
-    if value is None or value == "":
-        return default
-    return value.strip().lower() in {"1", "true", "yes", "y", "on"}
-
-
-def _opposite_signal_exit_enabled() -> bool:
-    return _env_bool("OPPOSITE_SIGNAL_EXIT_ENABLED", False)
-
-
-def _opposite_signal_exit_cooldown_enabled() -> bool:
-    return _env_bool("OPPOSITE_SIGNAL_EXIT_COOLDOWN_UNTIL_NEXT_DAY", True)
-
-
-def _opposite_exit_lock_active(state: StrategyState, symbol: str, day: str) -> bool:
-    if not _opposite_signal_exit_cooldown_enabled():
-        return False
-    locks = state.data.get("opposite_exit_locks") or {}
-    day_locks = locks.get(day) or {}
-    return bool(day_locks.get(symbol.upper()))
-
-
-def _record_opposite_exit_lock(state: StrategyState, symbol: str, day: str, event: dict[str, Any]) -> None:
-    if not _opposite_signal_exit_cooldown_enabled():
-        return
-    state.data.setdefault("opposite_exit_locks", {}).setdefault(day, {})[symbol.upper()] = event
-    state.save()
-
-
-def _opposite_position_side(signal_side: str) -> str | None:
-    if signal_side == "LONG":
-        return "short"
-    if signal_side == "SHORT":
-        return "long"
-    return None
-
-
-def _make_close_position_intent(settings: Settings, symbol: str, position_row: dict[str, Any]) -> OrderIntent:
-    pos_side = row_side(position_row)
-    if pos_side not in {"long", "short"}:
-        raise RuntimeError(f"unknown position side for close: {position_row}")
-    qty = str(row_qty_decimal(position_row))
-    if qty in {"", "0", "0.0"}:
-        raise RuntimeError(f"empty position qty for close: {position_row}")
-    side = "sell" if pos_side == "long" else "buy"
-    oid = str(int(time.time() * 1000))[-10:]
-    prefix = "v29cl" if pos_side == "long" else "v29cs"
-    client_oid = f"{prefix}-{symbol.lower()}-{oid}"[:32]
-    return OrderIntent(
-        symbol=symbol,
-        side=side,
-        pos_side=pos_side,
-        qty=qty,
-        category=settings.category,
-        margin_coin=settings.margin_coin,
-        margin_mode=settings.margin_mode,
-        client_oid=client_oid,
-        reduce_only=True,
-    )
-
-
 def _global_open_count(settings: Settings, client: BitgetUTAClient) -> int:
     count = 0
     for symbol in settings.symbols:
@@ -543,10 +563,15 @@ def run_strategy_exec(settings: Settings, client: BitgetUTAClient, tg: TelegramB
             instrument = extract_instrument(client.instruments(symbol, settings.category), symbol)
             positions = client.current_position(symbol, settings.category)
             opens = open_positions(positions, symbol=symbol)
+            block_new_entry_when_any_position_open = _env_bool("BLOCK_NEW_ENTRY_WHEN_ANY_POSITION_OPEN", True)
+            block_opposite_signal_when_position_open = _env_bool("BLOCK_OPPOSITE_SIGNAL_WHEN_POSITION_OPEN", True)
             sym_cfg = extract_symbol_config(settings_response, symbol) or {}
             current_leverage = int(sym_cfg.get("leverage") or 0) if sym_cfg else None
             current_margin_mode = sym_cfg.get("marginMode") if sym_cfg else None
             signal, _, _, daily_candles, warmup_candles = _signal_for_symbol(settings, client, symbol)
+            opposite_signal_with_open_position = _has_opposite_position(opens, signal.signal)
+            position_entry_ok = (len(opens) == 0) if block_new_entry_when_any_position_open else True
+            opposite_signal_ok = not (block_opposite_signal_when_position_open and opposite_signal_with_open_position)
 
             effective_size_multiplier = settings.fallback_size_multiplier if signal.warmup_mode else 1.0
             if signal.warmup_mode and not settings.live_allow_warmup_entries:
@@ -576,23 +601,12 @@ def run_strategy_exec(settings: Settings, client: BitgetUTAClient, tg: TelegramB
             if settings.risk_profile == "SURVIVAL" and signal.signal in {"LONG", "SHORT"}:
                 breakout_strength_ok = breakout_atr_distance >= settings.survival_min_breakout_atr
 
-            opposite_exit_lock_active = _opposite_exit_lock_active(state, symbol, today)
-            opposite_exit_info: dict[str, Any] = {
-                "enabled": _opposite_signal_exit_enabled(),
-                "cooldown_until_next_day": _opposite_signal_exit_cooldown_enabled(),
-                "cooldown_active_today": opposite_exit_lock_active,
-                "triggered": False,
-                "mode": os.getenv("OPPOSITE_SIGNAL_EXIT_MODE", "close_only").strip().lower() or "close_only",
-                "reason": "no opposite position exit",
-                "attempted": [],
-                "errors": [],
-            }
-
             checks = {
                 "has_signal": signal.signal in {"LONG", "SHORT"},
                 "leverage_ok": current_leverage == settings.leverage,
                 "margin_mode_ok": current_margin_mode == settings.margin_mode,
-                "no_open_position_for_symbol": len(opens) == 0,
+                "no_open_position_for_symbol": position_entry_ok,
+                "opposite_signal_guard_ok": opposite_signal_ok,
                 "size_valid": size_plan.valid,
                 "max_order_notional_ok": notional_ok,
                 "daily_entry_limit_ok": daily_count < settings.max_daily_entries_per_symbol,
@@ -607,79 +621,15 @@ def run_strategy_exec(settings: Settings, client: BitgetUTAClient, tg: TelegramB
                 "late_entry_ok": anti_chase.ok,
                 "survival_breakout_strength_ok": breakout_strength_ok,
                 "survival_min_score_ok": score >= settings.survival_min_signal_score if signal.signal in {"LONG", "SHORT"} else False,
-                "opposite_exit_cooldown_ok": not opposite_exit_lock_active,
                 "survival_best_candidate_ok": False,
             }
-
-            # v2.9 close-only reversal guard:
-            # If a confirmed signal appears opposite to the currently held side, close the old position first.
-            # It deliberately does NOT open the new opposite position in the same cycle.
-            # Exit orders bypass entry blockers such as daily loss guard and max-open-position because they reduce exposure.
-            if signal.signal in {"LONG", "SHORT"}:
-                close_side = _opposite_position_side(signal.signal)
-                opposite_rows = [row for row in opens if row_side(row) == close_side]
-                if opposite_rows:
-                    opposite_exit_info["triggered"] = True
-                    opposite_exit_info["reason"] = f"{signal.signal} signal while holding {str(close_side).upper()}"
-                    if not _opposite_signal_exit_enabled():
-                        opposite_exit_info["reason"] += "; disabled by OPPOSITE_SIGNAL_EXIT_ENABLED=false"
-                    elif opposite_exit_info["mode"] != "close_only":
-                        opposite_exit_info["reason"] += f"; unsupported mode {opposite_exit_info['mode']}"
-                    else:
-                        for row in opposite_rows:
-                            try:
-                                close_intent = _make_close_position_intent(settings, symbol, row)
-                                close_payload = client.build_market_order_payload(close_intent)
-                                close_dry_run = bool(settings.dry_run) or not live
-                                close_result = client.place_order(close_intent, dry_run=close_dry_run)
-                                close_success = bool(close_dry_run) or client.is_success(close_result)
-                                close_event = {
-                                    "ts": datetime.now(timezone.utc).isoformat(),
-                                    "mode": mode_label,
-                                    "symbol": symbol,
-                                    "signal": signal.signal,
-                                    "reason": signal.reason,
-                                    "close_side": close_intent.pos_side,
-                                    "side": close_intent.side,
-                                    "pos_side": close_intent.pos_side,
-                                    "qty": close_intent.qty,
-                                    "price": price,
-                                    "dry_run": close_dry_run,
-                                    "client_oid": close_intent.client_oid or "",
-                                    "result_code": close_result.get("code", "DRY") if isinstance(close_result, dict) else "",
-                                    "result_msg": close_result.get("msg", "") if isinstance(close_result, dict) else "",
-                                    "order_payload": close_payload,
-                                    "order_result": close_result,
-                                }
-                                opposite_exit_info["attempted"].append(close_event)
-                                append_jsonl(settings.log_dir, "events.jsonl", {"type": "opposite_signal_exit", **close_event})
-                                append_trade_csv(settings.log_dir, {**close_event, "signal": "EXIT_OPPOSITE_SIGNAL", "stop_loss": "", "take_profit": ""})
-                                if close_success and live and not close_dry_run:
-                                    _record_opposite_exit_lock(state, symbol, today, {
-                                        "ts": close_event["ts"],
-                                        "symbol": symbol,
-                                        "closed_side": close_intent.pos_side,
-                                        "opposite_signal": signal.signal,
-                                        "qty": close_intent.qty,
-                                        "price": price,
-                                        "client_oid": close_intent.client_oid or "",
-                                    })
-                            except Exception as close_exc:
-                                err = str(close_exc)
-                                opposite_exit_info["errors"].append(err)
-                                append_jsonl(settings.log_dir, "events.jsonl", {
-                                    "type": "opposite_signal_exit_error",
-                                    "symbol": symbol,
-                                    "signal": signal.signal,
-                                    "error": err,
-                                })
 
             intent_payload = None
             if signal.signal in {"LONG", "SHORT"} and size_plan.valid:
                 intent = _make_entry_intent(settings, symbol, signal, size_plan.final_qty, instrument)
                 intent_payload = client.build_market_order_payload(intent)
                 base_checks_ok = all(v for k, v in checks.items() if k != "survival_best_candidate_ok")
-                if base_checks_ok and not opposite_exit_info.get("triggered"):
+                if base_checks_ok:
                     candidate_intents[len(reports)] = intent
 
             item.update({
@@ -691,6 +641,9 @@ def run_strategy_exec(settings: Settings, client: BitgetUTAClient, tg: TelegramB
                 "current_margin_mode": current_margin_mode,
                 "target_margin_mode": settings.margin_mode,
                 "open_position_count": len(opens),
+                "opposite_signal_with_open_position": opposite_signal_with_open_position,
+                "block_new_entry_when_any_position_open": block_new_entry_when_any_position_open,
+                "block_opposite_signal_when_position_open": block_opposite_signal_when_position_open,
                 "global_open_before": global_open_before,
                 "survival_group_open_before": survival_group_open_before,
                 "weekend_flat": weekend_window.to_dict(),
@@ -699,7 +652,6 @@ def run_strategy_exec(settings: Settings, client: BitgetUTAClient, tg: TelegramB
                 "daily_entries_today": daily_count,
                 "equity_guard": equity_guard.to_dict(),
                 "live_guard": live_guard.to_dict(),
-                "opposite_signal_exit": opposite_exit_info,
                 "signal": signal.to_dict(),
                 "breakout_atr_distance": breakout_atr_distance,
                 "survival_signal_score": score,
@@ -739,24 +691,43 @@ def run_strategy_exec(settings: Settings, client: BitgetUTAClient, tg: TelegramB
         r["checks"]["survival_best_candidate_ok"] = True
         r["action_allowed"] = True
         intent = candidate_intents[selected_idx]
-        order_result = client.place_order(intent, dry_run=settings.dry_run)
-        r["order_result"] = order_result
-        success = bool(settings.dry_run) or client.is_success(order_result)
-        if success:
-            event = {
-                "ts": datetime.now(timezone.utc).isoformat(), "mode": mode_label,
-                "symbol": r["symbol"], "signal": r["signal"]["signal"], "side": intent.side,
-                "pos_side": intent.pos_side, "qty": r.get("size_plan", {}).get("final_qty"), "price": r.get("price"),
-                "stop_loss": intent.stop_loss or "", "take_profit": intent.take_profit or "",
-                "dry_run": settings.dry_run, "client_oid": intent.client_oid or "",
-                "result_code": order_result.get("code", "DRY") if isinstance(order_result, dict) else "",
-                "result_msg": order_result.get("msg", "") if isinstance(order_result, dict) else "",
-                "survival_signal_score": r.get("survival_signal_score"),
-            }
-            append_jsonl(settings.log_dir, "events.jsonl", {"type": "strategy_entry", **event, "order_result": order_result})
-            append_trade_csv(settings.log_dir, event)
-            if live:
-                state.record_entry(r["symbol"], {**event, "order_result": order_result}, day=today)
+        try:
+            order_result = client.place_order(intent, dry_run=settings.dry_run)
+        except Exception as exc:
+            order_result = {"code": "EXCEPTION", "msg": str(exc)[:500], "exception": True}
+            r["error"] = f"order_error: {str(exc)[:500]}"
+            r["order_result"] = order_result
+            r["order_success"] = False
+            append_jsonl(settings.log_dir, "events.jsonl", {
+                "type": "strategy_order_error",
+                "symbol": r.get("symbol"),
+                "signal": r.get("signal"),
+                "intent": asdict(intent),
+                "error": str(exc),
+            })
+        else:
+            r["order_result"] = order_result
+            success = bool(settings.dry_run) or client.is_success(order_result)
+            r["order_success"] = success
+            if not success:
+                code = order_result.get("code", "") if isinstance(order_result, dict) else ""
+                msg = order_result.get("msg", "") if isinstance(order_result, dict) else str(order_result)[:300]
+                r["error"] = f"order_rejected: {code} {msg}"[:500]
+            if success:
+                event = {
+                    "ts": datetime.now(timezone.utc).isoformat(), "mode": mode_label,
+                    "symbol": r["symbol"], "signal": r["signal"]["signal"], "side": intent.side,
+                    "pos_side": intent.pos_side, "qty": r.get("size_plan", {}).get("final_qty"), "price": r.get("price"),
+                    "stop_loss": intent.stop_loss or "", "take_profit": intent.take_profit or "",
+                    "dry_run": settings.dry_run, "client_oid": intent.client_oid or "",
+                    "result_code": order_result.get("code", "DRY") if isinstance(order_result, dict) else "",
+                    "result_msg": order_result.get("msg", "") if isinstance(order_result, dict) else "",
+                    "survival_signal_score": r.get("survival_signal_score"),
+                }
+                append_jsonl(settings.log_dir, "events.jsonl", {"type": "strategy_entry", **event, "order_result": order_result})
+                append_trade_csv(settings.log_dir, event)
+                if live:
+                    state.record_entry(r["symbol"], {**event, "order_result": order_result}, day=today)
 
     # 4) Log blocked active signals.
     for idx, r in enumerate(reports):
@@ -781,13 +752,10 @@ def run_strategy_exec(settings: Settings, client: BitgetUTAClient, tg: TelegramB
     print(_short(reports, 50000))
 
     active = [r for r in reports if r.get("signal", {}).get("signal") in {"LONG", "SHORT"}]
-    executed = [r for r in reports if r.get("order_result") is not None and r.get("action_allowed")]
-    executed_exits = [
-        r for r in reports
-        if (r.get("opposite_signal_exit") or {}).get("attempted")
-    ]
+    executed = [r for r in reports if r.get("order_success") and r.get("action_allowed")]
     errors = [r for r in reports if "error" in r]
     blocked = [r for r in active if not r.get("action_allowed")]
+    active_unblocked = [r for r in active if r.get("action_allowed") and not r.get("order_success")]
 
     lines = [
         f"✅ <b>v2.0 SURVIVAL MOMENTUM STRATEGY_EXEC {mode_label} 완료</b>",
@@ -806,13 +774,6 @@ def run_strategy_exec(settings: Settings, client: BitgetUTAClient, tg: TelegramB
             lines.append(f"- {a.get('symbol')} {a.get('side')} qty {a.get('qty')} dry={a.get('dry_run')}")
     if errors:
         lines.append("⚠️ 오류: " + ", ".join(r["symbol"] for r in errors))
-    if executed_exits:
-        lines.append("🧯 반대 신호 청산 실행/예정:")
-        for r in executed_exits:
-            s = r.get("signal") or {}
-            info = r.get("opposite_signal_exit") or {}
-            for a in (info.get("attempted") or [])[:3]:
-                lines.append(f"- {r['symbol']} {str(a.get('close_side', '')).upper()} close qty {a.get('qty')} because {s.get('signal')} signal dry={a.get('dry_run')}")
     if executed:
         lines.append("🔥 선택된 실행/예정 주문:")
         for r in executed:
@@ -823,7 +784,10 @@ def run_strategy_exec(settings: Settings, client: BitgetUTAClient, tg: TelegramB
         lines.append("신호는 있으나 생존형 필터로 차단됨:")
         for r in blocked:
             bad = [k for k, v in (r.get("checks") or {}).items() if not v]
-            lines.append(f"- {r['symbol']} {r.get('signal', {}).get('signal')} score {r.get('survival_signal_score')} blocked: {', '.join(bad)}")
+            extra = ""
+            if r.get("opposite_signal_with_open_position"):
+                extra = " | 기존 반대 포지션 감지: 신규 반대진입 차단"
+            lines.append(f"- {r['symbol']} {r.get('signal', {}).get('signal')} score {r.get('survival_signal_score')} blocked: {', '.join(bad)}{extra}")
     else:
         lines.append("현재 신호: 없음/HOLD")
     lines.append("요약:")
@@ -838,31 +802,30 @@ def run_strategy_exec(settings: Settings, client: BitgetUTAClient, tg: TelegramB
         anti_tail = ""
         if anti and not anti.get("ok", True):
             anti_tail = f" | anti-chase 차단: {str(anti.get('reason'))[:80]}"
-        opp = r.get("opposite_signal_exit") or {}
-        opp_tail = ""
-        if opp.get("triggered"):
-            attempted = opp.get("attempted") or []
-            if attempted:
-                opp_tail = " | 반대신호 청산 실행/예정"
-            else:
-                opp_tail = f" | 반대신호 청산 후보: {str(opp.get('reason'))[:80]}"
-        elif opp.get("cooldown_active_today"):
-            opp_tail = " | 반대신호 청산 후 오늘 신규진입 잠금"
-        lines.append(f"- {r['symbol']}: {s['signal']} / {s['reason']} / trend {s.get('trend_mode')} / score {r.get('survival_signal_score')} / size x{r.get('effective_size_multiplier')} / now {_fmt_price(s.get('current_price'))}, L {_fmt_price(s.get('long_target'))}, S {_fmt_price(s.get('short_target'))}{tail}{anti_tail}{opp_tail}")
+        lines.append(f"- {r['symbol']}: {s['signal']} / {s['reason']} / trend {s.get('trend_mode')} / score {r.get('survival_signal_score')} / size x{r.get('effective_size_multiplier')} / now {_fmt_price(s.get('current_price'))}, L {_fmt_price(s.get('long_target'))}, S {_fmt_price(s.get('short_target'))}{tail}{anti_tail}")
+    alert_kind = "hold"
     if notify_policy == "always":
         should_send = True
     else:
         should_send = False
         if errors and settings.notify_error:
             should_send = True
+            alert_kind = "error"
         elif executed and settings.notify_signal:
             should_send = True
+            alert_kind = "executed"
         elif blocked and settings.notify_blocked_signal:
             should_send = True
-        elif active and settings.notify_signal:
+            alert_kind = "blocked"
+        elif active_unblocked and settings.notify_signal:
             should_send = True
+            alert_kind = "active"
         elif settings.notify_hold_summary:
             should_send = True
+            alert_kind = "hold"
+
+    if should_send and notify_policy != "always" and alert_kind != "executed":
+        should_send = _throttle_allows(alert_kind, reports)
 
     if should_send:
         tg.send("\n".join(lines[:35]))

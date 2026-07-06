@@ -1,34 +1,22 @@
-# Index Sniper Pro v3.0 Larry Pure No-MA Daily Reset Backtest Patch
+# Index Sniper Pro v2.9 Quiet + Opposite Signal Guard Patch
 
-## 목적
+## 바뀌는 점
 
-v2.x의 진입은 No-MA 변동성 돌파로 단순해졌지만, 청산은 ATR TP/SL이라서 전날 포지션과 다음날 반대 신호가 충돌할 수 있었습니다.
+1. **기존 포지션이 있으면 신규 진입 차단 강화**
+   - BTC LONG 보유 중 SHORT 신호가 떠도 신규 숏 주문을 넣지 않습니다.
+   - BTC SHORT 보유 중 LONG 신호가 떠도 신규 롱 주문을 넣지 않습니다.
+   - 기본값: `BLOCK_NEW_ENTRY_WHEN_ANY_POSITION_OPEN=true`, `BLOCK_OPPOSITE_SIGNAL_WHEN_POSITION_OPEN=true`
 
-v3.0 백테스트는 래리 윌리엄스식으로 더 단순하게 봅니다.
+2. **주문 오류가 루프 전체를 터뜨리지 않도록 처리**
+   - Bitget `Insufficient margin` 같은 주문 실패는 이벤트로 기록하고 다음 사이클로 넘어갑니다.
+   - 같은 오류 알림은 기본 30분에 1번만 보냅니다.
 
-```text
-진입 = 오늘 시가 ± 전일 변동폭 × K
-이동평균 = 사용 안 함
-ATR TP/SL = 사용 안 함
-익절 = 다음날 UTC 00:00 / KST 09:00 시가 시간청산
-손절 후보 = 당일 시가 복귀 방식 비교
-```
+3. **알림 조용하게 변경**
+   - 루프 시작, heartbeat, HOLD 요약, blocked signal 반복 알림을 기본 OFF로 둡니다.
+   - 실제 주문/중요 오류만 알립니다.
+   - 반복 알림은 `data/alert_throttle_v29.json`으로 제어합니다.
 
-## 백테스트에 들어간 3가지 청산 모드
-
-1. `next_open`
-   - 가장 순수한 래리식 daily reset 버전입니다.
-   - 고정 손절/익절 없이 다음날 KST 09:00 시가에 전량 청산합니다.
-
-2. `open_stop_conservative`
-   - 롱은 당일 시가 아래 터치, 숏은 당일 시가 위 터치 시 당일 시가에서 손절한 것으로 봅니다.
-   - 일봉 데이터만으로는 진입 후에 시가를 터치했는지, 진입 전에 터치했는지 알 수 없어서 매우 보수적인 가정입니다.
-
-3. `close_fail`
-   - 롱은 종가가 당일 시가 아래면 실패 청산, 숏은 종가가 당일 시가 위면 실패 청산합니다.
-   - 일봉 데이터의 순서 문제를 줄인 절충형입니다.
-
-## 적용 방법
+## 적용 순서
 
 GitHub에 ZIP 내용물을 업로드/커밋한 뒤 EC2에서:
 
@@ -36,54 +24,32 @@ GitHub에 ZIP 내용물을 업로드/커밋한 뒤 EC2에서:
 cd ~/index-sniper-pro
 source .venv/bin/activate
 
+bash stop_sniper.sh 2>/dev/null || true
+for s in $(screen -ls | awk '/sniper|target|observer/ {print $1}'); do
+  screen -S "$s" -X quit
+done
+screen -wipe
+
 git pull
-chmod +x apply_v30_larry_pure_backtest.sh
-bash apply_v30_larry_pure_backtest.sh
+chmod +x apply_v29_quiet_opposite_guard.sh
+bash apply_v29_quiet_opposite_guard.sh
 
-python -m py_compile index_sniper/backtest/larry_pure.py
+python -m py_compile index_sniper/alert_throttle.py
+python -m py_compile index_sniper/strategy_executor.py
+
+grep -E 'NOTIFY_|ALERT_|BLOCK_NEW_ENTRY|BLOCK_OPPOSITE' .env
+bash run_live_preflight.sh
 ```
 
-## 기본 백테스트 실행
+정상 확인 후 시작:
 
 ```bash
-bash run_v30_larry_pure_btc_sweep.sh
-```
-
-결과 보기:
-
-```bash
-cat backtests/v30_larry_pure/larry_pure_sweep_latest.txt
-```
-
-## K값 비교
-
-```bash
-bash run_v30_larry_pure_btc_k_sweep.sh
-```
-
-결과 보기:
-
-```bash
-cat backtests/v30_larry_pure/larry_pure_k_sweep_latest.txt
-```
-
-## 상세 5년 / 5배 / K=0.5 결과
-
-```bash
-bash run_v30_larry_pure_btc_detail.sh
-```
-
-결과 파일:
-
-```text
-backtests/v30_larry_pure/larry_pure_summary_latest.txt
-backtests/v30_larry_pure/larry_pure_trades_latest.csv
-backtests/v30_larry_pure/larry_pure_equity_latest.csv
-backtests/v30_larry_pure/larry_pure_signals_latest.csv
+bash reset_equity_guard.sh
+bash start_live_guarded.sh
+bash status_sniper.sh
 ```
 
 ## 주의
 
-이 패치는 실전 자동매매 로직을 바로 바꾸지 않습니다. 먼저 백테스트 전용으로 v3.0 구조를 검증하기 위한 패치입니다.
-
-백테스트가 v2.x보다 낫거나, 최소한 MDD/손실연속/월별 손실이 더 납득 가능할 때 실전 엔진에 v3.0 exit mode를 붙이는 순서가 안전합니다.
+이 패치는 **반대 신호가 나오면 자동 청산**하는 패치가 아닙니다.  
+현재 목적은 안전하게 **신규 반대 포지션 주문을 막고, 반복 알림을 줄이는 것**입니다.
