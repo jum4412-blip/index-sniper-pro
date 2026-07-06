@@ -1,22 +1,34 @@
-# Index Sniper Pro v3.2 Larry First-Touch + Fail-Exit Backtest Patch
+# Index Sniper Pro v3.3 Larry First-Touch + Trend Filter + ATR Exit Backtest
 
-백테스트 전용 패치입니다. 실전 봇 주문 로직은 바꾸지 않습니다.
+실전 봇 변경 패치가 아니라 **백테스트 전용 패치**입니다.
 
 ## 목적
-
-v3.1 Larry Pure first-touch가 `TP/SL 없음 + 다음날 09:00 청산`에서 무너졌기 때문에, 가짜 돌파를 조기에 정리하는 가격 기반 청산을 검증합니다.
+v3.1/v3.2 Larry first-touch 계열이 단독으로는 약했기 때문에, 처음 만들었던 추세추종 아이디어를 **진입 신호가 아니라 방향 필터**로 넣어 검증합니다.
 
 ## 규칙
 
-- 진입: UTC 00:00 / KST 09:00 일봉 기준 `오늘 시가 ± 전일 변동폭 × K`
-- 체결: 1H 캔들 기준 먼저 닿은 방향만 진입
-- 지표: 없음
-- 고정 TP: 없음
-- 시간청산: 다음 UTC 00:00 / KST 09:00
-- 실패청산:
-  - `target_reclaim_close`: 롱은 1H 종가가 롱타겟 아래로 복귀하면 청산, 숏은 1H 종가가 숏타겟 위로 복귀하면 청산
-  - `day_open_reclaim_close`: 롱은 1H 종가가 당일 시가 아래로 복귀하면 청산, 숏은 1H 종가가 당일 시가 위로 복귀하면 청산
-  - `next_open`: 실패청산 없음, v3.1과 같은 기준 비교용
+- 기준봉: UTC 00:00 = KST 09:00
+- 진입: 1H 캔들 기준 `오늘 시가 ± 전일 변동폭 × K` 중 먼저 닿은 쪽
+- 추세필터: 이전에 확정된 추세 캔들만 사용
+  - 추세 LONG이면 LONG 돌파만 허용
+  - 추세 SHORT이면 SHORT 돌파만 허용
+  - 추세 중립이면 거래 안 함
+- 청산: ATR 기반 SL/TP
+  - 기본 SL = ATR × 1.30
+  - 기본 TP = ATR × 2.00
+  - 둘 다 안 닿으면 다음 UTC 00:00 / KST 09:00 청산
+- 기본 same-candle 처리: `skip`
+- 기본 exit same-candle 처리: `stop_first` 보수 가정
+
+## 추세필터 프로필
+
+- `none`: 추세필터 없음. v2 No-MA ATR을 1H first-touch 방식으로 다시 보는 기준선.
+- `1H_20_60`
+- `1H_50_200`
+- `4H_20_60`
+- `4H_50_200`
+- `1H_20_60+4H_20_60`: 두 추세가 같은 방향일 때만 진입
+- `1H_50_200+4H_50_200`: 두 추세가 같은 방향일 때만 진입
 
 ## 적용
 
@@ -25,60 +37,55 @@ cd ~/index-sniper-pro
 source .venv/bin/activate
 
 git pull
-chmod +x apply_v32_larry_fail_exit_backtest.sh
-bash apply_v32_larry_fail_exit_backtest.sh
+chmod +x apply_v33_larry_trend_filter_backtest.sh
+bash apply_v33_larry_trend_filter_backtest.sh
 ```
 
 ## 실행 순서
 
-### 1) 실패청산 방식 비교
+### 1) 추세필터 비교
 
 ```bash
-bash run_v32_larry_fail_exit_btc_exit_sweep.sh
-cat backtests/v32_larry_fail_exit/larry_fail_exit_exit_sweep_latest.txt
+bash run_v33_larry_trend_filter_btc_trend_sweep.sh
+cat backtests/v33_larry_trend_filter/larry_trend_filter_trend_sweep_latest.txt
 ```
 
-### 2) K값 비교
+### 2) 선택한 추세필터로 K값 비교
+
+기본은 `4H_20_60`입니다.
 
 ```bash
-bash run_v32_larry_fail_exit_btc_k_sweep.sh
-cat backtests/v32_larry_fail_exit/larry_fail_exit_k_sweep_latest.txt
+BT_V33_TREND_PROFILE=4H_20_60 \
+bash run_v33_larry_trend_filter_btc_k_sweep.sh
+cat backtests/v33_larry_trend_filter/larry_trend_filter_k_sweep_latest.txt
 ```
 
 ### 3) 레버리지 비교
 
 ```bash
-bash run_v32_larry_fail_exit_btc_sweep.sh
-cat backtests/v32_larry_fail_exit/larry_fail_exit_sweep_latest.txt
+BT_V33_TREND_PROFILE=4H_20_60 BT_V33_K=0.5 \
+bash run_v33_larry_trend_filter_btc_sweep.sh
+cat backtests/v33_larry_trend_filter/larry_trend_filter_sweep_latest.txt
 ```
 
-### 4) 시드 투입비율 30% / 70% / 100% 비교
+### 4) 시드 30% / 70% / 100% 비교
 
 ```bash
-bash run_v32_larry_fail_exit_btc_capital_sweep.sh
-cat backtests/v32_larry_fail_exit/larry_fail_exit_capital_sweep_latest.txt
+BT_V33_TREND_PROFILE=4H_20_60 BT_V33_K=0.5 BT_V33_LEVERAGE=5 \
+bash run_v33_larry_trend_filter_btc_capital_sweep.sh
+cat backtests/v33_larry_trend_filter/larry_trend_filter_capital_sweep_latest.txt
 ```
 
 ### 5) 상세 결과
 
 ```bash
-bash run_v32_larry_fail_exit_btc_detail.sh
-cat backtests/v32_larry_fail_exit/larry_fail_exit_summary_latest.txt
+BT_V33_TREND_PROFILE=4H_20_60 BT_V33_K=0.5 BT_V33_LEVERAGE=5 BT_V33_CAPITAL_RATIO=0.30 \
+bash run_v33_larry_trend_filter_btc_detail.sh
+cat backtests/v33_larry_trend_filter/larry_trend_filter_summary_latest.txt
 ```
 
-## 자주 바꾸는 환경변수
+## 중요
 
-```bash
-BT_V32_K=0.5
-BT_V32_LEVERAGE=5
-BT_V32_CAPITAL_RATIO=0.30
-BT_V32_EXIT_MODE=target_reclaim_close
-BT_V32_SAME_CANDLE_MODE=skip
-BT_V32_CAPITAL_RATIOS=0.30,0.70,1.00
-```
-
-예시:
-
-```bash
-BT_V32_K=0.35 BT_V32_EXIT_MODE=target_reclaim_close bash run_v32_larry_fail_exit_btc_capital_sweep.sh
-```
+- 실전 봇은 켜지 마세요.
+- 먼저 `trend_sweep` 결과에서 `none` 대비 추세필터가 실제로 개선되는지 확인해야 합니다.
+- `capital_ratio=0.70`, `1.00`은 수익성 검증 후에만 판단하세요. PF가 1 이하인 전략에 시드를 더 태우면 손실만 빨라집니다.
