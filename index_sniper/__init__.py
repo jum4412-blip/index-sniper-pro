@@ -1,1 +1,1 @@
-# index_sniper package marker for v5.1 VWAP patch
+__version__ = "v5.2-top10-vwap"
