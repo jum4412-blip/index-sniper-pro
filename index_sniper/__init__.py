@@ -1,1 +1,1 @@
-__version__ = "2.6.0-btc-5x-whipsaw-guard"
+# index_sniper package marker for v5.1 VWAP patch

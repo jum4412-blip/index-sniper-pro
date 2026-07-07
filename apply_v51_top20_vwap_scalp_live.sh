@@ -1,0 +1,64 @@
+#!/usr/bin/env bash
+set -euo pipefail
+cd "$(dirname "$0")"
+mkdir -p logs data
+# Keep previous custom values unless duplicated keys exist; rewrite v51 block.
+cp .env .env.bak.v51.$(date +%Y%m%d_%H%M%S) 2>/dev/null || true
+for k in \
+  V51_CATEGORY V51_MARGIN_COIN V51_MARGIN_MODE V51_LEVERAGE V51_DRY_RUN V51_LIVE_ENABLED V51_LIVE_CONFIRM \
+  V51_LOOP_SECONDS V51_CANDLE_REFRESH_SECONDS V51_UNIVERSE_COUNT V51_MAX_ACTIVE_SYMBOLS V51_MAX_OPEN_POSITIONS \
+  V51_TOTAL_CAPITAL_RATIO V51_PER_ORDER_CAPITAL_RATIO_CAP V51_MAX_ORDER_NOTIONAL_USDT \
+  V51_VWAP_WINDOW_MINUTES V51_WARMUP_MINUTES V51_BAND_STD_MULT V51_ADX_PERIOD V51_ADX_MAX \
+  V51_TP_PCT V51_SL_PCT V51_SHOCK_WINDOW_SECONDS V51_SHOCK_PCT V51_SHOCK_COOLDOWN_MINUTES \
+  V51_DAILY_TARGET_PCT V51_DAILY_LOSS_PCT V51_MAX_TRADES_PER_DAY V51_NOTIFY_EVERY_MINUTES V51_NOTIFY_ACTIONS_ONLY \
+  V51_USE_COINGECKO V51_STATE_PATH V51_JSONL_PATH V51_SYMBOLS; do
+  sed -i "/^${k}=/d" .env 2>/dev/null || true
+done
+cat >> .env <<'EOF'
+
+# ===== v5.1 Top20 VWAP Rubber Band Scalp =====
+# Video-derived VWAP strategy: ADX<=20 range filter, VWAP bands, maker limit entries,
+# TP 0.6%, SL 0.3%, VWAP touch exit, 5s shock cooldown.
+V51_CATEGORY=USDT-FUTURES
+V51_MARGIN_COIN=USDT
+V51_MARGIN_MODE=crossed
+V51_LEVERAGE=3
+V51_TOTAL_CAPITAL_RATIO=0.30
+V51_PER_ORDER_CAPITAL_RATIO_CAP=0.003
+V51_MAX_ORDER_NOTIONAL_USDT=200
+
+# Live gate. Set true/confirm only when you intentionally run live.
+V51_DRY_RUN=false
+V51_LIVE_ENABLED=true
+V51_LIVE_CONFIRM=START_V51_VWAP_LIVE
+
+V51_LOOP_SECONDS=10
+V51_CANDLE_REFRESH_SECONDS=60
+V51_UNIVERSE_COUNT=20
+V51_MAX_ACTIVE_SYMBOLS=20
+V51_MAX_OPEN_POSITIONS=3
+V51_USE_COINGECKO=true
+
+V51_VWAP_WINDOW_MINUTES=180
+V51_WARMUP_MINUTES=10
+V51_BAND_STD_MULT=2.0
+V51_ADX_PERIOD=14
+V51_ADX_MAX=20
+
+V51_TP_PCT=0.006
+V51_SL_PCT=0.003
+V51_SHOCK_WINDOW_SECONDS=5
+V51_SHOCK_PCT=0.15
+V51_SHOCK_COOLDOWN_MINUTES=10
+
+V51_DAILY_TARGET_PCT=2.0
+V51_DAILY_LOSS_PCT=1.0
+V51_MAX_TRADES_PER_DAY=30
+V51_NOTIFY_EVERY_MINUTES=30
+V51_NOTIFY_ACTIONS_ONLY=true
+V51_STATE_PATH=data/v51_vwap_top20_state.json
+V51_JSONL_PATH=data/v51_vwap_top20_events.jsonl
+EOF
+chmod +x run_v51_vwap_preflight.sh run_v51_vwap_universe.sh run_v51_vwap_once.sh start_v51_vwap_live.sh stop_v51_vwap.sh status_v51_vwap.sh view_v51_vwap_log.sh cancel_v51_vwap_orders.sh 2>/dev/null || true
+echo "✅ v5.1 Top20 VWAP Rubber Band Scalp live patch applied."
+echo "실전 가능 버전입니다. 반드시 preflight/universe/once 확인 후 start 하세요."
