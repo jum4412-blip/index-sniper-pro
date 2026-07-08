@@ -1,24 +1,38 @@
-# v4.2 BTC Quant Observer Upgrade
+# Index Sniper Pro v6.0 BTC Quant Signal Lab
 
-Observation-only upgrade for BTC Quant v4.1.
+Paper-only signal laboratory. It never sends real orders.
 
-Changes:
-- Dynamic trend score haircut when short-term momentum contradicts the old trend score.
-- Short-pressure logic: price down + positive funding + OI increase can push score lower.
-- Lower observation thresholds for short side: WEAK_SHORT -30, STRONG_SHORT -55.
-- 2-run confirmation before Telegram alert.
-- Signal forward-performance tracking at 1h/4h/12h/24h.
-- No orders. No live execution changes.
+## What it records
 
-Commands:
+- 5m/15m/1H/4H OHLCV features
+- Trend, momentum, volume, funding, OI, liquidation proxy, risk scores
+- Long/short scores every loop
+- Paper entries when scores pass threshold
+- Multiple TP/SL paper exit plans simultaneously
+- Closed paper-trade outcomes for later analysis
+
+## Files
+
+- `research/signal_lab_snapshots.csv`: every observation
+- `research/signal_lab_signals.csv`: paper signal events
+- `research/signal_lab_paper_trades.csv`: closed paper trades
+- `research/signal_lab_events.jsonl`: full event log
+- `research/signal_lab_report_latest.txt`: performance report
+- `data/signal_lab_state.json`: active paper trades and funding/OI history
+
+## Commands
 
 ```bash
-chmod +x apply_v42_quant_observer.sh
-bash apply_v42_quant_observer.sh
-python -m py_compile index_sniper/v42_quant_observer.py
-bash run_quant_v42_once.sh
-bash start_quant_v42.sh
-bash status_quant_v42.sh
-bash view_quant_v42_log.sh
-bash summarize_quant_v42.sh
+bash apply_v60_signal_lab.sh
+python -m py_compile index_sniper/signal_lab.py
+bash run_v60_signal_lab_once.sh
+bash start_v60_signal_lab.sh
+bash status_v60_signal_lab.sh
+bash run_v60_signal_lab_report.sh
+bash view_v60_signal_lab_files.sh
+bash stop_v60_signal_lab.sh
 ```
+
+## Minimum sample before judging
+
+Do not convert to live trading until at least 50-100 closed paper trades are recorded.
