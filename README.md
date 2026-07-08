@@ -1,15 +1,24 @@
-# v5.2 Top10 VWAP Scalp Backtest Patch
+# v4.2 BTC Quant Observer Upgrade
 
-Backtests the v5.2 Top10 VWAP rubber-band scalp idea with candle approximation.
+Observation-only upgrade for BTC Quant v4.1.
 
-Rules approximated:
-- Top 10 symbols default: BTC, ETH, BNB, XRP, SOL, TRX, HYPE, DOGE, ZEC, ADA.
-- VWAP bands using OHLCV candles.
-- ADX <= 20 for range filter.
-- Maker entry at lower/upper VWAP band.
-- TP +0.6%, SL -0.3%, VWAP-touch exit.
-- Maker fee 0.02%, taker fee 0.05%.
-- Shock cooldown if one-bar move exceeds 0.15%.
-- Default backtest: 30 days of 1m candles, leverage 1x~20x.
+Changes:
+- Dynamic trend score haircut when short-term momentum contradicts the old trend score.
+- Short-pressure logic: price down + positive funding + OI increase can push score lower.
+- Lower observation thresholds for short side: WEAK_SHORT -30, STRONG_SHORT -55.
+- 2-run confirmation before Telegram alert.
+- Signal forward-performance tracking at 1h/4h/12h/24h.
+- No orders. No live execution changes.
 
-Caution: this is not tick-perfect. It uses 1m/5m candles and conservative intrabar assumptions.
+Commands:
+
+```bash
+chmod +x apply_v42_quant_observer.sh
+bash apply_v42_quant_observer.sh
+python -m py_compile index_sniper/v42_quant_observer.py
+bash run_quant_v42_once.sh
+bash start_quant_v42.sh
+bash status_quant_v42.sh
+bash view_quant_v42_log.sh
+bash summarize_quant_v42.sh
+```
