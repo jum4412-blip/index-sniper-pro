@@ -1,0 +1,115 @@
+{
+  "version": "6.3.2",
+  "generated_utc": "2026-07-13T09:36:54.547847+00:00",
+  "live_default": false,
+  "symbols": [
+    "BTCUSDT",
+    "ETHUSDT"
+  ],
+  "leverage": 5,
+  "margin_mode": "isolated",
+  "allocation": "50:50 maximum bucket caps; stop-risk sizing",
+  "validation": {
+    "python_compile": true,
+    "self_test": true,
+    "official_single_row_tpsl_fixture": true,
+    "live_order_sent_during_validation": false
+  },
+  "files": [
+    {
+      "path": "README_BTC_ETH_V63_LIVE.md",
+      "size": 11151,
+      "sha256": "ff97c9eeec249ef1d3c36d556d3c2ec2840f70f180b200234a61ba8d0aed08a3"
+    },
+    {
+      "path": "apply_v63_btc_eth_live.sh",
+      "size": 5668,
+      "sha256": "1a8536dbfa83a677885fa179743577a37f0ffccd8f297233982743162fcc7aea"
+    },
+    {
+      "path": "arm_v63_dual_live.sh",
+      "size": 3681,
+      "sha256": "0849f17a1114fce6db387f5c0748efb74a033cfcaa7fb4d76d325bb5a9cb06c0"
+    },
+    {
+      "path": "collect_v63_results.sh",
+      "size": 2961,
+      "sha256": "f49a067cee655f464e0b32d9bb4b4ad547eb60e8a7abf043fcb0bcbb77ed11b9"
+    },
+    {
+      "path": "disarm_v63_dual_live.sh",
+      "size": 2177,
+      "sha256": "bd3e567d8983c78444f9de8d8af9e9ea83077ab833a4d32bd1065efc306fba12"
+    },
+    {
+      "path": "doctor_v63_dual_live.sh",
+      "size": 299,
+      "sha256": "1d9bfb02b4cd2af1e6aaeedd7043925eb3e6afdeffa1eec77c3f66416839fb19"
+    },
+    {
+      "path": "dual_live_v63.py",
+      "size": 113296,
+      "sha256": "f9fafd1c99cd7a0ee308ba6a0de84aef18a798fc6f8727b43efb4c97c87308f2"
+    },
+    {
+      "path": "install_v63_systemd.sh",
+      "size": 1269,
+      "sha256": "50c008bcaa2392287a042e0e2cf52239447706dd62a7fa2e4300d6df21cdabc7"
+    },
+    {
+      "path": "panic_flat_v63.sh",
+      "size": 608,
+      "sha256": "8fcfb59dcb3b86060539d9685c3f8a7c126272896774624648393f02a1898822"
+    },
+    {
+      "path": "pause_v63_entries.sh",
+      "size": 352,
+      "sha256": "fd9a76f4fdda20dd15776bff622678a268a6fc780c0ba286d8738c99698ea4d5"
+    },
+    {
+      "path": "report_v63_dual_live.sh",
+      "size": 325,
+      "sha256": "754e865f58268e631da8ebe868758a8104769b9b23170de10f1799e900ec75ca"
+    },
+    {
+      "path": "resume_v63_entries.sh",
+      "size": 182,
+      "sha256": "492db213a59faba8f9cd703ecf97875f47dab62296414ef51cecdab1b8d36d4e"
+    },
+    {
+      "path": "rollback_v63_dual_live.sh",
+      "size": 2523,
+      "sha256": "18f1e26914ea3afd4c91eaa5a3b321a5c246475c915282727339d174d8b23cb5"
+    },
+    {
+      "path": "run_v63_once.sh",
+      "size": 297,
+      "sha256": "76756e8e3d41099d426cc98f851d6d29e8a99f32c6ee3b4b5dcae5aa060e6d9b"
+    },
+    {
+      "path": "setup_v63_account.sh",
+      "size": 477,
+      "sha256": "2fd55def52a0c2f87b997a58065144d78982bc2864e419c978cb51bc894b9b62"
+    },
+    {
+      "path": "start_v63_dual_live.sh",
+      "size": 1260,
+      "sha256": "523b2ba784e036830bb2adf8b9a05fff521824f63a449d802c64d8ba1095e952"
+    },
+    {
+      "path": "status_v63_dual_live.sh",
+      "size": 3513,
+      "sha256": "fb07205a1fb7f0ba89ffa04e738c179f0ae20a67d336479f0e81f5b00a1d43c9"
+    },
+    {
+      "path": "stop_v63_dual_live.sh",
+      "size": 632,
+      "sha256": "a3edca02c729a762d64af91453bc3ed7d229f1642a9e8b6157623c4cf65fd85e"
+    },
+    {
+      "path": "v63_dual_live.json",
+      "size": 2222,
+      "sha256": "94db0771715396e53aa2e0734d1719b98e734a01bcd95477f6f5ebfb9473f813"
+    }
+  ]
+}
