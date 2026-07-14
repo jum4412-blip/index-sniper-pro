@@ -160,3 +160,32 @@ bash stop_larry_core_v1.sh
 ## API 권한
 
 Bitget API 키에는 UTA 조회·거래·계정설정 권한이 필요합니다. 출금 권한은 제거하고 IP 화이트리스트를 적용해야 ARM 문구와 실제 보안 상태가 일치합니다.
+
+## v6.2를 조용한 paper 기록기로 두고 Larry를 켜는 순서
+
+v6.2는 원래부터 강제 paper-only이며 주문 함수가 없습니다. 아래 스크립트는
+v6.2의 paper episode/trade 기록은 유지하고 Telegram 알림만 완전히 끕니다.
+
+```bash
+cd ~/index-sniper-pro
+bash prepare_v62_silent_paper.sh
+```
+
+그 다음 Larry를 DISARMED 상태로 먼저 실행하고 계정 검사를 통과한 뒤에만 ARM합니다.
+
+```bash
+bash doctor_larry_core_v1.sh
+bash setup_larry_core_v1_account.sh
+bash start_larry_core_v1.sh
+
+bash arm_larry_core_v1.sh \
+  START_LARRY_CORE_LIVE_5X_CROSS_30_ETH_SKHY \
+  I_UNDERSTAND_30PCT_MARGIN_5X \
+  API_HAS_NO_WITHDRAW_PERMISSION \
+  API_IP_WHITELISTED
+
+bash status_larry_core_v1.sh
+```
+
+`setup-account`는 Bitget 전체 USDT 선물 포지션과 미체결 주문이 0일 때만 진행됩니다.
+하나라도 남아 있으면 실패하고 Larry는 실주문 상태로 전환되지 않습니다.

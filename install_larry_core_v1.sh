@@ -30,6 +30,7 @@ FILES=(
   "start_larry_core_v1_observe.sh"
   "stop_larry_core_v1.sh"
   "status_larry_core_v1.sh"
+  "prepare_v62_silent_paper.sh"
 )
 
 for f in "${FILES[@]}"; do
