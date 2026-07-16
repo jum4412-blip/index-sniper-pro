@@ -1,0 +1,1310 @@
+#!/usr/bin/env bash
+set -Eeuo pipefail
+
+ROOT="${1:-$HOME/index-sniper-pro}"
+PY="$ROOT/.venv/bin/python"
+TS="$(date -u +%Y%m%dT%H%M%SZ)"
+BACKUP="$ROOT/backups/larry-alert-score-$TS"
+
+if [[ ! -x "$PY" ]]; then
+  echo "❌ Python 가상환경이 없습니다: $PY" >&2
+  exit 1
+fi
+if [[ ! -f "$ROOT/index_sniper/larry_williams_core_v1.py" ]]; then
+  echo "❌ Larry Core 파일이 없습니다." >&2
+  exit 1
+fi
+
+mkdir -p "$BACKUP" "$ROOT/scripts" "$ROOT/logs" "$ROOT/data"
+for f in   "$ROOT/larry_watch_status.py"   "$ROOT/scripts/larry_noentry_alert.py"   "$ROOT/scripts/larry_symbol_telegram.py"; do
+  [[ -f "$f" ]] && cp -a "$f" "$BACKUP/"
+done
+
+echo "== 점수·미진입 진단 상태파일 설치 =="
+cat > "$ROOT/larry_watch_status.py" <<'PY_WATCH'
+#!/usr/bin/env python3
+from __future__ import annotations
+
+import argparse
+import json
+import math
+import sys
+from dataclasses import asdict
+from datetime import datetime
+from pathlib import Path
+from typing import Any, Sequence
+
+from index_sniper import larry_williams_core_v1 as lw
+
+ROOT = Path.home() / "index-sniper-pro"
+CONFIG = ROOT / "config/larry_williams_core_v1.json"
+
+
+def f(value: Any, digits: int = 4) -> str:
+    if value is None:
+        return "-"
+    try:
+        x = float(value)
+    except Exception:
+        return str(value)
+    if not math.isfinite(x):
+        return "-"
+    if abs(x) >= 1000:
+        return f"{x:,.2f}"
+    if abs(x) >= 100:
+        return f"{x:.2f}"
+    if abs(x) >= 1:
+        return f"{x:.4f}".rstrip("0").rstrip(".")
+    return f"{x:.6f}".rstrip("0").rstrip(".")
+
+
+def pct_distance(price: float, level: float) -> float:
+    if price <= 0:
+        return 0.0
+    return (level / price - 1.0) * 100.0
+
+
+def indicator_snapshot(bars15: Sequence[Any], bars1h: Sequence[Any]) -> dict[str, float]:
+    c15 = lw.completed_bars(bars15, "15m")
+    c1h = lw.completed_bars(bars1h, "1H")
+    closes1h = [b.close for b in c1h]
+    return {
+        "atr15": lw.atr_value(c15, 14) if len(c15) >= 15 else 0.0,
+        "atr1h": lw.atr_value(c1h, 14) if len(c1h) >= 15 else 0.0,
+        "ema20": lw.ema_last(closes1h[-120:], 20) if len(closes1h) >= 20 else 0.0,
+        "ema50": lw.ema_last(closes1h[-160:], 50) if len(closes1h) >= 50 else 0.0,
+        "wpr": lw.williams_r(c15, 14, 0) if len(c15) >= 14 else 0.0,
+        "wpr_prev": lw.williams_r(c15, 14, 1) if len(c15) >= 15 else 0.0,
+        "uo": lw.ultimate_oscillator(c15, 7, 14, 28, 0) if len(c15) >= 29 else 0.0,
+        "uo_prev": lw.ultimate_oscillator(c15, 7, 14, 28, 1) if len(c15) >= 30 else 0.0,
+        "volume_ratio": lw.volume_ratio(c15, 20) if len(c15) >= 21 else 0.0,
+    }
+
+
+def score_breakdown(
+    *,
+    profile: str,
+    setup: str,
+    side: str,
+    base_score: float,
+    cfg: dict[str, Any],
+    ticker: Any,
+    ind: dict[str, float],
+) -> dict[str, Any]:
+    components: list[dict[str, Any]] = []
+    total = float(base_score)
+    components.append({"key": "base", "label": "기본", "points": float(base_score), "passed": True, "detail": setup})
+
+    trend_ok = (side == "LONG" and ind["ema20"] > ind["ema50"]) or (
+        side == "SHORT" and ind["ema20"] < ind["ema50"]
+    )
+    trend_pts = 10.0 if trend_ok else -4.0
+    total += trend_pts
+    components.append({
+        "key": "trend",
+        "label": "1H추세",
+        "points": trend_pts,
+        "passed": trend_ok,
+        "detail": f"EMA20 {f(ind['ema20'])} / EMA50 {f(ind['ema50'])}",
+    })
+
+    if setup.startswith("OOPS"):
+        wpr_ok = (side == "LONG" and ind["wpr_prev"] <= -80 and ind["wpr"] > -80) or (
+            side == "SHORT" and ind["wpr_prev"] >= -20 and ind["wpr"] < -20
+        )
+        wpr_rule = "이전≤-80→현재>-80" if side == "LONG" else "이전≥-20→현재<-20"
+    else:
+        wpr_ok = (side == "LONG" and ind["wpr"] >= -35 and ind["wpr"] >= ind["wpr_prev"]) or (
+            side == "SHORT" and ind["wpr"] <= -65 and ind["wpr"] <= ind["wpr_prev"]
+        )
+        wpr_rule = "현재≥-35·상승" if side == "LONG" else "현재≤-65·하락"
+    wpr_pts = 10.0 if wpr_ok else 0.0
+    total += wpr_pts
+    components.append({
+        "key": "wpr",
+        "label": "%R",
+        "points": wpr_pts,
+        "passed": wpr_ok,
+        "detail": f"{ind['wpr_prev']:.1f}→{ind['wpr']:.1f}, 필요 {wpr_rule}",
+    })
+
+    uo_ok = (side == "LONG" and ind["uo"] >= 50 and ind["uo"] >= ind["uo_prev"]) or (
+        side == "SHORT" and ind["uo"] <= 50 and ind["uo"] <= ind["uo_prev"]
+    )
+    uo_pts = 10.0 if uo_ok else 0.0
+    total += uo_pts
+    components.append({
+        "key": "uo",
+        "label": "UO",
+        "points": uo_pts,
+        "passed": uo_ok,
+        "detail": f"{ind['uo_prev']:.1f}→{ind['uo']:.1f}, 필요 " + ("≥50·상승" if side == "LONG" else "≤50·하락"),
+    })
+
+    min_vol = float(cfg.get("min_volume_ratio", 1.15))
+    if ind["volume_ratio"] >= min_vol:
+        vol_pts = 7.0
+        vol_ok = True
+    elif ind["volume_ratio"] < 0.7:
+        vol_pts = -5.0
+        vol_ok = False
+    else:
+        vol_pts = 0.0
+        vol_ok = False
+    total += vol_pts
+    components.append({
+        "key": "volume",
+        "label": "거래량",
+        "points": vol_pts,
+        "passed": vol_ok,
+        "detail": f"{ind['volume_ratio']:.2f}x / 필요 {min_vol:.2f}x",
+    })
+
+    if profile == "crypto":
+        limit = float(cfg.get("funding_crowding_abs", 0.0005))
+        funding_ok = ticker.funding <= limit if side == "LONG" else ticker.funding >= -limit
+        funding_pts = 4.0 if funding_ok else -8.0
+        total += funding_pts
+        components.append({
+            "key": "funding",
+            "label": "펀딩",
+            "points": funding_pts,
+            "passed": funding_ok,
+            "detail": f"{ticker.funding:+.6f} / 한도 ±{limit:.6f}",
+        })
+
+    spread_limit = float(cfg.get("max_spread_pct", 0.08 if profile == "crypto" else 0.20))
+    spread_hard_ok = ticker.spread_pct <= spread_limit
+    spread_bonus = 3.0 if spread_hard_ok and ticker.spread_pct <= spread_limit / 2.0 else 0.0
+    total += spread_bonus
+    components.append({
+        "key": "spread",
+        "label": "스프레드",
+        "points": spread_bonus,
+        "passed": spread_hard_ok,
+        "hard_block": not spread_hard_ok,
+        "detail": f"{ticker.spread_pct:.4f}% / 최대 {spread_limit:.4f}%",
+    })
+
+    return {"total": round(total, 3), "components": components, "spread_ok": spread_hard_ok}
+
+
+def risk_geometry(
+    *,
+    settings: Any,
+    cfg: dict[str, Any],
+    ticker: Any,
+    side: str,
+    structural_stop: float | None,
+    atr15: float,
+) -> dict[str, Any] | None:
+    if structural_stop is None or atr15 <= 0:
+        return None
+    entry = ticker.ask if side == "LONG" else ticker.bid
+    min_stop_atr = float(cfg.get("min_stop_atr15", 0.45))
+    min_distance = max(atr15 * min_stop_atr, entry * 0.0015)
+    if side == "LONG":
+        stop = min(structural_stop, entry - min_distance)
+        if stop <= 0 or stop >= entry:
+            return {"ok": False, "reason": "손절 가격 방향 오류"}
+        distance = entry - stop
+    else:
+        stop = max(structural_stop, entry + min_distance)
+        if stop <= entry:
+            return {"ok": False, "reason": "손절 가격 방향 오류"}
+        distance = stop - entry
+    stop_pct = distance / entry * 100.0
+    cap_pct = lw.risk_cap_stop_distance_pct(settings, cfg)
+    account_risk = stop_pct * (settings.entry_margin_pct / 100.0 * settings.leverage)
+    r_mult = float(cfg.get("emergency_tp_r", 3.0))
+    tp = entry + distance * r_mult if side == "LONG" else entry - distance * r_mult
+    return {
+        "ok": stop_pct <= cap_pct,
+        "entry": entry,
+        "stop": stop,
+        "tp": tp,
+        "stop_distance_pct": stop_pct,
+        "cap_pct": cap_pct,
+        "account_risk_pct": account_risk,
+        "reason": "" if stop_pct <= cap_pct else f"손절폭 {stop_pct:.3f}% > 허용 {cap_pct:.3f}%",
+    }
+
+
+def build_card(
+    *,
+    settings: Any,
+    cfg: dict[str, Any],
+    ticker: Any,
+    ind: dict[str, float],
+    setup: str,
+    side: str,
+    base_score: float,
+    trigger: float,
+    structural: list[tuple[str, bool]],
+    touched: bool,
+    event_relevant: bool,
+    structural_stop: float | None,
+    signal_bar_ts: int,
+    extra_hard_blockers: list[str] | None = None,
+) -> dict[str, Any]:
+    profile = str(cfg.get("profile", "crypto"))
+    threshold = max(float(settings.signal_threshold), float(cfg.get("signal_threshold", 0)))
+    scoring = score_breakdown(
+        profile=profile,
+        setup=setup,
+        side=side,
+        base_score=base_score,
+        cfg=cfg,
+        ticker=ticker,
+        ind=ind,
+    )
+    blockers = [label for label, ok in structural if not ok]
+    blockers.extend(extra_hard_blockers or [])
+    risk = risk_geometry(
+        settings=settings,
+        cfg=cfg,
+        ticker=ticker,
+        side=side,
+        structural_stop=structural_stop,
+        atr15=ind["atr15"],
+    )
+    if risk is not None and not risk.get("ok", False):
+        blockers.append(str(risk.get("reason") or "손절 위험 제한"))
+    if not scoring["spread_ok"]:
+        blockers.append("스프레드 상한 초과")
+    score_gap = threshold - float(scoring["total"])
+    if score_gap > 1e-9:
+        blockers.append(f"점수 {score_gap:.1f}점 부족")
+    structural_ready = all(ok for _, ok in structural) and not (extra_hard_blockers or [])
+    ready = structural_ready and scoring["spread_ok"] and (risk is None or bool(risk.get("ok"))) and score_gap <= 1e-9
+    status = "READY" if ready else "가격도달-미진입" if event_relevant else "대기"
+    return {
+        "setup": setup,
+        "side": side,
+        "profile": profile,
+        "base_score": base_score,
+        "score": float(scoring["total"]),
+        "threshold": threshold,
+        "score_gap": max(0.0, score_gap),
+        "components": scoring["components"],
+        "trigger": trigger,
+        "distance_pct": pct_distance(ticker.last, trigger),
+        "touched": bool(touched),
+        "event_relevant": bool(event_relevant),
+        "structural_ready": bool(structural_ready),
+        "ready": bool(ready),
+        "status": status,
+        "structural": [{"label": label, "ok": ok} for label, ok in structural],
+        "blockers": list(dict.fromkeys(blockers)),
+        "risk": risk,
+        "signal_bar_ts": signal_bar_ts,
+    }
+
+
+def diagnose_crypto(client: Any, settings: Any, symbol: str, cfg: dict[str, Any]) -> dict[str, Any]:
+    instrument = lw.fetch_instrument(client, symbol)
+    ticker = lw.fetch_ticker(client, symbol)
+    bars15 = lw.fetch_candles(client, symbol, "15m", int(cfg.get("bars_15m", 420)))
+    bars1h = lw.fetch_candles(client, symbol, "1H", int(cfg.get("bars_1h", 220)))
+    bars1d = lw.fetch_candles(client, symbol, "1D", int(cfg.get("bars_1d", 80)))
+    ind = indicator_snapshot(bars15, bars1h)
+    c15 = lw.completed_bars(bars15, "15m")
+    c1d = lw.completed_bars(bars1d, "1D")
+    out: dict[str, Any] = {
+        "symbol": symbol,
+        "profile": "crypto",
+        "price": ticker.last,
+        "mark": ticker.mark,
+        "bid": ticker.bid,
+        "ask": ticker.ask,
+        "spread_pct": ticker.spread_pct,
+        "funding": ticker.funding,
+        "indicators": ind,
+        "threshold": max(float(settings.signal_threshold), float(cfg.get("signal_threshold", 0))),
+        "cards": [],
+        "data_error": "",
+    }
+    errors = lw.validate_instrument_for_profile(instrument, "crypto", settings.leverage)
+    if errors:
+        out["data_error"] = ", ".join(errors)
+        return out
+    if len(c15) < 40 or len(c1d) < 5 or not bars1d:
+        out["data_error"] = "DATA_WARMUP"
+        return out
+    live_daily = bars1d[-1]
+    if live_daily.dt.date() != lw.now_utc().date():
+        out["data_error"] = "현재 UTC 일봉 데이터 불일치"
+        return out
+    prev = c1d[-1]
+    ranges = [b.high - b.low for b in c1d[-4:-1]] or [prev.high - prev.low]
+    range_ref = lw.median(ranges, prev.high - prev.low)
+    if range_ref <= 0:
+        out["data_error"] = "기준 변동폭 0"
+        return out
+    compression = (prev.high - prev.low) / max(range_ref, 1e-9)
+    if compression < 0.85:
+        k = float(cfg.get("breakout_k_compressed", 0.28))
+    elif compression > 1.25:
+        k = float(cfg.get("breakout_k_expanded", 0.45))
+    else:
+        k = float(cfg.get("breakout_k_base", 0.35))
+    long_trigger = live_daily.open + k * range_ref
+    short_trigger = live_daily.open - k * range_ref
+    price = ticker.last
+    latest = c15[-1]
+    prior_close = c15[-1].close
+    atr15 = ind["atr15"]
+    chase_limit = float(cfg.get("anti_chase_atr15", 0.35)) * atr15
+    sweep = c15[-6:]
+    sweep_low = min(b.low for b in sweep)
+    sweep_high = max(b.high for b in sweep)
+
+    cards = [
+        build_card(
+            settings=settings, cfg=cfg, ticker=ticker, ind=ind,
+            setup="VOLATILITY_BREAKOUT", side="LONG", base_score=54,
+            trigger=long_trigger,
+            structural=[
+                (f"가격이 롱 돌파선 미도달({f(long_trigger - price)} 남음)", price >= long_trigger),
+                (f"직전 완료 15분봉 종가 {f(prior_close)}가 돌파선 아래가 아님", prior_close < long_trigger),
+                (f"추격거리 {f(max(0.0, price-long_trigger))} > 허용 {f(chase_limit)}", (price - long_trigger) <= chase_limit),
+            ],
+            touched=price >= long_trigger,
+            event_relevant=price >= long_trigger,
+            structural_stop=latest.low - 0.12 * atr15 if price >= long_trigger else None,
+            signal_bar_ts=latest.ts,
+        ),
+        build_card(
+            settings=settings, cfg=cfg, ticker=ticker, ind=ind,
+            setup="VOLATILITY_BREAKOUT", side="SHORT", base_score=54,
+            trigger=short_trigger,
+            structural=[
+                (f"가격이 숏 돌파선 미도달({f(price-short_trigger)} 남음)", price <= short_trigger),
+                (f"직전 완료 15분봉 종가 {f(prior_close)}가 돌파선 위가 아님", prior_close > short_trigger),
+                (f"추격거리 {f(max(0.0, short_trigger-price))} > 허용 {f(chase_limit)}", (short_trigger - price) <= chase_limit),
+            ],
+            touched=price <= short_trigger,
+            event_relevant=price <= short_trigger,
+            structural_stop=latest.high + 0.12 * atr15 if price <= short_trigger else None,
+            signal_bar_ts=latest.ts,
+        ),
+        build_card(
+            settings=settings, cfg=cfg, ticker=ticker, ind=ind,
+            setup="OOPS_SESSION_RECLAIM", side="LONG", base_score=57,
+            trigger=prev.low,
+            structural=[
+                (f"최근 6개 완료봉 저가 {f(sweep_low)}가 전일 저가 {f(prev.low)} 아래를 스윕하지 않음", sweep_low < prev.low),
+                (f"완료 15분봉 종가 {f(latest.close)}가 전일 저가 위로 복귀하지 않음", latest.close > prev.low),
+                (f"현재가 {f(price)}가 전일 저가 위가 아님", price > prev.low),
+            ],
+            touched=sweep_low < prev.low,
+            event_relevant=sweep_low < prev.low,
+            structural_stop=sweep_low - 0.10 * atr15 if sweep_low < prev.low else None,
+            signal_bar_ts=latest.ts,
+        ),
+        build_card(
+            settings=settings, cfg=cfg, ticker=ticker, ind=ind,
+            setup="OOPS_SESSION_RECLAIM", side="SHORT", base_score=57,
+            trigger=prev.high,
+            structural=[
+                (f"최근 6개 완료봉 고가 {f(sweep_high)}가 전일 고가 {f(prev.high)} 위를 스윕하지 않음", sweep_high > prev.high),
+                (f"완료 15분봉 종가 {f(latest.close)}가 전일 고가 아래로 거절되지 않음", latest.close < prev.high),
+                (f"현재가 {f(price)}가 전일 고가 아래가 아님", price < prev.high),
+            ],
+            touched=sweep_high > prev.high,
+            event_relevant=sweep_high > prev.high,
+            structural_stop=sweep_high + 0.10 * atr15 if sweep_high > prev.high else None,
+            signal_bar_ts=latest.ts,
+        ),
+    ]
+    actual = lw.crypto_candidate(settings, symbol, cfg, instrument, ticker, bars15, bars1h, bars1d)
+    if actual:
+        out["engine_candidate"] = asdict(actual)
+        for card in cards:
+            if card["setup"] == actual.setup and card["side"] == actual.side:
+                card["engine_candidate"] = True
+                card["score"] = actual.score
+                card["ready"] = actual.score >= card["threshold"]
+                card["status"] = "READY" if card["ready"] else "후보-점수미달"
+                card["risk"] = {
+                    "ok": True,
+                    "entry": actual.entry_reference,
+                    "stop": actual.stop_price,
+                    "tp": actual.emergency_tp_price,
+                    "stop_distance_pct": actual.stop_distance_pct,
+                    "account_risk_pct": actual.account_risk_pct,
+                    "cap_pct": lw.risk_cap_stop_distance_pct(settings, cfg),
+                }
+                card["blockers"] = [x for x in card["blockers"] if not x.startswith("점수 ")]
+                if not card["ready"]:
+                    card["blockers"].append(f"점수 {card['threshold']-actual.score:.1f}점 부족")
+    out.update({
+        "session_open": live_daily.open,
+        "prev_high": prev.high,
+        "prev_low": prev.low,
+        "range_ref": range_ref,
+        "k": k,
+        "long_trigger": long_trigger,
+        "short_trigger": short_trigger,
+        "prior_close": prior_close,
+        "sweep_low": sweep_low,
+        "sweep_high": sweep_high,
+        "cards": cards,
+    })
+    return out
+
+
+def diagnose_stock(client: Any, settings: Any, symbol: str, cfg: dict[str, Any]) -> dict[str, Any]:
+    instrument = lw.fetch_instrument(client, symbol)
+    ticker = lw.fetch_ticker(client, symbol)
+    bars15 = lw.fetch_candles(client, symbol, "15m", int(cfg.get("bars_15m", 500)))
+    bars1h = lw.fetch_candles(client, symbol, "1H", int(cfg.get("bars_1h", 220)))
+    ind = indicator_snapshot(bars15, bars1h)
+    now = lw.now_utc()
+    ny = now.astimezone(lw.NY)
+    c15 = lw.completed_bars(bars15, "15m")
+    entry_window = lw.stock_entry_window(now, str(cfg.get("entry_start_ny", "09:45")), str(cfg.get("entry_end_ny", "15:30")))
+    out: dict[str, Any] = {
+        "symbol": symbol,
+        "profile": "stock",
+        "price": ticker.last,
+        "mark": ticker.mark,
+        "bid": ticker.bid,
+        "ask": ticker.ask,
+        "spread_pct": ticker.spread_pct,
+        "funding": ticker.funding,
+        "ny_time": ny.isoformat(),
+        "entry_window": entry_window,
+        "indicators": ind,
+        "threshold": max(float(settings.signal_threshold), float(cfg.get("signal_threshold", 0))),
+        "cards": [],
+        "data_error": "",
+    }
+    errors = lw.validate_instrument_for_profile(instrument, "stock", settings.leverage)
+    if errors:
+        out["data_error"] = ", ".join(errors)
+        return out
+    sessions = lw.group_stock_rth_sessions(c15)
+    # At 09:30 ET the first RTH candle is still live. Use it only for a preview
+    # report; the trading engine itself remains blocked until 09:45 ET.
+    live_sessions = lw.group_stock_rth_sessions(bars15)
+    current_date = ny.date()
+    dates = sorted(d for d, rows in sessions.items() if rows)
+    previous_dates = [d for d in dates if d < current_date]
+    if not previous_dates:
+        out["data_error"] = "이전 RTH 세션 데이터 부족"
+        return out
+    preview_rth = current_date not in sessions and current_date in live_sessions
+    if current_date in sessions:
+        today_rows = sessions[current_date]
+    elif preview_rth:
+        today_rows = live_sessions[current_date]
+    else:
+        out["data_error"] = "현재 RTH 첫 캔들 대기"
+        return out
+    prev_date = previous_dates[-1]
+    prev_rows = sessions[prev_date]
+    out["preview_rth"] = preview_rth
+    prev_high = max(b.high for b in prev_rows)
+    prev_low = min(b.low for b in prev_rows)
+    prev_close = prev_rows[-1].close
+    current_open = today_rows[0].open
+    current_low = min(b.low for b in today_rows)
+    current_high = max(b.high for b in today_rows)
+    latest = today_rows[-1]
+    prev_range = prev_high - prev_low
+    if prev_range <= 0:
+        out["data_error"] = "전일 RTH 범위 0"
+        return out
+    atr15 = ind["atr15"]
+    price = ticker.last
+    k = float(cfg.get("breakout_k_base", 0.28))
+    long_trigger = current_open + k * prev_range
+    short_trigger = current_open - k * prev_range
+    prior_close = today_rows[-2].close if len(today_rows) >= 2 else current_open
+    chase_limit = float(cfg.get("anti_chase_atr15", 0.25)) * atr15
+    window_block = [] if entry_window else [f"뉴욕 진입창 {cfg.get('entry_start_ny','09:45')}~{cfg.get('entry_end_ny','15:30')} 밖"]
+    if preview_rth:
+        window_block.append("첫 RTH 15분봉 미완료 — 엔진은 09:45 ET부터 평가")
+
+    cards = [
+        build_card(
+            settings=settings, cfg=cfg, ticker=ticker, ind=ind,
+            setup="VOLATILITY_BREAKOUT_RTH", side="LONG", base_score=56,
+            trigger=long_trigger,
+            structural=[
+                (f"가격이 롱 돌파선 미도달({f(long_trigger-price)} 남음)", price >= long_trigger),
+                (f"직전 기준 15분봉 종가 {f(prior_close)}가 돌파선 아래가 아님", prior_close < long_trigger),
+                (f"추격거리 {f(max(0.0, price-long_trigger))} > 허용 {f(chase_limit)}", (price - long_trigger) <= chase_limit),
+            ],
+            touched=price >= long_trigger,
+            event_relevant=entry_window and price >= long_trigger,
+            structural_stop=latest.low - 0.12 * atr15 if price >= long_trigger else None,
+            signal_bar_ts=latest.ts,
+            extra_hard_blockers=window_block,
+        ),
+        build_card(
+            settings=settings, cfg=cfg, ticker=ticker, ind=ind,
+            setup="VOLATILITY_BREAKOUT_RTH", side="SHORT", base_score=56,
+            trigger=short_trigger,
+            structural=[
+                (f"가격이 숏 돌파선 미도달({f(price-short_trigger)} 남음)", price <= short_trigger),
+                (f"직전 기준 15분봉 종가 {f(prior_close)}가 돌파선 위가 아님", prior_close > short_trigger),
+                (f"추격거리 {f(max(0.0, short_trigger-price))} > 허용 {f(chase_limit)}", (short_trigger - price) <= chase_limit),
+            ],
+            touched=price <= short_trigger,
+            event_relevant=entry_window and price <= short_trigger,
+            structural_stop=latest.high + 0.12 * atr15 if price <= short_trigger else None,
+            signal_bar_ts=latest.ts,
+            extra_hard_blockers=window_block,
+        ),
+        build_card(
+            settings=settings, cfg=cfg, ticker=ticker, ind=ind,
+            setup="OOPS_GAP_RECLAIM", side="LONG", base_score=60,
+            trigger=prev_low,
+            structural=[
+                (f"금일 시가/저가가 전일 저가 {f(prev_low)} 아래를 스윕하지 않음", current_open < prev_low or current_low < prev_low),
+                (f"완료 15분봉 종가 {f(latest.close)}가 전일 저가 위로 복귀하지 않음", latest.close > prev_low),
+                (f"현재가 {f(price)}가 전일 저가 위가 아님", price > prev_low),
+            ],
+            touched=current_open < prev_low or current_low < prev_low,
+            event_relevant=entry_window and (current_open < prev_low or current_low < prev_low),
+            structural_stop=current_low - 0.10 * atr15 if (current_open < prev_low or current_low < prev_low) else None,
+            signal_bar_ts=latest.ts,
+            extra_hard_blockers=window_block,
+        ),
+        build_card(
+            settings=settings, cfg=cfg, ticker=ticker, ind=ind,
+            setup="OOPS_GAP_RECLAIM", side="SHORT", base_score=60,
+            trigger=prev_high,
+            structural=[
+                (f"금일 시가/고가가 전일 고가 {f(prev_high)} 위를 스윕하지 않음", current_open > prev_high or current_high > prev_high),
+                (f"완료 15분봉 종가 {f(latest.close)}가 전일 고가 아래로 거절되지 않음", latest.close < prev_high),
+                (f"현재가 {f(price)}가 전일 고가 아래가 아님", price < prev_high),
+            ],
+            touched=current_open > prev_high or current_high > prev_high,
+            event_relevant=entry_window and (current_open > prev_high or current_high > prev_high),
+            structural_stop=current_high + 0.10 * atr15 if (current_open > prev_high or current_high > prev_high) else None,
+            signal_bar_ts=latest.ts,
+            extra_hard_blockers=window_block,
+        ),
+    ]
+    actual = lw.stock_candidate(settings, symbol, cfg, instrument, ticker, bars15, bars1h)
+    if actual:
+        out["engine_candidate"] = asdict(actual)
+        for card in cards:
+            if card["setup"] == actual.setup and card["side"] == actual.side:
+                card["engine_candidate"] = True
+                card["score"] = actual.score
+                card["ready"] = actual.score >= card["threshold"]
+                card["status"] = "READY" if card["ready"] else "후보-점수미달"
+                card["risk"] = {
+                    "ok": True,
+                    "entry": actual.entry_reference,
+                    "stop": actual.stop_price,
+                    "tp": actual.emergency_tp_price,
+                    "stop_distance_pct": actual.stop_distance_pct,
+                    "account_risk_pct": actual.account_risk_pct,
+                    "cap_pct": lw.risk_cap_stop_distance_pct(settings, cfg),
+                }
+                card["blockers"] = [x for x in card["blockers"] if not x.startswith("점수 ")]
+                if not card["ready"]:
+                    card["blockers"].append(f"점수 {card['threshold']-actual.score:.1f}점 부족")
+    out.update({
+        "prev_date": str(prev_date),
+        "current_open": current_open,
+        "prev_high": prev_high,
+        "prev_low": prev_low,
+        "prev_close": prev_close,
+        "current_high": current_high,
+        "current_low": current_low,
+        "long_trigger": long_trigger,
+        "short_trigger": short_trigger,
+        "prior_close": prior_close,
+        "cards": cards,
+    })
+    return out
+
+
+def managed_snapshot(state: dict[str, Any], client: Any, settings: Any) -> dict[str, Any] | None:
+    raw = state.get("managed_position")
+    if not isinstance(raw, dict):
+        return None
+    m = lw.ManagedPosition(**raw)
+    ticker = lw.fetch_ticker(client, m.symbol)
+    profit_r = lw.side_profit(m, ticker.mark) / m.initial_r if m.initial_r > 0 else 0.0
+    held = (lw.now_utc() - datetime.fromisoformat(m.entry_ts)).total_seconds() / 60.0
+    return {
+        **raw,
+        "mark": ticker.mark,
+        "profit_r": profit_r,
+        "held_minutes": held,
+    }
+
+
+def collect_report() -> dict[str, Any]:
+    settings = lw.load_settings(str(CONFIG))
+    client = lw.make_client()
+    state = lw.load_state(settings)
+    assets = lw.fetch_account_assets(client)
+    equity = lw.account_equity(assets)
+    positions = lw.nonzero_positions(client)
+    orders = lw.fetch_open_orders(client)
+    strategies = lw.fetch_strategy_orders_best_effort(client)
+    guards = lw.guard_reasons(settings, state, equity, positions, orders, strategies)
+    armed, arm_reasons = lw.arm_valid(settings)
+    report: dict[str, Any] = {
+        "version": lw.VERSION,
+        "ts": lw.iso(),
+        "armed": armed,
+        "arm_reasons": arm_reasons,
+        "equity": equity,
+        "leverage": settings.leverage,
+        "entry_margin_pct": settings.entry_margin_pct,
+        "guards": guards,
+        "managed_position": managed_snapshot(state, client, settings),
+        "symbols": {},
+    }
+    if not report["managed_position"]:
+        for symbol, cfg in settings.symbols.items():
+            if not bool(cfg.get("enabled", True)):
+                continue
+            try:
+                if str(cfg.get("profile", "crypto")) == "stock":
+                    report["symbols"][symbol] = diagnose_stock(client, settings, symbol, cfg)
+                else:
+                    report["symbols"][symbol] = diagnose_crypto(client, settings, symbol, cfg)
+            except Exception as exc:
+                report["symbols"][symbol] = {
+                    "symbol": symbol,
+                    "profile": str(cfg.get("profile", "")),
+                    "data_error": f"{type(exc).__name__}: {exc}",
+                    "cards": [],
+                }
+    return report
+
+
+def component_line(card: dict[str, Any]) -> str:
+    parts = []
+    for comp in card.get("components", []):
+        pts = float(comp.get("points", 0))
+        sign = "+" if pts > 0 else ""
+        parts.append(f"{comp.get('label')} {sign}{pts:g}")
+    return " / ".join(parts)
+
+
+def missing_score_checks(card: dict[str, Any]) -> list[str]:
+    out = []
+    for comp in card.get("components", []):
+        if comp.get("key") == "base":
+            continue
+        if not comp.get("passed", False):
+            points = float(comp.get("points", 0))
+            # A zero-point item is a missing confirmation; a negative item is an active penalty.
+            if points <= 0:
+                out.append(f"{comp.get('label')}: {comp.get('detail')}")
+    return out
+
+
+def primary_card(symbol_report: dict[str, Any]) -> dict[str, Any] | None:
+    cards = symbol_report.get("cards") or []
+    if not cards:
+        return None
+    ready = [c for c in cards if c.get("ready")]
+    if ready:
+        return max(ready, key=lambda c: c.get("score", 0))
+    relevant = [c for c in cards if c.get("event_relevant")]
+    if relevant:
+        return max(relevant, key=lambda c: (c.get("score", 0), -abs(c.get("distance_pct", 0))))
+    return min(cards, key=lambda c: abs(c.get("distance_pct", 0)))
+
+
+def render_symbol(sr: dict[str, Any]) -> list[str]:
+    symbol = sr.get("symbol", "?")
+    profile = str(sr.get("profile", "")).upper()
+    lines = [f"[{symbol}] {'CRYPTO' if profile == 'CRYPTO' else 'STOCK PERP'}"]
+    if sr.get("price") is not None:
+        extra = f" | 뉴욕 {datetime.fromisoformat(sr['ny_time']):%Y-%m-%d %H:%M:%S}" if sr.get("ny_time") else ""
+        lines.append(
+            f"  현재가 {f(sr.get('price'))} | mark {f(sr.get('mark'))} | spread {float(sr.get('spread_pct',0)):.4f}%{extra}"
+        )
+    if sr.get("profile") == "crypto":
+        lines.append(f"  funding {float(sr.get('funding',0)):+.6f} | 진입 기준 {float(sr.get('threshold',0)):.0f}점")
+    else:
+        preview = " | 09:30 예비값" if sr.get("preview_rth") else ""
+        lines.append(
+            f"  진입창 {'OPEN' if sr.get('entry_window') else 'CLOSED'} | 진입 기준 {float(sr.get('threshold',0)):.0f}점{preview}"
+        )
+    if sr.get("data_error"):
+        lines.append(f"  데이터/모드: {sr['data_error']}")
+        return lines
+
+    primary = primary_card(sr)
+    if primary:
+        if primary.get("ready"):
+            verdict = f"실전 후보 READY: {primary['setup']} {primary['side']} {primary['score']:.1f}/{primary['threshold']:.1f}"
+        elif primary.get("event_relevant"):
+            why = "; ".join(primary.get("blockers", [])[:3]) or "확인조건 미충족"
+            verdict = (
+                f"가격 조건 도달했지만 미진입: {primary['setup']} {primary['side']} "
+                f"{primary['score']:.1f}/{primary['threshold']:.1f} — {why}"
+            )
+        else:
+            verdict = (
+                f"가장 가까운 조건: {primary['setup']} {primary['side']} "
+                f"예상 {primary['score']:.1f}/{primary['threshold']:.1f}, 기준가 {f(primary['trigger'])}"
+            )
+        lines.append(f"  핵심 판정: {verdict}")
+
+    labels = {
+        ("VOLATILITY_BREAKOUT", "LONG"): "돌파 롱",
+        ("VOLATILITY_BREAKOUT", "SHORT"): "돌파 숏",
+        ("OOPS_SESSION_RECLAIM", "LONG"): "OOPS 롱",
+        ("OOPS_SESSION_RECLAIM", "SHORT"): "OOPS 숏",
+        ("VOLATILITY_BREAKOUT_RTH", "LONG"): "돌파 롱",
+        ("VOLATILITY_BREAKOUT_RTH", "SHORT"): "돌파 숏",
+        ("OOPS_GAP_RECLAIM", "LONG"): "OOPS 롱",
+        ("OOPS_GAP_RECLAIM", "SHORT"): "OOPS 숏",
+    }
+    for card in sr.get("cards", []):
+        label = labels.get((card.get("setup"), card.get("side")), f"{card.get('setup')} {card.get('side')}")
+        score_label = "실제" if card.get("engine_candidate") else "예상"
+        lines.append(
+            f"  • {label}: {score_label}점수 {card['score']:.1f}/{card['threshold']:.1f} | "
+            f"기준 {f(card['trigger'])} ({card['distance_pct']:+.3f}%) | {card['status']}"
+        )
+        if card.get("event_relevant") or card.get("engine_candidate"):
+            blockers = card.get("blockers") or []
+            if blockers:
+                lines.append("    미진입 이유: " + " / ".join(blockers[:5]))
+            missing = missing_score_checks(card)
+            if missing:
+                lines.append("    빠진 확인: " + " / ".join(missing[:4]))
+            risk = card.get("risk")
+            if isinstance(risk, dict) and risk.get("entry"):
+                lines.append(
+                    f"    가상 진입 {f(risk.get('entry'))} | SL {f(risk.get('stop'))} | TP {f(risk.get('tp'))} | "
+                    f"손절폭 {float(risk.get('stop_distance_pct',0)):.3f}%"
+                )
+        lines.append("    점수구성: " + component_line(card))
+
+    ind = sr.get("indicators") or {}
+    trend = "LONG" if ind.get("ema20", 0) > ind.get("ema50", 0) else "SHORT" if ind.get("ema20", 0) < ind.get("ema50", 0) else "FLAT"
+    lines.append(
+        f"  지표: 1H {trend} | %R {float(ind.get('wpr',0)):.1f}({float(ind.get('wpr_prev',0)):.1f}→) | "
+        f"UO {float(ind.get('uo',0)):.1f}({float(ind.get('uo_prev',0)):.1f}→) | 거래량 {float(ind.get('volume_ratio',0)):.2f}x"
+    )
+    return lines
+
+
+def render_text(report: dict[str, Any], symbol: str | None = None) -> str:
+    lines = ["=" * 72]
+    lines.append(f"Larry Williams Core v{report.get('version')} 점수·미진입 진단 | {report.get('ts')}")
+    lines.append(
+        f"LIVE ARMED: {report.get('armed')} | equity {float(report.get('equity',0)):.2f} | "
+        f"Cross {report.get('leverage')}x | 진입증거금 {float(report.get('entry_margin_pct',0)):.0f}%"
+    )
+    lines.append(f"계좌 가드: {', '.join(report.get('guards') or []) if report.get('guards') else 'OK'}")
+    if report.get("arm_reasons"):
+        lines.append("ARM 차단: " + ", ".join(report["arm_reasons"]))
+    managed = report.get("managed_position")
+    if managed:
+        lines.append("포지션 모드: MANAGE")
+        lines.append(
+            f"  {managed.get('symbol')} {managed.get('side')} / 진입 {f(managed.get('entry_price'))} / "
+            f"현재 {f(managed.get('mark'))} / {float(managed.get('profit_r',0)):+.2f}R"
+        )
+        lines.append(
+            f"  SL {f(managed.get('software_stop'))} / 비상TP {f(managed.get('emergency_tp'))} / "
+            f"보유 {float(managed.get('held_minutes',0)):.0f}분"
+        )
+    else:
+        lines.append("포지션 모드: FLAT / 신규 신호 감시")
+        symbols = report.get("symbols") or {}
+        wanted = [symbol] if symbol else list(symbols.keys())
+        for sym in wanted:
+            if sym in symbols:
+                lines.append("")
+                lines.extend(render_symbol(symbols[sym]))
+    lines.append("")
+    lines.append("해석: 예상점수는 현재 지표로 계산한 값이며, 실제 진입은 가격 구조·최초 교차·추격 제한·손절 위험까지 모두 통과해야 합니다.")
+    lines.append("=" * 72)
+    return "\n".join(lines)
+
+
+def main() -> None:
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--json", action="store_true")
+    parser.add_argument("--symbol", choices=["ETHUSDT", "SKHYUSDT"])
+    args = parser.parse_args()
+    report = collect_report()
+    if args.json:
+        if args.symbol:
+            report = {**report, "symbols": {args.symbol: report.get("symbols", {}).get(args.symbol)}}
+        print(json.dumps(report, ensure_ascii=False, indent=2, default=str))
+    else:
+        print(render_text(report, args.symbol))
+
+
+if __name__ == "__main__":
+    main()
+PY_WATCH
+chmod 700 "$ROOT/larry_watch_status.py"
+
+echo "== 가격 도달·미진입 텔레그램 모니터 설치 =="
+cat > "$ROOT/scripts/larry_noentry_alert.py" <<'PY_ALERT'
+#!/usr/bin/env python3
+from __future__ import annotations
+
+import argparse
+import hashlib
+import importlib.util
+import json
+import os
+import re
+import sys
+import time
+from datetime import datetime, timezone
+from pathlib import Path
+from typing import Any
+
+ROOT = Path("/home/ubuntu/index-sniper-pro")
+WATCH = ROOT / "larry_watch_status.py"
+STATE = ROOT / "data/larry_noentry_alert_state.json"
+LOG = ROOT / "logs/larry-noentry-alert.log"
+
+
+def load_watch() -> Any:
+    spec = importlib.util.spec_from_file_location("larry_watch_status", WATCH)
+    if spec is None or spec.loader is None:
+        raise RuntimeError(f"상태 모듈을 불러올 수 없습니다: {WATCH}")
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module
+
+
+def load_state() -> dict[str, Any]:
+    if not STATE.exists():
+        return {"sent": {}}
+    try:
+        raw = json.loads(STATE.read_text(encoding="utf-8"))
+        return raw if isinstance(raw, dict) else {"sent": {}}
+    except Exception:
+        return {"sent": {}}
+
+
+def save_state(state: dict[str, Any]) -> None:
+    STATE.parent.mkdir(parents=True, exist_ok=True)
+    tmp = STATE.with_suffix(".tmp")
+    tmp.write_text(json.dumps(state, ensure_ascii=False, indent=2), encoding="utf-8")
+    os.replace(tmp, STATE)
+
+
+def log(message: str) -> None:
+    LOG.parent.mkdir(parents=True, exist_ok=True)
+    with LOG.open("a", encoding="utf-8") as fp:
+        fp.write(f"[{datetime.now(timezone.utc).isoformat()}] {message}\n")
+
+
+def normalized_reason(text: str) -> str:
+    # Dynamic prices should not create a new alert fingerprint every minute.
+    return re.sub(r"[-+]?\d[\d,.]*(?:%|x|점)?", "#", text)
+
+
+def fingerprint(card: dict[str, Any], guards: list[str]) -> str:
+    data = "|".join(
+        [str(card.get("setup")), str(card.get("side"))]
+        + [normalized_reason(str(x)) for x in card.get("blockers", [])]
+        + [normalized_reason(str(x)) for x in guards]
+    )
+    return hashlib.sha256(data.encode("utf-8")).hexdigest()[:16]
+
+
+def choose_event_card(sr: dict[str, Any]) -> dict[str, Any] | None:
+    cards = [c for c in (sr.get("cards") or []) if c.get("event_relevant") and not c.get("ready")]
+    if not cards:
+        return None
+    # Prefer a real engine candidate that missed the threshold, then the highest score.
+    cards.sort(
+        key=lambda c: (
+            1 if c.get("engine_candidate") else 0,
+            float(c.get("score", 0)),
+            -len(c.get("blockers") or []),
+        ),
+        reverse=True,
+    )
+    return cards[0]
+
+
+def score_missing(card: dict[str, Any]) -> list[str]:
+    missing = []
+    for comp in card.get("components", []):
+        if comp.get("key") == "base":
+            continue
+        if not comp.get("passed", False) and float(comp.get("points", 0)) <= 0:
+            missing.append(f"{comp.get('label')}: {comp.get('detail')}")
+    return missing
+
+
+def prices_line(report: dict[str, Any]) -> str:
+    rows = []
+    for symbol in ("ETHUSDT", "SKHYUSDT"):
+        sr = (report.get("symbols") or {}).get(symbol) or {}
+        if sr.get("price") is not None:
+            rows.append(f"{symbol.replace('USDT','')} {float(sr['price']):,.2f}")
+    return " | ".join(rows) if rows else "가격 조회 실패"
+
+
+def build_message(report: dict[str, Any], sr: dict[str, Any], card: dict[str, Any]) -> str:
+    symbol = str(sr.get("symbol"))
+    setup_name = {
+        "VOLATILITY_BREAKOUT": "변동성 돌파",
+        "VOLATILITY_BREAKOUT_RTH": "미국장 변동성 돌파",
+        "OOPS_SESSION_RECLAIM": "OOPS 세션 반전",
+        "OOPS_GAP_RECLAIM": "OOPS 갭·스윕 반전",
+    }.get(str(card.get("setup")), str(card.get("setup")))
+    blockers = card.get("blockers") or ["확인조건 미충족"]
+    missing = score_missing(card)
+    risk = card.get("risk") if isinstance(card.get("risk"), dict) else None
+    lines = [
+        "⚠️ Larry 가격 도달·미진입 진단",
+        f"{symbol} {setup_name} {card.get('side')}",
+        f"시장가격: {prices_line(report)}",
+        f"해당 종목 현재가 {float(sr.get('price',0)):,.2f} | 기준가 {float(card.get('trigger',0)):,.2f}",
+        f"점수 {float(card.get('score',0)):.1f}/{float(card.get('threshold',0)):.1f}",
+        "",
+        "미진입 이유:",
+    ]
+    lines.extend(f"- {reason}" for reason in blockers[:6])
+    if missing:
+        lines.append("")
+        lines.append("빠진 점수 확인:")
+        lines.extend(f"- {reason}" for reason in missing[:5])
+    if risk and risk.get("entry"):
+        lines.extend([
+            "",
+            f"가상 진입 {float(risk['entry']):,.2f} | SL {float(risk.get('stop',0)):,.2f} | TP {float(risk.get('tp',0)):,.2f}",
+            f"손절폭 {float(risk.get('stop_distance_pct',0)):.3f}% | 계좌위험 약 {float(risk.get('account_risk_pct',0)):.3f}%",
+        ])
+    guards = report.get("guards") or []
+    if guards:
+        lines.extend(["", "계좌/전역 차단:"] + [f"- {g}" for g in guards])
+    lines.extend([
+        "",
+        "※ 주문 로직은 변경하지 않은 읽기 전용 진단 알림입니다.",
+    ])
+    return "\n".join(lines)
+
+
+def main() -> int:
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--dry-run", action="store_true")
+    parser.add_argument("--force", action="store_true", help="cooldown을 무시하고 현재 이벤트를 전송")
+    args = parser.parse_args()
+
+    watch = load_watch()
+    report = watch.collect_report()
+    if not report.get("armed"):
+        log("skip: Larry not armed")
+        return 0
+    if report.get("managed_position"):
+        log("skip: managed position active")
+        return 0
+
+    from index_sniper import larry_williams_core_v1 as lw
+
+    bot = lw.make_bot()
+    if bot is None and not args.dry_run:
+        raise RuntimeError("Telegram 설정을 찾을 수 없습니다")
+
+    state = load_state()
+    sent = state.setdefault("sent", {})
+    now = time.time()
+    cooldown = max(300, int(float(os.getenv("LARRY_NOENTRY_ALERT_COOLDOWN_MINUTES", "60")) * 60))
+    emitted = 0
+
+    # Prune state older than 7 days.
+    for key in list(sent):
+        if now - float((sent.get(key) or {}).get("ts", 0)) > 7 * 86400:
+            sent.pop(key, None)
+
+    for symbol, sr in (report.get("symbols") or {}).items():
+        if not isinstance(sr, dict) or sr.get("data_error"):
+            continue
+        card = choose_event_card(sr)
+        if card is None:
+            continue
+        session = str(report.get("ts", ""))[:10]
+        if sr.get("ny_time"):
+            session = str(sr["ny_time"])[:10]
+        base_key = f"{session}|{symbol}|{card.get('setup')}|{card.get('side')}|{float(card.get('trigger',0)):.8f}"
+        fp = fingerprint(card, report.get("guards") or [])
+        old = sent.get(base_key) or {}
+        elapsed = now - float(old.get("ts", 0))
+        changed = old.get("fingerprint") != fp
+        should_send = args.force or not old or elapsed >= cooldown or (changed and elapsed >= 900)
+        if not should_send:
+            continue
+        message = build_message(report, sr, card)
+        if args.dry_run:
+            print(message)
+            print("\n" + "-" * 72 + "\n")
+        else:
+            bot.send(message)
+            sent[base_key] = {"ts": now, "fingerprint": fp}
+            emitted += 1
+            log(f"sent {base_key} score={card.get('score')} blockers={card.get('blockers')}")
+
+    if not args.dry_run:
+        save_state(state)
+    if emitted == 0:
+        log("no new price-touched/no-entry event")
+    return 0
+
+
+if __name__ == "__main__":
+    try:
+        raise SystemExit(main())
+    except Exception as exc:
+        log(f"ERROR {type(exc).__name__}: {exc}")
+        raise
+PY_ALERT
+chmod 700 "$ROOT/scripts/larry_noentry_alert.py"
+
+echo "== ETH·SKHY 예약 텔레그램 리포터 설치 =="
+cat > "$ROOT/scripts/larry_symbol_telegram.py" <<'PY_SYMBOL'
+#!/usr/bin/env python3
+from __future__ import annotations
+
+import argparse
+import importlib.util
+import sys
+from datetime import datetime
+from pathlib import Path
+from zoneinfo import ZoneInfo
+
+ROOT = Path("/home/ubuntu/index-sniper-pro")
+WATCH = ROOT / "larry_watch_status.py"
+LOG = ROOT / "logs/larry-symbol-telegram.log"
+KST = ZoneInfo("Asia/Seoul")
+NY = ZoneInfo("America/New_York")
+
+
+def log(message: str) -> None:
+    LOG.parent.mkdir(parents=True, exist_ok=True)
+    with LOG.open("a", encoding="utf-8") as fp:
+        fp.write(f"[{datetime.now(KST).isoformat()}] {message}\n")
+
+
+def load_watch():
+    spec = importlib.util.spec_from_file_location("larry_watch_status", WATCH)
+    if spec is None or spec.loader is None:
+        raise RuntimeError(f"상태 모듈을 불러올 수 없습니다: {WATCH}")
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module
+
+
+def split_message(text: str, limit: int = 3500) -> list[str]:
+    chunks: list[str] = []
+    current = ""
+    for line in text.splitlines(keepends=True):
+        if len(current) + len(line) <= limit:
+            current += line
+            continue
+        if current.strip():
+            chunks.append(current.rstrip())
+            current = ""
+        while len(line) > limit:
+            chunks.append(line[:limit])
+            line = line[limit:]
+        current = line
+    if current.strip():
+        chunks.append(current.rstrip())
+    return chunks
+
+
+def main() -> int:
+    parser = argparse.ArgumentParser()
+    parser.add_argument("symbol", choices=["ETHUSDT", "SKHYUSDT"])
+    parser.add_argument("--dry-run", action="store_true")
+    args = parser.parse_args()
+
+    watch = load_watch()
+    report = watch.collect_report()
+    body = watch.render_text(report, args.symbol)
+    now_kst = datetime.now(KST)
+    now_ny = datetime.now(NY)
+    prices = []
+    for sym, label in (("ETHUSDT", "ETH"), ("SKHYUSDT", "SKHY")):
+        sr = (report.get("symbols") or {}).get(sym) or {}
+        if sr.get("price") is not None:
+            prices.append(f"{label} {float(sr['price']):,.2f}")
+    market_line = "시장가격: " + (" | ".join(prices) if prices else "조회 실패") + "\n"
+    if args.symbol == "ETHUSDT":
+        title = (
+            "Ξ Larry ETH 점수·진입 진단\n"
+            f"갱신: {now_kst:%Y-%m-%d %H:%M KST}\n"
+            + market_line + "\n"
+        )
+    else:
+        title = (
+            "🇺🇸 Larry SKHY 미국 본장 점수·진입 진단\n"
+            f"뉴욕: {now_ny:%Y-%m-%d %H:%M ET}\n"
+            f"한국: {now_kst:%Y-%m-%d %H:%M KST}\n"
+            + market_line
+            + "※ 실제 신규 진입 평가는 09:45 ET부터\n\n"
+        )
+    message = title + body
+    chunks = split_message(message)
+    if args.dry_run:
+        print(message)
+        return 0
+
+    from index_sniper import larry_williams_core_v1 as lw
+
+    bot = lw.make_bot()
+    if bot is None:
+        raise RuntimeError("Telegram 설정을 찾을 수 없습니다")
+    for idx, chunk in enumerate(chunks, start=1):
+        if idx > 1:
+            chunk = f"{args.symbol} 진단 계속 ({idx}/{len(chunks)})\n\n{chunk}"
+        bot.send(chunk)
+    log(f"sent symbol={args.symbol} chunks={len(chunks)}")
+    return 0
+
+
+if __name__ == "__main__":
+    try:
+        raise SystemExit(main())
+    except Exception as exc:
+        log(f"ERROR {type(exc).__name__}: {exc}")
+        raise
+PY_SYMBOL
+chmod 700 "$ROOT/scripts/larry_symbol_telegram.py"
+
+cd "$ROOT"
+env PYTHONPATH="$ROOT" "$PY" -m py_compile   "$ROOT/larry_watch_status.py"   "$ROOT/scripts/larry_noentry_alert.py"   "$ROOT/scripts/larry_symbol_telegram.py"
+
+echo "✅ Python 컴파일 통과"
+
+sudo tee /etc/systemd/system/larry-noentry-alert.service >/dev/null <<SERVICE
+[Unit]
+Description=Larry price-touched but no-entry diagnostic Telegram alert
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+User=ubuntu
+Group=ubuntu
+WorkingDirectory=$ROOT
+Environment=PYTHONPATH=$ROOT
+ExecStart=$PY $ROOT/scripts/larry_noentry_alert.py
+TimeoutStartSec=240
+SERVICE
+
+sudo tee /etc/systemd/system/larry-noentry-alert.timer >/dev/null <<'TIMER'
+[Unit]
+Description=Check Larry no-entry reasons every minute
+
+[Timer]
+OnBootSec=75s
+OnUnitActiveSec=60s
+AccuracySec=5s
+RandomizedDelaySec=5s
+Unit=larry-noentry-alert.service
+
+[Install]
+WantedBy=timers.target
+TIMER
+
+sudo tee /etc/systemd/system/larry-eth-telegram.service >/dev/null <<SERVICE
+[Unit]
+Description=Larry ETH score and entry diagnostics Telegram report
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+User=ubuntu
+Group=ubuntu
+WorkingDirectory=$ROOT
+Environment=PYTHONPATH=$ROOT
+ExecStart=$PY $ROOT/scripts/larry_symbol_telegram.py ETHUSDT
+TimeoutStartSec=300
+SERVICE
+
+sudo tee /etc/systemd/system/larry-eth-telegram.timer >/dev/null <<'TIMER'
+[Unit]
+Description=Send Larry ETH report at 09:00 KST
+
+[Timer]
+OnCalendar=*-*-* 09:00:00 Asia/Seoul
+Persistent=true
+RandomizedDelaySec=10
+Unit=larry-eth-telegram.service
+
+[Install]
+WantedBy=timers.target
+TIMER
+
+sudo tee /etc/systemd/system/larry-skhy-telegram.service >/dev/null <<SERVICE
+[Unit]
+Description=Larry SKHY score and entry diagnostics Telegram report
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+User=ubuntu
+Group=ubuntu
+WorkingDirectory=$ROOT
+Environment=PYTHONPATH=$ROOT
+ExecStart=$PY $ROOT/scripts/larry_symbol_telegram.py SKHYUSDT
+TimeoutStartSec=300
+SERVICE
+
+sudo tee /etc/systemd/system/larry-skhy-telegram.timer >/dev/null <<'TIMER'
+[Unit]
+Description=Send Larry SKHY report at 09:30 New York time
+
+[Timer]
+OnCalendar=Mon..Fri *-*-* 09:30:00 America/New_York
+Persistent=true
+RandomizedDelaySec=10
+Unit=larry-skhy-telegram.service
+
+[Install]
+WantedBy=timers.target
+TIMER
+
+# Remove the old combined report to avoid duplicates.
+sudo systemctl disable --now larry-daily-telegram.timer 2>/dev/null || true
+sudo systemctl daemon-reload
+sudo systemctl enable --now   larry-noentry-alert.timer   larry-eth-telegram.timer   larry-skhy-telegram.timer
+
+echo
+echo "== 읽기 전용 상세 상태 시험 =="
+env PYTHONPATH="$ROOT" "$PY" "$ROOT/larry_watch_status.py" | tee /tmp/larry-score-status.txt
+
+echo
+echo "== 현재 가격 도달 이벤트 시험(전송 안 함) =="
+env PYTHONPATH="$ROOT" "$PY" "$ROOT/scripts/larry_noentry_alert.py" --dry-run || true
+
+echo
+echo "== 예약 메시지 미리보기(전송 안 함) =="
+env PYTHONPATH="$ROOT" "$PY" "$ROOT/scripts/larry_symbol_telegram.py" ETHUSDT --dry-run >/tmp/larry-eth-preview.txt
+head -n 40 /tmp/larry-eth-preview.txt
+
+echo
+echo "== 타이머 상태 =="
+systemctl list-timers --all | grep -E 'larry-(eth|skhy|noentry)-.*timer' || true
+
+echo
+echo "✅ 설치 완료"
+echo "백업: $BACKUP"
+echo "실제 매매 엔진·ARM·포지션은 변경하지 않았습니다."
+echo "상태 확인: cd $ROOT && env PYTHONPATH=\"$ROOT\" $PY larry_watch_status.py"
+echo "미진입 알림 로그: tail -n 50 $ROOT/logs/larry-noentry-alert.log"
+echo "예약 알림 로그: tail -n 50 $ROOT/logs/larry-symbol-telegram.log"
