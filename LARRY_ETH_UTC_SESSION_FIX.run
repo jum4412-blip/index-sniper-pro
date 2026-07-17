@@ -1,0 +1,703 @@
+#!/usr/bin/env bash
+set -Eeuo pipefail
+
+ROOT="${1:-$HOME/index-sniper-pro}"
+PY="$ROOT/.venv/bin/python"
+CORE="$ROOT/index_sniper/larry_williams_core_v1.py"
+WATCH="$ROOT/larry_watch_status.py"
+CONFIG="$ROOT/config/larry_williams_core_v1.json"
+ENV_FILE="$ROOT/.env"
+ARM_FILE="$ROOT/data/LARRY_WILLIAMS_CORE_V1_ARMED.json"
+SESSION="larry-eth-skhy-live"
+TS="$(date -u +%Y%m%dT%H%M%SZ)"
+BACKUP="$ROOT/backups/larry-utc-session-fix-$TS"
+REPORT="$ROOT/logs/larry-utc-session-fix-$TS"
+
+mkdir -p "$BACKUP" "$REPORT"
+
+if [[ ! -x "$PY" ]]; then
+  echo "❌ Python 가상환경이 없습니다: $PY" >&2
+  exit 1
+fi
+for path in "$CORE" "$WATCH" "$CONFIG" "$ENV_FILE"; do
+  if [[ ! -f "$path" ]]; then
+    echo "❌ 필수 파일이 없습니다: $path" >&2
+    exit 1
+  fi
+done
+
+WAS_RUNNING=0
+if pgrep -u "$(id -u)" -f '[i]ndex_sniper[.]larry_williams_core_v1.*loop' >/dev/null; then
+  WAS_RUNNING=1
+fi
+
+cp -a "$CORE" "$BACKUP/larry_williams_core_v1.py"
+cp -a "$WATCH" "$BACKUP/larry_watch_status.py"
+cp -a "$ENV_FILE" "$BACKUP/.env"
+[[ -f "$ARM_FILE" ]] && cp -a "$ARM_FILE" "$BACKUP/LARRY_WILLIAMS_CORE_V1_ARMED.json"
+
+set_env_value() {
+  local key="$1" value="$2"
+  "$PY" - "$ENV_FILE" "$key" "$value" <<'PYENV'
+from pathlib import Path
+import os, sys, tempfile
+p = Path(sys.argv[1])
+key, value = sys.argv[2], sys.argv[3]
+lines = p.read_text(encoding="utf-8", errors="ignore").splitlines() if p.exists() else []
+out = []
+found = False
+for line in lines:
+    stripped = line.lstrip()
+    if stripped.startswith("#") or "=" not in line:
+        out.append(line)
+        continue
+    current = line.split("=", 1)[0].strip()
+    if current == key:
+        if not found:
+            out.append(f"{key}={value}")
+        found = True
+    else:
+        out.append(line)
+if not found:
+    out.append(f"{key}={value}")
+fd, tmp = tempfile.mkstemp(prefix=p.name + ".", dir=str(p.parent))
+with os.fdopen(fd, "w", encoding="utf-8") as fp:
+    fp.write("\n".join(out).rstrip("\n") + "\n")
+    fp.flush()
+    os.fsync(fp.fileno())
+os.chmod(tmp, 0o600)
+os.replace(tmp, p)
+PYENV
+}
+
+stop_larry() {
+  screen -S "$SESSION" -X quit >/dev/null 2>&1 || true
+  sleep 2
+  mapfile -t pids < <(
+    pgrep -u "$(id -u)" -f '[i]ndex_sniper[.]larry_williams_core_v1.*loop' || true
+  )
+  if ((${#pids[@]})); then
+    kill "${pids[@]}" 2>/dev/null || true
+    sleep 3
+  fi
+  mapfile -t pids < <(
+    pgrep -u "$(id -u)" -f '[i]ndex_sniper[.]larry_williams_core_v1.*loop' || true
+  )
+  if ((${#pids[@]})); then
+    kill -9 "${pids[@]}" 2>/dev/null || true
+    sleep 1
+  fi
+}
+
+start_larry() {
+  mkdir -p "$ROOT/scripts" "$ROOT/logs"
+  cat > "$ROOT/scripts/run_larry_eth_skhy_live.sh" <<EOF
+#!/usr/bin/env bash
+set -Eeuo pipefail
+cd "$ROOT"
+exec env \\
+  LARRY_V1_LIVE_ENABLED=true \\
+  PYTHONPATH="$ROOT" \\
+  "$PY" -m index_sniper.larry_williams_core_v1 \\
+  --config "$CONFIG" loop \\
+  >> "$ROOT/logs/larry-williams-core-v1.log" 2>&1
+EOF
+  chmod 700 "$ROOT/scripts/run_larry_eth_skhy_live.sh"
+  screen -dmS "$SESSION" "$ROOT/scripts/run_larry_eth_skhy_live.sh"
+}
+
+restore_old() {
+  echo
+  echo "⚠️ 수정 실패 — 설치 전 파일로 복구합니다."
+  stop_larry || true
+  cp -a "$BACKUP/larry_williams_core_v1.py" "$CORE" || true
+  cp -a "$BACKUP/larry_watch_status.py" "$WATCH" || true
+  cp -a "$BACKUP/.env" "$ENV_FILE" || true
+  if [[ -f "$BACKUP/LARRY_WILLIAMS_CORE_V1_ARMED.json" ]]; then
+    cp -a "$BACKUP/LARRY_WILLIAMS_CORE_V1_ARMED.json" "$ARM_FILE" || true
+  else
+    rm -f "$ARM_FILE" || true
+  fi
+  "$PY" -m py_compile "$CORE" "$WATCH" >/dev/null 2>&1 || true
+  if ((WAS_RUNNING)); then
+    start_larry || true
+  fi
+  sudo systemctl start larry-noentry-alert.timer >/dev/null 2>&1 || true
+  echo "백업: $BACKUP"
+  echo "진단: $REPORT"
+}
+
+on_error() {
+  local line="$1" code="$2"
+  trap - ERR
+  echo "❌ line $line, code $code" >&2
+  restore_old
+  exit "$code"
+}
+trap 'on_error "$LINENO" "$?"' ERR
+
+cd "$ROOT"
+
+echo "== 1. 현재 계정·프로세스 안전 점검 =="
+
+flat_check() {
+  local output="$1"
+  local ok=0
+  for attempt in 1 2 3; do
+    if env PYTHONPATH="$ROOT" "$PY" - "$CONFIG" >"$output" 2>"$output.err" <<'PYCHECK'
+import json, sys
+from index_sniper import larry_williams_core_v1 as lw
+
+settings = lw.load_settings(sys.argv[1])
+state = lw.load_state(settings)
+client = lw.make_client()
+positions = lw.nonzero_positions(client)
+orders = lw.fetch_open_orders(client)
+strategies = lw.fetch_strategy_orders_best_effort(client)
+armed, arm_reasons = lw.arm_valid(settings)
+
+report = {
+    "armed": armed,
+    "arm_reasons": arm_reasons,
+    "managed_position": state.get("managed_position"),
+    "pending_entry": state.get("pending_entry"),
+    "positions": len(positions),
+    "open_orders": len(orders),
+    "strategy_orders": len(strategies),
+}
+print(json.dumps(report, ensure_ascii=False, indent=2))
+
+if not armed:
+    raise SystemExit("Larry is not armed before patch")
+if state.get("managed_position") or state.get("pending_entry"):
+    raise SystemExit("Larry state is not flat")
+if positions or orders or strategies:
+    raise SystemExit("exchange account is not flat")
+PYCHECK
+    then
+      ok=1
+      break
+    fi
+    echo "점검 재시도 $attempt/3: $(tail -n 1 "$output.err" 2>/dev/null || true)"
+    sleep $((attempt * 4))
+  done
+  ((ok == 1))
+}
+
+flat_check "$REPORT/preflight.json"
+cat "$REPORT/preflight.json"
+
+echo
+echo "== 2. 신규 진입 잠금 =="
+sudo systemctl stop larry-noentry-alert.timer >/dev/null 2>&1 || true
+sudo systemctl stop larry-noentry-alert.service >/dev/null 2>&1 || true
+
+set_env_value LARRY_V1_LIVE_ENABLED false
+rm -f "$ARM_FILE"
+
+echo "신규 진입 잠금 후 한 사이클 대기..."
+sleep 38
+
+echo
+echo "== 3. 잠금 후 계정 재확인 =="
+env PYTHONPATH="$ROOT" "$PY" - "$CONFIG" >"$REPORT/post-lock-flat.json" <<'PYCHECK2'
+import json, sys
+from index_sniper import larry_williams_core_v1 as lw
+
+settings = lw.load_settings(sys.argv[1])
+state = lw.load_state(settings)
+client = lw.make_client()
+positions = lw.nonzero_positions(client)
+orders = lw.fetch_open_orders(client)
+strategies = lw.fetch_strategy_orders_best_effort(client)
+
+report = {
+    "managed_position": state.get("managed_position"),
+    "pending_entry": state.get("pending_entry"),
+    "positions": len(positions),
+    "open_orders": len(orders),
+    "strategy_orders": len(strategies),
+}
+print(json.dumps(report, ensure_ascii=False, indent=2))
+
+if state.get("managed_position") or state.get("pending_entry"):
+    raise SystemExit("state changed during patch lock")
+if positions or orders or strategies:
+    raise SystemExit("exchange account changed during patch lock")
+PYCHECK2
+cat "$REPORT/post-lock-flat.json"
+
+echo
+echo "== 4. Larry 프로세스 안전 정지 =="
+stop_larry
+if pgrep -u "$(id -u)" -f '[i]ndex_sniper[.]larry_williams_core_v1.*loop' >/dev/null; then
+  echo "Larry 프로세스를 종료하지 못했습니다." >&2
+  exit 31
+fi
+
+echo
+echo "== 5. ETH UTC 00:00 세션 수정 적용 =="
+
+env CORE_PATH="$CORE" WATCH_PATH="$WATCH" "$PY" - <<'PYPATCH'
+from pathlib import Path
+import os
+
+core_path = Path(os.environ["CORE_PATH"])
+watch_path = Path(os.environ["WATCH_PATH"])
+
+def replace_once(text: str, old: str, new: str, label: str) -> str:
+    count = text.count(old)
+    if count != 1:
+        raise RuntimeError(f"{label}: expected exactly one match, found {count}")
+    return text.replace(old, new, 1)
+
+core = core_path.read_text(encoding="utf-8")
+
+if 'VERSION = "1.2.1"' in core and "def crypto_utc_session_context(" in core:
+    print("core: already patched")
+else:
+    core = replace_once(core, 'VERSION = "1.2.0"', 'VERSION = "1.2.1"', "version")
+
+    marker = '''def crypto_candidate(
+    settings: Settings,
+'''
+    helper = '''def group_crypto_utc_sessions(
+    bars: Sequence[Bar], *, completed_only: bool = True
+) -> dict[date, list[Bar]]:
+    """Group 15-minute bars by the UTC calendar day.
+
+    Bitget futures 1D candles may use an exchange-specific boundary.  Larry
+    Core defines the crypto session at 00:00 UTC, so the engine synthesizes
+    that session from 15-minute bars.
+    """
+    source = completed_bars(bars, "15m") if completed_only else list(bars)
+    sessions: dict[date, list[Bar]] = {}
+    for bar in source:
+        sessions.setdefault(bar.dt.astimezone(UTC).date(), []).append(bar)
+    for rows in sessions.values():
+        rows.sort(key=lambda b: b.ts)
+    return sessions
+
+
+def aggregate_session_bar(rows: Sequence[Bar]) -> Bar:
+    if not rows:
+        raise ValueError("cannot aggregate an empty UTC session")
+    ordered = sorted(rows, key=lambda b: b.ts)
+    return Bar(
+        ts=ordered[0].ts,
+        open=ordered[0].open,
+        high=max(b.high for b in ordered),
+        low=min(b.low for b in ordered),
+        close=ordered[-1].close,
+        volume=sum(b.volume for b in ordered),
+        turnover=sum(b.turnover for b in ordered),
+    )
+
+
+def crypto_utc_session_context(
+    bars15: Sequence[Bar], at: datetime | None = None
+) -> dict[str, Any] | None:
+    """Build the current and prior 00:00-UTC sessions from 15-minute bars."""
+    now = (at or now_utc()).astimezone(UTC)
+    completed15 = completed_bars(bars15, "15m", at=now)
+    if len(completed15) < 40:
+        return None
+
+    completed_sessions = group_crypto_utc_sessions(
+        completed15, completed_only=False
+    )
+    all_sessions = group_crypto_utc_sessions(
+        bars15, completed_only=False
+    )
+    today = now.date()
+    today_rows = all_sessions.get(today) or []
+    previous_dates = sorted(
+        d for d, rows in completed_sessions.items()
+        if d < today and rows
+    )
+    if not today_rows or len(previous_dates) < 5:
+        return None
+
+    daily_bars = [
+        aggregate_session_bar(completed_sessions[d])
+        for d in previous_dates
+    ]
+    prev = daily_bars[-1]
+    recent_ranges = [
+        b.high - b.low for b in daily_bars[-4:-1]
+    ] or [prev.high - prev.low]
+    range_ref = median(recent_ranges, prev.high - prev.low)
+    if range_ref <= 0:
+        return None
+
+    return {
+        "source": "UTC_15M_AGGREGATED",
+        "today": str(today),
+        "session_open": sorted(
+            today_rows, key=lambda b: b.ts
+        )[0].open,
+        "prev_date": str(previous_dates[-1]),
+        "prev": prev,
+        "daily_bars": daily_bars,
+        "range_ref": range_ref,
+    }
+
+
+''' + marker
+    core = replace_once(core, marker, helper, "UTC helper insertion")
+
+    old = '''    c15 = completed_bars(bars15, "15m")
+    c1d = completed_bars(bars1d, "1D")
+    if len(c15) < 40 or len(c1d) < 5:
+        return None
+
+    # Current UTC session open comes from the latest 1D candle, including the live candle.
+    live_daily = bars1d[-1]
+    today_utc = now_utc().date()
+    if live_daily.dt.date() != today_utc:
+        return None
+    session_open = live_daily.open
+    prev = c1d[-1]
+    recent_ranges = [b.high - b.low for b in c1d[-4:-1]] or [prev.high - prev.low]
+    range_ref = median(recent_ranges, prev.high - prev.low)
+    if range_ref <= 0:
+        return None
+'''
+    new = '''    c15 = completed_bars(bars15, "15m")
+    context = crypto_utc_session_context(bars15)
+    if len(c15) < 40 or context is None:
+        return None
+
+    session_open = float(context["session_open"])
+    prev = context["prev"]
+    range_ref = float(context["range_ref"])
+    prev_date = str(context["prev_date"])
+'''
+    core = replace_once(core, old, new, "crypto candidate session source")
+
+    core = core.replace(
+        'special_diag={"session_open": session_open, "prev_low": prev.low, "sweep_low": sweep_low, "k": k}',
+        'special_diag={"session_source": "UTC_15M_AGGREGATED", "session_open": session_open, "prev_date": prev_date, "prev_low": prev.low, "sweep_low": sweep_low, "k": k}',
+    )
+    core = core.replace(
+        'special_diag={"session_open": session_open, "prev_high": prev.high, "sweep_high": sweep_high, "k": k}',
+        'special_diag={"session_source": "UTC_15M_AGGREGATED", "session_open": session_open, "prev_date": prev_date, "prev_high": prev.high, "sweep_high": sweep_high, "k": k}',
+    )
+    core = core.replace(
+        'special_diag={"session_open": session_open, "range_ref": range_ref, "compression": compression, "k": k}',
+        'special_diag={"session_source": "UTC_15M_AGGREGATED", "session_open": session_open, "prev_date": prev_date, "range_ref": range_ref, "compression": compression, "k": k}',
+    )
+
+    old = '''    ticker = fetch_ticker(client, symbol)
+    bars15 = fetch_candles(client, symbol, "15m", int(cfg.get("bars_15m", 420)))
+    bars1h = fetch_candles(client, symbol, "1H", int(cfg.get("bars_1h", 220)))
+'''
+    new = '''    ticker = fetch_ticker(client, symbol)
+    bars15_count = int(cfg.get("bars_15m", 420))
+    if profile != "stock":
+        # Eight UTC days fit in one 1,000-candle API page.
+        bars15_count = max(bars15_count, 800)
+    bars15 = fetch_candles(client, symbol, "15m", bars15_count)
+    bars1h = fetch_candles(client, symbol, "1H", int(cfg.get("bars_1h", 220)))
+'''
+    core = replace_once(core, old, new, "crypto 15m history")
+
+    old = '''    else:
+        bars1d = fetch_candles(client, symbol, "1D", int(cfg.get("bars_1d", 80)))
+        candidate = crypto_candidate(settings, symbol, cfg, instrument, ticker, bars15, bars1h, bars1d)
+'''
+    new = '''    else:
+        candidate = crypto_candidate(
+            settings, symbol, cfg, instrument, ticker,
+            bars15, bars1h, ()
+        )
+        diag["crypto_session_source"] = "UTC_15M_AGGREGATED"
+        context = crypto_utc_session_context(bars15)
+        if context is not None:
+            diag["crypto_session"] = {
+                "today": context["today"],
+                "session_open": context["session_open"],
+                "prev_date": context["prev_date"],
+                "prev_high": context["prev"].high,
+                "prev_low": context["prev"].low,
+                "range_ref": context["range_ref"],
+            }
+'''
+    core = replace_once(core, old, new, "remove native 1D dependency")
+
+    if "live_daily.dt.date() != today_utc" in core:
+        raise RuntimeError("old native-1D date gate remains")
+    core_path.write_text(core, encoding="utf-8")
+    print("core: patched to v1.2.1")
+
+watch = watch_path.read_text(encoding="utf-8")
+
+if (
+    "context = lw.crypto_utc_session_context(bars15)" in watch
+    and "현재 UTC 일봉 데이터 불일치" not in watch
+):
+    print("watch: already patched")
+else:
+    old = '''    bars15 = lw.fetch_candles(client, symbol, "15m", int(cfg.get("bars_15m", 420)))
+    bars1h = lw.fetch_candles(client, symbol, "1H", int(cfg.get("bars_1h", 220)))
+    bars1d = lw.fetch_candles(client, symbol, "1D", int(cfg.get("bars_1d", 80)))
+    ind = indicator_snapshot(bars15, bars1h)
+    c15 = lw.completed_bars(bars15, "15m")
+    c1d = lw.completed_bars(bars1d, "1D")
+'''
+    new = '''    bars15 = lw.fetch_candles(
+        client, symbol, "15m",
+        max(int(cfg.get("bars_15m", 420)), 800)
+    )
+    bars1h = lw.fetch_candles(
+        client, symbol, "1H",
+        int(cfg.get("bars_1h", 220))
+    )
+    ind = indicator_snapshot(bars15, bars1h)
+    c15 = lw.completed_bars(bars15, "15m")
+    context = lw.crypto_utc_session_context(bars15)
+'''
+    watch = replace_once(watch, old, new, "watch crypto fetch")
+
+    old = '''    if len(c15) < 40 or len(c1d) < 5 or not bars1d:
+        out["data_error"] = "DATA_WARMUP"
+        return out
+    live_daily = bars1d[-1]
+    if live_daily.dt.date() != lw.now_utc().date():
+        out["data_error"] = "현재 UTC 일봉 데이터 불일치"
+        return out
+    prev = c1d[-1]
+    ranges = [b.high - b.low for b in c1d[-4:-1]] or [prev.high - prev.low]
+    range_ref = lw.median(ranges, prev.high - prev.low)
+    if range_ref <= 0:
+        out["data_error"] = "기준 변동폭 0"
+        return out
+'''
+    new = '''    if len(c15) < 40 or context is None:
+        out["data_error"] = "UTC 15분봉 세션 데이터 부족"
+        return out
+    prev = context["prev"]
+    range_ref = float(context["range_ref"])
+    session_open = float(context["session_open"])
+    prev_date = str(context["prev_date"])
+'''
+    watch = replace_once(watch, old, new, "watch UTC context")
+
+    watch = replace_once(
+        watch,
+        '''long_trigger = live_daily.open + k * range_ref
+    short_trigger = live_daily.open - k * range_ref''',
+        '''long_trigger = session_open + k * range_ref
+    short_trigger = session_open - k * range_ref''',
+        "watch trigger source",
+    )
+
+    watch = replace_once(
+        watch,
+        "actual = lw.crypto_candidate(settings, symbol, cfg, instrument, ticker, bars15, bars1h, bars1d)",
+        "actual = lw.crypto_candidate(settings, symbol, cfg, instrument, ticker, bars15, bars1h, ())",
+        "watch engine comparison",
+    )
+
+    watch = replace_once(
+        watch,
+        '''"session_open": live_daily.open,''',
+        '''"session_source": "UTC_15M_AGGREGATED",
+        "session_open": session_open,
+        "prev_date": prev_date,''',
+        "watch report metadata",
+    )
+
+    if "현재 UTC 일봉 데이터 불일치" in watch:
+        raise RuntimeError("old watch data error remains")
+    watch_path.write_text(watch, encoding="utf-8")
+    print("watch: patched")
+PYPATCH
+
+echo
+echo "== 6. 문법·내부 테스트 =="
+env PYTHONPATH="$ROOT" "$PY" -m py_compile \
+  "$CORE" \
+  "$WATCH" \
+  "$ROOT/scripts/larry_noentry_alert.py" \
+  "$ROOT/scripts/larry_symbol_telegram.py"
+
+env PYTHONPATH="$ROOT" "$PY" \
+  -m index_sniper.larry_williams_core_v1 \
+  --config "$CONFIG" self-test \
+  | tee "$REPORT/self-test.json"
+
+env PYTHONPATH="$ROOT" "$PY" - <<'PYUNIT'
+from datetime import datetime, timedelta, timezone
+from index_sniper import larry_williams_core_v1 as lw
+
+start = datetime(2026, 7, 8, tzinfo=timezone.utc)
+bars = []
+for index in range(8 * 96 + 57):
+    dt = start + timedelta(minutes=15 * index)
+    price = 1800.0 + index * 0.01
+    bars.append(
+        lw.Bar(
+            ts=int(dt.timestamp() * 1000),
+            open=price,
+            high=price + 2.0,
+            low=price - 2.0,
+            close=price + 0.5,
+            volume=100.0,
+            turnover=1000.0,
+        )
+    )
+
+at = datetime(2026, 7, 16, 14, 0, tzinfo=timezone.utc)
+context = lw.crypto_utc_session_context(bars, at)
+assert context is not None
+assert context["today"] == "2026-07-16"
+assert context["prev_date"] == "2026-07-15"
+assert context["session_open"] == bars[8 * 96].open
+assert context["source"] == "UTC_15M_AGGREGATED"
+print("UTC 00:00 session synthetic test: OK")
+PYUNIT
+
+echo
+echo "== 7. 실제 API 읽기 전용 검증 =="
+
+observe_ok=0
+for attempt in 1 2 3; do
+  if env PYTHONPATH="$ROOT" "$PY" \
+      -m index_sniper.larry_williams_core_v1 \
+      --config "$CONFIG" once --observe \
+      >"$REPORT/observe-once.json" 2>"$REPORT/observe-once.err"; then
+    observe_ok=1
+    break
+  fi
+  echo "observe 재시도 $attempt/3"
+  sleep $((attempt * 5))
+done
+((observe_ok == 1))
+
+"$PY" - "$REPORT/observe-once.json" <<'PYOBS'
+import json, sys
+report = json.load(open(sys.argv[1], encoding="utf-8"))
+eth = next(
+    (row for row in report.get("diagnostics", [])
+     if row.get("symbol") == "ETHUSDT"),
+    None,
+)
+if not isinstance(eth, dict):
+    raise SystemExit("ETH diagnostics missing")
+if eth.get("crypto_session_source") != "UTC_15M_AGGREGATED":
+    raise SystemExit(f"wrong session source: {eth}")
+session = eth.get("crypto_session")
+if not isinstance(session, dict):
+    raise SystemExit(f"UTC session context missing: {eth}")
+print(json.dumps({
+    "mode": report.get("mode"),
+    "ETH_price": eth.get("price"),
+    "session_source": eth.get("crypto_session_source"),
+    "session": session,
+    "candidate": eth.get("candidate"),
+}, ensure_ascii=False, indent=2))
+PYOBS
+
+watch_ok=0
+for attempt in 1 2 3; do
+  if env PYTHONPATH="$ROOT" "$PY" "$WATCH" --symbol ETHUSDT \
+      >"$REPORT/eth-watch.txt" 2>"$REPORT/eth-watch.err"; then
+    watch_ok=1
+    break
+  fi
+  echo "watch 재시도 $attempt/3"
+  sleep $((attempt * 5))
+done
+((watch_ok == 1))
+
+if grep -q '현재 UTC 일봉 데이터 불일치' "$REPORT/eth-watch.txt"; then
+  echo "기존 일봉 오류 문구가 남아 있습니다." >&2
+  exit 42
+fi
+cat "$REPORT/eth-watch.txt"
+
+echo
+echo "== 8. ARM 복원 및 LIVE 프로세스 재시작 =="
+
+if [[ ! -f "$BACKUP/LARRY_WILLIAMS_CORE_V1_ARMED.json" ]]; then
+  echo "기존 ARM 백업이 없어 자동 LIVE 복원을 중단합니다." >&2
+  exit 43
+fi
+
+cp -a "$BACKUP/LARRY_WILLIAMS_CORE_V1_ARMED.json" "$ARM_FILE"
+set_env_value LARRY_V1_LIVE_ENABLED true
+
+env PYTHONPATH="$ROOT" "$PY" \
+  -m index_sniper.larry_williams_core_v1 \
+  --config "$CONFIG" status \
+  | tee "$REPORT/prestart-status.json"
+
+"$PY" - "$REPORT/prestart-status.json" <<'PYSTATUS'
+import json, sys
+report = json.load(open(sys.argv[1], encoding="utf-8"))
+if not report.get("armed"):
+    raise SystemExit(
+        "ARM restore failed: " + str(report.get("arm_reasons"))
+    )
+print("ARM restore: OK")
+PYSTATUS
+
+start_larry
+sleep 8
+
+PID="$(
+  pgrep -u "$(id -u)" \
+    -f '[i]ndex_sniper[.]larry_williams_core_v1.*loop' \
+    | head -n 1
+)"
+if [[ -z "$PID" ]]; then
+  echo "Larry 프로세스가 재시작되지 않았습니다." >&2
+  exit 44
+fi
+
+env PYTHONPATH="$ROOT" "$PY" \
+  -m index_sniper.larry_williams_core_v1 \
+  --config "$CONFIG" status \
+  | tee "$REPORT/final-status.json"
+
+"$PY" - "$REPORT/final-status.json" "$ROOT/data/larry_williams_core_v1_state.json" <<'PYFINAL'
+import json, sys
+status = json.load(open(sys.argv[1], encoding="utf-8"))
+state = json.load(open(sys.argv[2], encoding="utf-8"))
+if not status.get("armed"):
+    raise SystemExit(
+        "final ARM invalid: " + str(status.get("arm_reasons"))
+    )
+if state.get("last_error"):
+    raise SystemExit(
+        "Larry state contains an error: " + str(state.get("last_error"))
+    )
+print(json.dumps({
+    "armed": status.get("armed"),
+    "arm_reasons": status.get("arm_reasons"),
+    "last_cycle_ts": state.get("last_cycle_ts"),
+    "last_error": state.get("last_error"),
+}, ensure_ascii=False, indent=2))
+PYFINAL
+
+sudo systemctl start larry-noentry-alert.timer >/dev/null 2>&1 || true
+sudo systemctl start larry-eth-telegram.timer >/dev/null 2>&1 || true
+sudo systemctl start larry-skhy-telegram.timer >/dev/null 2>&1 || true
+
+trap - ERR
+
+echo
+echo "============================================================"
+echo "✅ Larry Williams Core v1.2.1 UTC 세션 수정 완료"
+echo "✅ ETH 세션: Bitget 1D가 아닌 15분봉 합성 00:00 UTC"
+echo "✅ ETH 점수·미진입 알림도 같은 세션 기준으로 수정"
+echo "✅ SKHY 전략·시간창은 변경하지 않음"
+echo "✅ Larry LIVE ARM 유지 / v6.3에는 손대지 않음"
+echo "PID: $PID"
+echo "백업: $BACKUP"
+echo "검증 자료: $REPORT"
+echo "============================================================"
+echo
+echo "현재 ETH 진단:"
+cat "$REPORT/eth-watch.txt"
