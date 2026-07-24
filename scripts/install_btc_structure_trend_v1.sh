@@ -29,6 +29,9 @@ FILES=(
   "disarm_btc_structure_trend_v1.sh"
   "start_btc_structure_trend_v1.sh"
   "start_btc_structure_trend_v1_observe.sh"
+  "start_btc_structure_trend_v1_shadow.sh"
+  "status_btc_structure_trend_v1_shadow.sh"
+  "reset_btc_structure_trend_v1_shadow.sh"
   "stop_btc_structure_trend_v1.sh"
   "status_btc_structure_trend_v1.sh"
 )
@@ -43,6 +46,7 @@ done
 
 screen -S btc-structure-trend-live -X quit >/dev/null 2>&1 || true
 screen -S btc-structure-trend-observe -X quit >/dev/null 2>&1 || true
+screen -S btc-structure-trend-shadow -X quit >/dev/null 2>&1 || true
 pkill -f '[i]ndex_sniper[.]btc_structure_trend_v1.*loop' 2>/dev/null || true
 
 mkdir -p "$ROOT/index_sniper" "$ROOT/config" "$ROOT/data" "$ROOT/logs" "$ROOT/research" "$ROOT/local_backups"
@@ -92,24 +96,27 @@ export PYTHONPATH="$ROOT${PYTHONPATH:+:$PYTHONPATH}"
 cat <<EOF
 
 ============================================================
-✅ BTC Structure Trend v1 설치 완료 — DISARMED
+✅ BTC Structure Trend v1.2 설치 완료 — DISARMED
 ============================================================
 계약: BTCUSDT / cross(crossed) 5x / 수량기준 증거금환산 50%
 명목 포지션: 계좌자산의 약 2.5배
 백업: $BACKUP
 
-1) API·전략 읽기 점검
+1) 먼저 쉐도우 모드 — Bitget API 키 없이 공개 시세로 가상매매
+   bash start_btc_structure_trend_v1_shadow.sh 10000
+   bash status_btc_structure_trend_v1_shadow.sh
+
+   단순 신호만 보려면:
+   bash start_btc_structure_trend_v1_observe.sh
+
+2) 실매매를 검토할 때만 인증 API·계정 점검
    bash doctor_btc_structure_trend_v1.sh
 
-2) 전용 계정을 cross + hedge + BTC 5x로 설정
+3) 전용 계정을 cross + hedge + BTC 5x로 설정
    BTC_STRUCTURE_CONFIRM_CROSS_ACCOUNT_MODE=YES \\
      bash setup_btc_structure_trend_v1_account.sh
 
-3) 먼저 관찰 모드
-   bash start_btc_structure_trend_v1_observe.sh
-   bash status_btc_structure_trend_v1.sh
-
-4) 실매매 ARM
+4) 쉐도우 결과 검토 후 실매매 ARM
    bash arm_btc_structure_trend_v1.sh \\
      START_BTC_STRUCTURE_TREND_LIVE_5X_CROSS_50 \\
      I_UNDERSTAND_CROSS_2_5X_NOTIONAL_CAN_USE_FULL_COLLATERAL \\

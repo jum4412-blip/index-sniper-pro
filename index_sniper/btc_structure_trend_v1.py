@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-"""BTC Structure Trend v1.0 for Bitget UTA.
+"""BTC Structure Trend v1.2 for Bitget UTA.
 
 Strategy contract
 -----------------
@@ -22,6 +22,9 @@ optional Telegram transport already present in index-sniper-pro.
 
 Real orders are impossible unless all arming gates pass.  The exchange is the
 source of truth; unknown positions/orders block new entries.
+
+SHADOW and OBSERVE use a separate public-only HTTP client that rejects every
+authenticated request and POST operation.  They never load Bitget API keys.
 """
 
 import argparse
@@ -33,6 +36,8 @@ import os
 import statistics
 import time
 import traceback
+import urllib.parse
+import urllib.request
 import uuid
 from dataclasses import asdict, dataclass
 from datetime import datetime, timedelta, timezone
@@ -57,7 +62,7 @@ except Exception:  # pragma: no cover
     TelegramBot = None  # type: ignore
 
 
-VERSION = "1.1.0"
+VERSION = "1.2.0"
 CATEGORY = "USDT-FUTURES"
 SYMBOL = "BTCUSDT"
 UTC = timezone.utc
@@ -68,6 +73,11 @@ DEFAULT_ARM = ROOT / "data/BTC_STRUCTURE_TREND_V1_ARMED.json"
 DEFAULT_LOG = ROOT / "logs/btc-structure-trend-v1.log"
 DEFAULT_TRADES = ROOT / "research/btc_structure_trend_v1_trades.csv"
 DEFAULT_EVENTS = ROOT / "research/btc_structure_trend_v1_events.jsonl"
+DEFAULT_SHADOW_STATE = ROOT / "data/btc_structure_trend_v1_shadow_state.json"
+DEFAULT_SHADOW_LOG = ROOT / "logs/btc-structure-trend-v1-shadow.log"
+DEFAULT_SHADOW_TRADES = ROOT / "research/btc_structure_trend_v1_shadow_trades.csv"
+DEFAULT_SHADOW_EVENTS = ROOT / "research/btc_structure_trend_v1_shadow_events.jsonl"
+DEFAULT_SHADOW_EQUITY = ROOT / "research/btc_structure_trend_v1_shadow_equity.csv"
 
 ARM_PHRASE = "START_BTC_STRUCTURE_TREND_LIVE_5X_CROSS_50"
 RISK_PHRASE = "I_UNDERSTAND_CROSS_2_5X_NOTIONAL_CAN_USE_FULL_COLLATERAL"
@@ -215,6 +225,9 @@ class ManagedPosition:
     last_managed_bar_ts: int = 0
     score: float = 0.0
     setup: str = ""
+    entry_fee: float = 0.0
+    entry_notional: float = 0.0
+    entry_equity: float = 0.0
 
 
 @dataclass(frozen=True)
@@ -278,6 +291,17 @@ class Settings:
     events_path: Path
     notify: bool
     heartbeat_minutes: int
+
+    shadow_initial_equity: float
+    shadow_entry_slippage_bps: float
+    shadow_exit_slippage_bps: float
+    shadow_taker_fee_rate: float
+    shadow_state_path: Path
+    shadow_log_path: Path
+    shadow_trades_path: Path
+    shadow_events_path: Path
+    shadow_equity_path: Path
+    shadow_equity_sample_seconds: int
 
 
 # ---------------------------------------------------------------------------
@@ -396,6 +420,17 @@ def log(message: str, settings: Settings | None = None) -> None:
         pass
 
 
+def shadow_log(message: str, settings: Settings) -> None:
+    line = f"[{iso()}] {message}"
+    print(line, flush=True)
+    try:
+        settings.shadow_log_path.parent.mkdir(parents=True, exist_ok=True)
+        with settings.shadow_log_path.open("a", encoding="utf-8") as fp:
+            fp.write(line + "\n")
+    except Exception:
+        pass
+
+
 def day_key(dt: datetime | None = None) -> str:
     return (dt or now_utc()).astimezone(UTC).strftime("%Y-%m-%d")
 
@@ -490,6 +525,16 @@ def load_settings(config_path: str | Path | None = None) -> Settings:
         events_path=p("events_path", DEFAULT_EVENTS),
         notify=bool(cfg.get("notify", True)),
         heartbeat_minutes=int(cfg.get("heartbeat_minutes", 60)),
+        shadow_initial_equity=float(cfg.get("shadow_initial_equity", 10_000.0)),
+        shadow_entry_slippage_bps=float(cfg.get("shadow_entry_slippage_bps", 2.0)),
+        shadow_exit_slippage_bps=float(cfg.get("shadow_exit_slippage_bps", 2.0)),
+        shadow_taker_fee_rate=float(cfg.get("shadow_taker_fee_rate", 0.0006)),
+        shadow_state_path=p("shadow_state_path", DEFAULT_SHADOW_STATE),
+        shadow_log_path=p("shadow_log_path", DEFAULT_SHADOW_LOG),
+        shadow_trades_path=p("shadow_trades_path", DEFAULT_SHADOW_TRADES),
+        shadow_events_path=p("shadow_events_path", DEFAULT_SHADOW_EVENTS),
+        shadow_equity_path=p("shadow_equity_path", DEFAULT_SHADOW_EQUITY),
+        shadow_equity_sample_seconds=max(10, int(cfg.get("shadow_equity_sample_seconds", 60))),
     )
     errors = validate_settings_contract(s)
     if errors:
@@ -521,6 +566,14 @@ def validate_settings_contract(s: Settings) -> list[str]:
         errors.append("profile_bins outside 16-200")
     if not (0.5 <= s.profile_high_volume_quantile < 0.95):
         errors.append("profile_high_volume_quantile outside 0.5-0.95")
+    if s.shadow_initial_equity <= 0:
+        errors.append("shadow_initial_equity must be positive")
+    if not (0.0 <= s.shadow_entry_slippage_bps <= 100.0):
+        errors.append("shadow_entry_slippage_bps outside 0-100")
+    if not (0.0 <= s.shadow_exit_slippage_bps <= 100.0):
+        errors.append("shadow_exit_slippage_bps outside 0-100")
+    if not (0.0 <= s.shadow_taker_fee_rate <= 0.01):
+        errors.append("shadow_taker_fee_rate outside 0-1%")
     return errors
 
 
@@ -561,6 +614,83 @@ def load_state(settings: Settings) -> dict[str, Any]:
 
 def save_state(settings: Settings, state: dict[str, Any]) -> None:
     atomic_write_json(settings.state_path, state)
+
+
+def default_shadow_state(initial_equity: float) -> dict[str, Any]:
+    initial = float(initial_equity)
+    return {
+        "version": VERSION,
+        "mode": "SHADOW",
+        "initial_equity": initial,
+        "shadow_balance": initial,
+        "shadow_equity": initial,
+        "shadow_unrealized_pnl": 0.0,
+        "shadow_estimated_exit_fee": 0.0,
+        "shadow_realized_net_pnl": 0.0,
+        "shadow_total_fees": 0.0,
+        "managed_position": None,
+        "last_signal_bar_ts": 0,
+        "last_cycle_ts": None,
+        "last_error": None,
+        "last_diagnostics": {},
+        "day": day_key(),
+        "day_start_equity": initial,
+        "entries_today": 0,
+        "week": week_key(),
+        "week_start_equity": initial,
+        "peak_equity": initial,
+        "consecutive_losses": 0,
+        "cooldown_until": None,
+        "last_heartbeat_ts": None,
+        "last_equity_sample_ts": None,
+        "closed_trades": 0,
+        "winning_trades": 0,
+        "losing_trades": 0,
+        "shadow_gross_profit": 0.0,
+        "shadow_gross_loss_abs": 0.0,
+        "shadow_sum_net_r": 0.0,
+        "shadow_max_drawdown_pct": 0.0,
+    }
+
+
+def load_shadow_state(settings: Settings, initial_equity: float | None = None) -> dict[str, Any]:
+    seed = float(initial_equity if initial_equity is not None else settings.shadow_initial_equity)
+    raw = read_json(settings.shadow_state_path, None)
+    if not isinstance(raw, dict) or str(raw.get("mode", "")).upper() != "SHADOW":
+        return default_shadow_state(seed)
+    state = default_shadow_state(safe_float(raw.get("initial_equity"), seed) or seed)
+    state.update(raw)
+    state["version"] = VERSION
+    state["mode"] = "SHADOW"
+    return state
+
+
+def save_shadow_state(settings: Settings, state: dict[str, Any]) -> None:
+    state["version"] = VERSION
+    state["mode"] = "SHADOW"
+    atomic_write_json(settings.shadow_state_path, state)
+
+
+def reset_shadow_files(settings: Settings, initial_equity: float) -> dict[str, Any]:
+    if initial_equity <= 0:
+        raise RuntimeError("shadow seed must be positive")
+    stamp = now_utc().strftime("%Y%m%dT%H%M%SZ") + "_" + uuid.uuid4().hex[:6]
+    archived: list[str] = []
+    for path in (
+        settings.shadow_state_path,
+        settings.shadow_trades_path,
+        settings.shadow_events_path,
+        settings.shadow_equity_path,
+        settings.shadow_log_path,
+    ):
+        if not path.exists():
+            continue
+        backup = path.with_name(f"{path.name}.{stamp}.bak")
+        os.replace(path, backup)
+        archived.append(str(backup))
+    state = default_shadow_state(initial_equity)
+    save_shadow_state(settings, state)
+    return {"ok": True, "seed": initial_equity, "state_path": str(settings.shadow_state_path), "archived": archived}
 
 
 def make_bot() -> Any | None:
@@ -650,6 +780,44 @@ def make_client() -> Any:
     if not api_key or not secret or not passphrase:
         raise RuntimeError("missing BITGET_API_KEY / BITGET_SECRET_KEY / BITGET_PASSPHRASE")
     return BitgetUTAClient(api_key=api_key, secret_key=secret, passphrase=passphrase)
+
+
+class PublicBitgetClient:
+    """Strict read-only HTTP client used by OBSERVE and SHADOW modes.
+
+    It deliberately refuses authenticated calls, non-market endpoints and all
+    POST requests.  This makes a shadow process incapable of placing or
+    cancelling an order even when real Bitget API keys exist in ``.env``.
+    """
+
+    def __init__(self, base_url: str | None = None, timeout_seconds: float = 12.0) -> None:
+        self.base_url = (base_url or os.getenv("BITGET_PUBLIC_API_BASE", "https://api.bitget.com")).rstrip("/")
+        self.timeout_seconds = timeout_seconds
+
+    def get(self, path: str, params: dict[str, Any] | None = None, auth: bool = False) -> dict[str, Any]:
+        if auth:
+            raise RuntimeError("public shadow client refuses authenticated requests")
+        if not path.startswith("/api/v3/market/"):
+            raise RuntimeError(f"public shadow client refuses non-market endpoint: {path}")
+        query = urllib.parse.urlencode(params or {})
+        url = f"{self.base_url}{path}" + (f"?{query}" if query else "")
+        request = urllib.request.Request(
+            url,
+            headers={"Accept": "application/json", "User-Agent": f"btc-structure-shadow/{VERSION}"},
+            method="GET",
+        )
+        with urllib.request.urlopen(request, timeout=self.timeout_seconds) as response:
+            payload = json.loads(response.read().decode("utf-8"))
+        if not isinstance(payload, dict):
+            raise RuntimeError(f"invalid public API response for {path}")
+        return payload
+
+    def post(self, path: str, payload: dict[str, Any]) -> dict[str, Any]:
+        raise RuntimeError(f"public shadow client refuses POST: {path}")
+
+
+def make_public_client() -> PublicBitgetClient:
+    return PublicBitgetClient()
 
 
 def api_success(resp: Any) -> bool:
@@ -1468,6 +1636,254 @@ def unique_client_oid(prefix: str) -> str:
     return f"{prefix}_{stamp}_{token}"[:32]
 
 
+def shadow_fee_rate(settings: Settings, instrument: Instrument) -> float:
+    configured = settings.shadow_taker_fee_rate
+    return configured if configured > 0 else max(0.0, instrument.taker_fee)
+
+
+def shadow_fill_price(ticker: Ticker, side: str, *, opening: bool, slippage_bps: float) -> float:
+    slip = max(0.0, slippage_bps) / 10_000.0
+    if opening:
+        return ticker.ask * (1.0 + slip) if side == "LONG" else ticker.bid * (1.0 - slip)
+    return ticker.bid * (1.0 - slip) if side == "LONG" else ticker.ask * (1.0 + slip)
+
+
+def position_gross_pnl(managed: ManagedPosition, exit_price: float) -> float:
+    direction = 1.0 if managed.side == "LONG" else -1.0
+    return direction * managed.qty * (exit_price - managed.entry_price)
+
+
+def update_shadow_mark_to_market(
+    settings: Settings,
+    state: dict[str, Any],
+    managed: ManagedPosition | None,
+    ticker: Ticker,
+    instrument: Instrument,
+) -> dict[str, float]:
+    balance = safe_float(state.get("shadow_balance"), safe_float(state.get("initial_equity")))
+    if managed is None:
+        state["shadow_unrealized_pnl"] = 0.0
+        state["shadow_estimated_exit_fee"] = 0.0
+        state["shadow_equity"] = balance
+        return {"balance": balance, "equity": balance, "unrealized_pnl": 0.0, "estimated_exit_fee": 0.0}
+    gross = position_gross_pnl(managed, ticker.mark)
+    fee_rate = shadow_fee_rate(settings, instrument)
+    estimated_exit_fee = managed.qty * ticker.mark * fee_rate
+    equity = balance + gross - estimated_exit_fee
+    state["shadow_unrealized_pnl"] = gross
+    state["shadow_estimated_exit_fee"] = estimated_exit_fee
+    state["shadow_equity"] = equity
+    return {
+        "balance": balance,
+        "equity": equity,
+        "unrealized_pnl": gross,
+        "estimated_exit_fee": estimated_exit_fee,
+    }
+
+
+def open_shadow_position(
+    settings: Settings,
+    state: dict[str, Any],
+    candidate: Candidate,
+    instrument: Instrument,
+    ticker: Ticker,
+    equity: float,
+) -> dict[str, Any]:
+    fill_price = shadow_fill_price(
+        ticker,
+        candidate.side,
+        opening=True,
+        slippage_bps=settings.shadow_entry_slippage_bps,
+    )
+    qty_dec = calculate_qty(equity, fill_price, settings, instrument)
+    if qty_dec <= 0:
+        raise RuntimeError("shadow quantity is below exchange minimum")
+    qty = float(qty_dec)
+    initial_risk = (
+        fill_price - candidate.soft_stop
+        if candidate.side == "LONG"
+        else candidate.soft_stop - fill_price
+    )
+    if initial_risk <= 0:
+        raise RuntimeError("shadow fill is already beyond the structural soft stop")
+    notional = qty * fill_price
+    fee_rate = shadow_fee_rate(settings, instrument)
+    entry_fee = notional * fee_rate
+    balance_before = safe_float(state.get("shadow_balance"), equity)
+    balance_after = balance_before - entry_fee
+    managed = ManagedPosition(
+        symbol=settings.symbol,
+        side=candidate.side,
+        qty=qty,
+        entry_price=fill_price,
+        entry_ts=iso(),
+        entry_order_id=unique_client_oid("shadow_open"),
+        entry_client_oid=unique_client_oid("shadow_oid"),
+        hold_mode=settings.hold_mode,
+        initial_soft_stop=candidate.soft_stop,
+        soft_stop=candidate.soft_stop,
+        hard_stop=candidate.hard_stop,
+        initial_risk=initial_risk,
+        zone_low=candidate.zone_low,
+        zone_high=candidate.zone_high,
+        best_price=fill_price,
+        trail_active=False,
+        last_managed_bar_ts=candidate.signal_bar_ts,
+        score=candidate.score,
+        setup=candidate.setup,
+        entry_fee=entry_fee,
+        entry_notional=notional,
+        entry_equity=equity,
+    )
+    state["shadow_balance"] = balance_after
+    state["shadow_total_fees"] = safe_float(state.get("shadow_total_fees")) + entry_fee
+    state["managed_position"] = asdict(managed)
+    state["last_signal_bar_ts"] = candidate.signal_bar_ts
+    state["entries_today"] = int(state.get("entries_today", 0)) + 1
+    state["last_error"] = None
+    mtm = update_shadow_mark_to_market(settings, state, managed, ticker, instrument)
+    save_shadow_state(settings, state)
+    event = {
+        "event": "shadow_position_opened",
+        "ts": iso(),
+        "managed": asdict(managed),
+        "fill_model": {
+            "reference_bid": ticker.bid,
+            "reference_ask": ticker.ask,
+            "reference_mark": ticker.mark,
+            "slippage_bps": settings.shadow_entry_slippage_bps,
+            "fee_rate": fee_rate,
+        },
+        "mark_to_market": mtm,
+    }
+    append_jsonl(settings.shadow_events_path, event)
+    notify(
+        f"🧪 <b>BTC Structure SHADOW 진입</b>\n{managed.side} / 가상 cross {settings.leverage}x / 시드환산 {settings.entry_margin_pct:.0f}%\n"
+        f"가상체결 {managed.entry_price:,.2f} / 수량 {managed.qty:.6f} BTC\n"
+        f"소프트 {managed.soft_stop:,.2f} / 하드 {managed.hard_stop:,.2f}\n"
+        f"가상자산 {mtm['equity']:,.2f} USDT / 점수 {managed.score:.1f}",
+        settings,
+    )
+    return {"status": "shadow_opened", "managed": asdict(managed), "mark_to_market": mtm}
+
+
+def close_shadow_position(
+    settings: Settings,
+    state: dict[str, Any],
+    managed: ManagedPosition,
+    ticker: Ticker,
+    instrument: Instrument,
+    reason: str,
+) -> dict[str, Any]:
+    exit_price = shadow_fill_price(
+        ticker,
+        managed.side,
+        opening=False,
+        slippage_bps=settings.shadow_exit_slippage_bps,
+    )
+    gross_pnl = position_gross_pnl(managed, exit_price)
+    fee_rate = shadow_fee_rate(settings, instrument)
+    exit_fee = managed.qty * exit_price * fee_rate
+    entry_fee = max(0.0, managed.entry_fee)
+    net_pnl = gross_pnl - entry_fee - exit_fee
+    balance_before_exit = safe_float(state.get("shadow_balance"), safe_float(state.get("initial_equity")))
+    balance_after = balance_before_exit + gross_pnl - exit_fee
+    risk_usdt = managed.qty * managed.initial_risk
+    net_r = net_pnl / risk_usdt if risk_usdt > 0 else 0.0
+    entry_equity = managed.entry_equity if managed.entry_equity > 0 else safe_float(state.get("initial_equity"), 1.0)
+    equity_return_pct = net_pnl / entry_equity * 100.0 if entry_equity > 0 else 0.0
+    price_pnl_pct = trade_pnl_pct(managed, exit_price)
+    result = {
+        "mode": "SHADOW",
+        "entry_ts": managed.entry_ts,
+        "exit_ts": iso(),
+        "symbol": managed.symbol,
+        "side": managed.side,
+        "setup": managed.setup,
+        "score": managed.score,
+        "qty": managed.qty,
+        "entry_price": managed.entry_price,
+        "exit_price": exit_price,
+        "entry_notional": managed.entry_notional,
+        "entry_fee": entry_fee,
+        "exit_fee": exit_fee,
+        "gross_pnl_usdt": gross_pnl,
+        "net_pnl_usdt": net_pnl,
+        "net_r": net_r,
+        "price_pnl_pct": price_pnl_pct,
+        "equity_return_pct": equity_return_pct,
+        "initial_soft_stop": managed.initial_soft_stop,
+        "final_soft_stop": managed.soft_stop,
+        "hard_stop": managed.hard_stop,
+        "exit_reason": reason,
+        "shadow_balance_after": balance_after,
+        "entry_order_id": managed.entry_order_id,
+        "exit_order_id": unique_client_oid("shadow_close"),
+    }
+    append_csv(settings.shadow_trades_path, result)
+    append_jsonl(settings.shadow_events_path, {"event": "shadow_position_closed", "ts": iso(), "trade": result})
+    state["shadow_balance"] = balance_after
+    state["shadow_equity"] = balance_after
+    state["shadow_unrealized_pnl"] = 0.0
+    state["shadow_estimated_exit_fee"] = 0.0
+    state["shadow_total_fees"] = safe_float(state.get("shadow_total_fees")) + exit_fee
+    state["shadow_realized_net_pnl"] = safe_float(state.get("shadow_realized_net_pnl")) + net_pnl
+    state["closed_trades"] = int(state.get("closed_trades", 0)) + 1
+    state["shadow_sum_net_r"] = safe_float(state.get("shadow_sum_net_r")) + net_r
+    if net_pnl < 0:
+        state["losing_trades"] = int(state.get("losing_trades", 0)) + 1
+        state["shadow_gross_loss_abs"] = safe_float(state.get("shadow_gross_loss_abs")) + abs(net_pnl)
+        state["consecutive_losses"] = int(state.get("consecutive_losses", 0)) + 1
+        if state["consecutive_losses"] >= settings.max_consecutive_losses:
+            state["cooldown_until"] = iso(now_utc() + timedelta(minutes=settings.consecutive_loss_pause_minutes))
+        else:
+            state["cooldown_until"] = iso(now_utc() + timedelta(minutes=settings.cooldown_minutes))
+    else:
+        state["winning_trades"] = int(state.get("winning_trades", 0)) + 1
+        state["shadow_gross_profit"] = safe_float(state.get("shadow_gross_profit")) + net_pnl
+        state["consecutive_losses"] = 0
+        state["cooldown_until"] = iso(now_utc() + timedelta(minutes=settings.cooldown_minutes))
+    state["managed_position"] = None
+    save_shadow_state(settings, state)
+    notify(
+        f"🧪 <b>BTC Structure SHADOW 청산</b>\n{managed.side} / {reason}\n"
+        f"{managed.entry_price:,.2f} → {exit_price:,.2f}\n"
+        f"순손익 {net_pnl:+,.2f} USDT ({equity_return_pct:+.3f}%) / 잔고 {balance_after:,.2f}",
+        settings,
+    )
+    return result
+
+
+def maybe_append_shadow_equity(
+    settings: Settings,
+    state: dict[str, Any],
+    ticker: Ticker,
+    *,
+    force: bool = False,
+) -> None:
+    last = parse_iso(state.get("last_equity_sample_ts"))
+    if not force and last and (now_utc() - last).total_seconds() < settings.shadow_equity_sample_seconds:
+        return
+    managed = managed_from_state(state)
+    row = {
+        "ts": iso(),
+        "balance": safe_float(state.get("shadow_balance")),
+        "equity": safe_float(state.get("shadow_equity")),
+        "unrealized_pnl": safe_float(state.get("shadow_unrealized_pnl")),
+        "estimated_exit_fee": safe_float(state.get("shadow_estimated_exit_fee")),
+        "total_fees": safe_float(state.get("shadow_total_fees")),
+        "realized_net_pnl": safe_float(state.get("shadow_realized_net_pnl")),
+        "mark": ticker.mark,
+        "position_side": managed.side if managed else "FLAT",
+        "position_qty": managed.qty if managed else 0.0,
+        "entry_price": managed.entry_price if managed else 0.0,
+        "soft_stop": managed.soft_stop if managed else 0.0,
+        "hard_stop": managed.hard_stop if managed else 0.0,
+    }
+    append_csv(settings.shadow_equity_path, row)
+    state["last_equity_sample_ts"] = row["ts"]
+
+
 def opening_payload(
     candidate: Candidate,
     qty: Decimal,
@@ -1970,6 +2386,168 @@ def manage_position(client: Any, settings: Settings, state: dict[str, Any]) -> d
     return action
 
 
+def run_observe_once(settings: Settings) -> dict[str, Any]:
+    """Pure public-data observation.
+
+    This path does not load Bitget credentials, read the private account or
+    touch live order/position state.
+    """
+    client = make_public_client()
+    ticker = fetch_ticker(client, settings.symbol)
+    bars15 = fetch_candles(client, settings.symbol, "15m", 320)
+    bars1h = fetch_candles(client, settings.symbol, "1H", 260)
+    bars4h = fetch_candles(client, settings.symbol, "4H", 260)
+    candidate, diagnostics = build_candidate(settings, ticker, bars15, bars1h, bars4h)
+    action = (
+        {"status": "candidate_observed", "candidate": asdict(candidate)}
+        if candidate is not None
+        else {"status": "no_entry", "diagnostics": diagnostics}
+    )
+    return {
+        "version": VERSION,
+        "ts": iso(),
+        "mode": "OBSERVE_PUBLIC_ONLY",
+        "order_capability": False,
+        "ticker": asdict(ticker),
+        "action": action,
+    }
+
+
+def manage_shadow_position(
+    client: Any,
+    settings: Settings,
+    state: dict[str, Any],
+    ticker: Ticker,
+    instrument: Instrument,
+) -> dict[str, Any]:
+    managed = managed_from_state(state)
+    if managed is None:
+        update_shadow_mark_to_market(settings, state, None, ticker, instrument)
+        return {"status": "shadow_flat"}
+
+    managed.best_price = max(managed.best_price, ticker.mark) if managed.side == "LONG" else min(managed.best_price, ticker.mark)
+    hard_stop_hit = ticker.mark <= managed.hard_stop if managed.side == "LONG" else ticker.mark >= managed.hard_stop
+    if hard_stop_hit:
+        result = close_shadow_position(settings, state, managed, ticker, instrument, "SHADOW_MARK_HARD_STOP")
+        return {"status": "shadow_closed", "result": result}
+
+    bars15 = completed_bars(fetch_candles(client, managed.symbol, "15m", 300), "15m")
+    bars1h = completed_bars(fetch_candles(client, managed.symbol, "1H", 220), "1H")
+    if not bars15:
+        raise RuntimeError("no completed 15m bars while managing shadow position")
+
+    newest_ts = bars15[-1].ts
+    trail_stop, trail_active, trail_diag = update_trailing_stop(managed, bars15, settings, ticker.mark)
+    managed.soft_stop = trail_stop
+    managed.trail_active = trail_active
+    action: dict[str, Any] = {
+        "status": "shadow_managed",
+        "mark": ticker.mark,
+        "soft_stop": managed.soft_stop,
+        "hard_stop": managed.hard_stop,
+        "best_price": managed.best_price,
+        "trail": trail_diag,
+    }
+
+    if newest_ts > managed.last_managed_bar_ts:
+        broken, break_diag = strong_structure_break(managed, bars15, settings)
+        action["structure_break"] = break_diag
+        if broken:
+            result = close_shadow_position(
+                settings,
+                state,
+                managed,
+                ticker,
+                instrument,
+                "SHADOW_STRONG_VOLUME_STRUCTURE_BREAK",
+            )
+            return {"status": "shadow_closed", "result": result}
+        trend_due, trend_diag = trend_flip_due(managed, bars1h, settings)
+        action["trend_flip"] = trend_diag
+        if trend_due:
+            result = close_shadow_position(
+                settings,
+                state,
+                managed,
+                ticker,
+                instrument,
+                "SHADOW_CONFIRMED_1H_TREND_FLIP",
+            )
+            return {"status": "shadow_closed", "result": result}
+        managed.last_managed_bar_ts = newest_ts
+
+    state["managed_position"] = asdict(managed)
+    action["mark_to_market"] = update_shadow_mark_to_market(settings, state, managed, ticker, instrument)
+    save_shadow_state(settings, state)
+    return action
+
+
+def maybe_shadow_heartbeat(settings: Settings, state: dict[str, Any], guards: dict[str, Any], action: dict[str, Any]) -> None:
+    last = parse_iso(state.get("last_heartbeat_ts"))
+    if last and (now_utc() - last).total_seconds() < settings.heartbeat_minutes * 60:
+        return
+    state["last_heartbeat_ts"] = iso()
+    notify(
+        f"🧪 <b>BTC Structure SHADOW</b>\n가상자산 {guards.get('equity', 0):,.2f} USDT\n"
+        f"일손실 {guards.get('day_loss_pct', 0):.2f}% / 최고점DD {guards.get('peak_drawdown_pct', 0):.2f}%\n"
+        f"상태 {action.get('status', '-')}",
+        settings,
+    )
+
+
+def run_shadow_once(settings: Settings, initial_equity: float | None = None) -> dict[str, Any]:
+    """Run one fully simulated cycle using only Bitget public market data."""
+    client = make_public_client()
+    state = load_shadow_state(settings, initial_equity)
+    if not settings.shadow_state_path.exists():
+        save_shadow_state(settings, state)
+    instrument = fetch_instrument(client, settings.symbol)
+    ticker = fetch_ticker(client, settings.symbol)
+    managed = managed_from_state(state)
+    mtm = update_shadow_mark_to_market(settings, state, managed, ticker, instrument)
+    guards = guard_report(settings, state, mtm["equity"])
+
+    if managed is not None:
+        action = manage_shadow_position(client, settings, state, ticker, instrument)
+    else:
+        bars15 = fetch_candles(client, settings.symbol, "15m", 320)
+        bars1h = fetch_candles(client, settings.symbol, "1H", 260)
+        bars4h = fetch_candles(client, settings.symbol, "4H", 260)
+        candidate, diagnostics = build_candidate(settings, ticker, bars15, bars1h, bars4h)
+        state["last_diagnostics"] = diagnostics
+        if candidate is None:
+            action = {"status": "shadow_no_entry", "diagnostics": diagnostics}
+        elif candidate.signal_bar_ts <= int(state.get("last_signal_bar_ts", 0)):
+            action = {"status": "shadow_duplicate_signal", "candidate": asdict(candidate)}
+        elif not guards["allow_new_entry"]:
+            action = {"status": "shadow_entry_blocked_guards", "guards": guards, "candidate": asdict(candidate)}
+        else:
+            action = open_shadow_position(settings, state, candidate, instrument, ticker, mtm["equity"])
+
+    state["last_cycle_ts"] = iso()
+    state["last_error"] = None
+    managed_after = managed_from_state(state)
+    mtm_after = update_shadow_mark_to_market(settings, state, managed_after, ticker, instrument)
+    guards_after = guard_report(settings, state, mtm_after["equity"])
+    state["shadow_max_drawdown_pct"] = max(
+        safe_float(state.get("shadow_max_drawdown_pct")),
+        safe_float(guards_after.get("peak_drawdown_pct")),
+    )
+    maybe_shadow_heartbeat(settings, state, guards_after, action)
+    maybe_append_shadow_equity(settings, state, ticker, force=action.get("status") in {"shadow_opened", "shadow_closed"})
+    save_shadow_state(settings, state)
+    return {
+        "version": VERSION,
+        "ts": iso(),
+        "mode": "SHADOW_PUBLIC_ONLY",
+        "order_capability": False,
+        "seed": safe_float(state.get("initial_equity")),
+        "guards": guards_after,
+        "portfolio": mtm_after,
+        "action": action,
+    }
+
+
 def maybe_heartbeat(settings: Settings, state: dict[str, Any], mode: str, guards: dict[str, Any], action: dict[str, Any]) -> None:
     last = parse_iso(state.get("last_heartbeat_ts"))
     if last and (now_utc() - last).total_seconds() < settings.heartbeat_minutes * 60:
@@ -1984,6 +2562,8 @@ def maybe_heartbeat(settings: Settings, state: dict[str, Any], mode: str, guards
 
 
 def run_once(settings: Settings, execute_live: bool) -> dict[str, Any]:
+    if not execute_live:
+        return run_observe_once(settings)
     client = make_client()
     state = load_state(settings)
     assets = fetch_account_assets(client)
@@ -1992,7 +2572,7 @@ def run_once(settings: Settings, execute_live: bool) -> dict[str, Any]:
         raise RuntimeError(f"invalid account equity: {assets}")
     guards = guard_report(settings, state, equity)
     live_armed, arm_reasons = arm_valid(settings)
-    mode = "OBSERVE" if not execute_live else "LIVE" if live_armed else "LIVE_GATED"
+    mode = "LIVE" if live_armed else "LIVE_GATED"
 
     pending_recovery = recover_pending_entry(client, settings, state)
     if pending_recovery and pending_recovery.get("status") == "pending_fill_recovered":
@@ -2022,11 +2602,11 @@ def run_once(settings: Settings, execute_live: bool) -> dict[str, Any]:
                 action = {"status": "duplicate_signal", "candidate": asdict(candidate)}
             elif not guards["allow_new_entry"]:
                 action = {"status": "entry_blocked_guards", "guards": guards, "candidate": asdict(candidate)}
-            elif not execute_live or not live_armed:
+            elif not live_armed:
                 action = {
                     "status": "candidate_observed",
                     "candidate": asdict(candidate),
-                    "live_reasons": ([] if not execute_live else arm_reasons),
+                    "live_reasons": arm_reasons,
                 }
             else:
                 instrument = fetch_instrument(client, settings.symbol)
@@ -2310,6 +2890,12 @@ def self_test() -> dict[str, Any]:
         "client_oid_length": len(unique_client_oid("bst_open")) <= 32,
         "strong_break_detector_math": strong[-1].close < managed_long.soft_stop,
         "arm_phrases": len(expected_phrases()) == 4,
+        "shadow_long_entry_fill_is_worse_than_ask": shadow_fill_price(
+            Ticker(SYMBOL, 100.0, 100.0, 99.9, 100.1), "LONG", opening=True, slippage_bps=2.0
+        ) > 100.1,
+        "shadow_long_exit_fill_is_worse_than_bid": shadow_fill_price(
+            Ticker(SYMBOL, 100.0, 100.0, 99.9, 100.1), "LONG", opening=False, slippage_bps=2.0
+        ) < 99.9,
     }
     return {"ok": all(tests.values()), "version": VERSION, "tests": tests, "zones": [asdict(z) for z in zones[:3]]}
 
@@ -2354,6 +2940,105 @@ def cmd_loop(args: argparse.Namespace) -> None:
             log(f"cycle error: {exc}\n{traceback.format_exc()}", settings)
             notify(f"⚠️ <b>BTC Structure 오류</b>\n{type(exc).__name__}: {exc}", settings)
         time.sleep(settings.loop_seconds)
+
+
+def cmd_shadow_once(args: argparse.Namespace) -> None:
+    settings = load_settings(args.config)
+    print(json.dumps(run_shadow_once(settings, initial_equity=args.seed), ensure_ascii=False, indent=2, default=str))
+
+
+def cmd_shadow_loop(args: argparse.Namespace) -> None:
+    settings = load_settings(args.config)
+    shadow_log(
+        f"BTC Structure Trend v{VERSION} SHADOW start / seed={args.seed if args.seed is not None else settings.shadow_initial_equity}",
+        settings,
+    )
+    notify(
+        f"🧪 <b>BTC Structure SHADOW 시작</b>\n"
+        f"주문 권한 없음 / 공개 시세 전용\nBTCUSDT / 가상 cross {settings.leverage}x / 시드환산 {settings.entry_margin_pct:.0f}%",
+        settings,
+    )
+    while True:
+        try:
+            result = run_shadow_once(settings, initial_equity=args.seed)
+            print(
+                json.dumps(
+                    {
+                        "ts": result.get("ts"),
+                        "mode": result.get("mode"),
+                        "portfolio": result.get("portfolio"),
+                        "guards": result.get("guards"),
+                        "action": result.get("action"),
+                    },
+                    ensure_ascii=False,
+                    default=str,
+                ),
+                flush=True,
+            )
+        except KeyboardInterrupt:
+            raise
+        except Exception as exc:
+            state = load_shadow_state(settings, args.seed)
+            state["last_error"] = f"{type(exc).__name__}: {exc}"
+            state["last_cycle_ts"] = iso()
+            save_shadow_state(settings, state)
+            shadow_log(f"shadow cycle error: {exc}\n{traceback.format_exc()}", settings)
+            notify(f"⚠️ <b>BTC Structure SHADOW 오류</b>\n{type(exc).__name__}: {exc}", settings)
+        time.sleep(settings.loop_seconds)
+
+
+def shadow_status_report(settings: Settings) -> dict[str, Any]:
+    state = load_shadow_state(settings)
+    initial = safe_float(state.get("initial_equity"))
+    equity = safe_float(state.get("shadow_equity"), initial)
+    closed = int(state.get("closed_trades", 0))
+    wins = int(state.get("winning_trades", 0))
+    gross_profit = safe_float(state.get("shadow_gross_profit"))
+    gross_loss_abs = safe_float(state.get("shadow_gross_loss_abs"))
+    sum_net_r = safe_float(state.get("shadow_sum_net_r"))
+    return {
+        "version": VERSION,
+        "mode": "SHADOW_PUBLIC_ONLY",
+        "order_capability": False,
+        "initial_equity": initial,
+        "balance": safe_float(state.get("shadow_balance"), initial),
+        "equity": equity,
+        "total_return_pct": ((equity / initial - 1.0) * 100.0 if initial > 0 else 0.0),
+        "realized_net_pnl": safe_float(state.get("shadow_realized_net_pnl")),
+        "unrealized_pnl": safe_float(state.get("shadow_unrealized_pnl")),
+        "estimated_exit_fee": safe_float(state.get("shadow_estimated_exit_fee")),
+        "total_fees": safe_float(state.get("shadow_total_fees")),
+        "closed_trades": closed,
+        "wins": wins,
+        "losses": int(state.get("losing_trades", 0)),
+        "win_rate_pct": (wins / closed * 100.0 if closed > 0 else 0.0),
+        "profit_factor": (gross_profit / gross_loss_abs if gross_loss_abs > 0 else None),
+        "average_net_r": (sum_net_r / closed if closed > 0 else 0.0),
+        "max_drawdown_pct": safe_float(state.get("shadow_max_drawdown_pct")),
+        "managed_position": state.get("managed_position"),
+        "last_cycle_ts": state.get("last_cycle_ts"),
+        "last_error": state.get("last_error"),
+        "paths": {
+            "state": str(settings.shadow_state_path),
+            "trades": str(settings.shadow_trades_path),
+            "equity": str(settings.shadow_equity_path),
+            "events": str(settings.shadow_events_path),
+            "log": str(settings.shadow_log_path),
+        },
+    }
+
+
+def cmd_shadow_status(args: argparse.Namespace) -> None:
+    settings = load_settings(args.config)
+    print(json.dumps(shadow_status_report(settings), ensure_ascii=False, indent=2, default=str))
+
+
+def cmd_shadow_reset(args: argparse.Namespace) -> None:
+    if args.confirm != "RESET_SHADOW":
+        raise SystemExit("confirmation phrase must be RESET_SHADOW")
+    settings = load_settings(args.config)
+    seed = args.seed if args.seed is not None else settings.shadow_initial_equity
+    print(json.dumps(reset_shadow_files(settings, seed), ensure_ascii=False, indent=2, default=str))
 
 
 def cmd_doctor(args: argparse.Namespace) -> None:
@@ -2411,6 +3096,22 @@ def build_parser() -> argparse.ArgumentParser:
     p = sub.add_parser("loop")
     p.add_argument("--observe", action="store_true", help="calculate/read only; never place orders")
     p.set_defaults(func=cmd_loop)
+
+    p = sub.add_parser("shadow-once", help="public market data + virtual fills; cannot place orders")
+    p.add_argument("--seed", type=float, default=None, help="used only when shadow state does not yet exist")
+    p.set_defaults(func=cmd_shadow_once)
+
+    p = sub.add_parser("shadow-loop", help="continuous public-data paper execution; cannot place orders")
+    p.add_argument("--seed", type=float, default=None, help="used only when shadow state does not yet exist")
+    p.set_defaults(func=cmd_shadow_loop)
+
+    p = sub.add_parser("shadow-status")
+    p.set_defaults(func=cmd_shadow_status)
+
+    p = sub.add_parser("shadow-reset")
+    p.add_argument("confirm", help="must be RESET_SHADOW")
+    p.add_argument("--seed", type=float, default=None)
+    p.set_defaults(func=cmd_shadow_reset)
 
     p = sub.add_parser("doctor")
     p.add_argument("--prearm", action="store_true")

@@ -3,11 +3,16 @@ test_changed_contract_is_rejected (test_btc_structure_trend_v1.StrategyTests.tes
 test_contract_and_sizing (test_btc_structure_trend_v1.StrategyTests.test_contract_and_sizing) ... ok
 test_cross_leverage_payload_uses_bitget_crossed_enum (test_btc_structure_trend_v1.StrategyTests.test_cross_leverage_payload_uses_bitget_crossed_enum) ... ok
 test_opening_payload_has_hard_stop_and_no_fixed_tp (test_btc_structure_trend_v1.StrategyTests.test_opening_payload_has_hard_stop_and_no_fixed_tp) ... ok
+test_public_shadow_client_is_structurally_order_incapable (test_btc_structure_trend_v1.StrategyTests.test_public_shadow_client_is_structurally_order_incapable) ... ok
+test_shadow_cycle_uses_public_inputs_and_opens_virtual_position (test_btc_structure_trend_v1.StrategyTests.test_shadow_cycle_uses_public_inputs_and_opens_virtual_position) ... ok
+test_shadow_fill_uses_spread_and_slippage (test_btc_structure_trend_v1.StrategyTests.test_shadow_fill_uses_spread_and_slippage) ... ok
+test_shadow_mark_hard_stop_closes_without_exchange_order (test_btc_structure_trend_v1.StrategyTests.test_shadow_mark_hard_stop_closes_without_exchange_order) ... ok
+test_shadow_open_close_accounting (test_btc_structure_trend_v1.StrategyTests.test_shadow_open_close_accounting) ... ok
 test_strong_break_requires_quality_or_two_closes (test_btc_structure_trend_v1.StrategyTests.test_strong_break_requires_quality_or_two_closes) ... ok
 test_trailing_stop_never_loosened (test_btc_structure_trend_v1.StrategyTests.test_trailing_stop_never_loosened) ... ok
 test_volume_profile_and_nearest_zone (test_btc_structure_trend_v1.StrategyTests.test_volume_profile_and_nearest_zone) ... ok
 
 ----------------------------------------------------------------------
-Ran 8 tests in 0.002s
+Ran 13 tests in 0.007s
 
 OK

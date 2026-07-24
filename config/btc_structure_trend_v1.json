@@ -50,5 +50,15 @@
   "trades_path": "research/btc_structure_trend_v1_trades.csv",
   "events_path": "research/btc_structure_trend_v1_events.jsonl",
   "notify": true,
-  "heartbeat_minutes": 60
+  "heartbeat_minutes": 60,
+  "shadow_initial_equity": 10000.0,
+  "shadow_entry_slippage_bps": 2.0,
+  "shadow_exit_slippage_bps": 2.0,
+  "shadow_taker_fee_rate": 0.0006,
+  "shadow_state_path": "data/btc_structure_trend_v1_shadow_state.json",
+  "shadow_log_path": "logs/btc-structure-trend-v1-shadow.log",
+  "shadow_trades_path": "research/btc_structure_trend_v1_shadow_trades.csv",
+  "shadow_events_path": "research/btc_structure_trend_v1_shadow_events.jsonl",
+  "shadow_equity_path": "research/btc_structure_trend_v1_shadow_equity.csv",
+  "shadow_equity_sample_seconds": 60
 }

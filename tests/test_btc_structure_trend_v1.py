@@ -8,6 +8,7 @@ from dataclasses import replace
 from datetime import datetime, timedelta, timezone
 from decimal import Decimal
 from pathlib import Path
+from unittest.mock import patch
 
 from index_sniper import btc_structure_trend_v1 as m
 
@@ -224,6 +225,155 @@ class StrategyTests(unittest.TestCase):
         isolated = replace(self.settings, margin_mode="isolated")
         errors = m.validate_settings_contract(isolated)
         self.assertTrue(any("expected crossed" in error for error in errors))
+
+    def test_public_shadow_client_is_structurally_order_incapable(self) -> None:
+        client = m.PublicBitgetClient(base_url="https://example.invalid")
+        with self.assertRaises(RuntimeError):
+            client.post("/api/v3/trade/place-order", {"symbol": "BTCUSDT"})
+        with self.assertRaises(RuntimeError):
+            client.get("/api/v3/account/assets", {}, auth=False)
+        with self.assertRaises(RuntimeError):
+            client.get("/api/v3/market/tickers", {}, auth=True)
+
+    def test_shadow_fill_uses_spread_and_slippage(self) -> None:
+        ticker = m.Ticker(symbol="BTCUSDT", last=100_000, mark=100_000, bid=99_990, ask=100_010)
+        self.assertAlmostEqual(m.shadow_fill_price(ticker, "LONG", opening=True, slippage_bps=2), 100_030.002)
+        self.assertAlmostEqual(m.shadow_fill_price(ticker, "LONG", opening=False, slippage_bps=2), 99_970.002)
+        self.assertAlmostEqual(m.shadow_fill_price(ticker, "SHORT", opening=True, slippage_bps=2), 99_970.002)
+        self.assertAlmostEqual(m.shadow_fill_price(ticker, "SHORT", opening=False, slippage_bps=2), 100_030.002)
+
+    def test_shadow_open_close_accounting(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            settings = replace(
+                self.settings,
+                notify=False,
+                shadow_state_path=root / "state.json",
+                shadow_log_path=root / "shadow.log",
+                shadow_trades_path=root / "trades.csv",
+                shadow_events_path=root / "events.jsonl",
+                shadow_equity_path=root / "equity.csv",
+            )
+            state = m.default_shadow_state(10_000)
+            entry_ticker = m.Ticker(symbol="BTCUSDT", last=100_000, mark=100_000, bid=99_990, ask=100_010)
+            candidate = m.Candidate(
+                symbol="BTCUSDT",
+                side="LONG",
+                signal_bar_ts=1,
+                entry_reference=100_000,
+                zone_low=99_200,
+                zone_high=99_600,
+                zone_center=99_400,
+                soft_stop=99_100,
+                hard_stop=98_500,
+                initial_risk=900,
+                stop_distance_pct=0.9,
+                score=82,
+                setup="TEST",
+                diagnostics={},
+            )
+            opened = m.open_shadow_position(settings, state, candidate, self.instrument, entry_ticker, 10_000)
+            self.assertEqual(opened["status"], "shadow_opened")
+            managed = m.managed_from_state(state)
+            self.assertIsNotNone(managed)
+            assert managed is not None
+            self.assertGreater(managed.entry_fee, 0)
+            self.assertLess(state["shadow_balance"], 10_000)
+
+            exit_ticker = m.Ticker(symbol="BTCUSDT", last=101_000, mark=101_000, bid=100_990, ask=101_010)
+            closed = m.close_shadow_position(settings, state, managed, exit_ticker, self.instrument, "TEST_EXIT")
+            expected_balance = 10_000 - managed.entry_fee + closed["gross_pnl_usdt"] - closed["exit_fee"]
+            self.assertAlmostEqual(state["shadow_balance"], expected_balance, places=8)
+            self.assertAlmostEqual(closed["net_pnl_usdt"], state["shadow_balance"] - 10_000, places=8)
+            self.assertIsNone(state["managed_position"])
+            self.assertTrue(settings.shadow_trades_path.exists())
+
+    def test_shadow_cycle_uses_public_inputs_and_opens_virtual_position(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            settings = replace(
+                self.settings,
+                notify=False,
+                shadow_state_path=root / "state.json",
+                shadow_log_path=root / "shadow.log",
+                shadow_trades_path=root / "trades.csv",
+                shadow_events_path=root / "events.jsonl",
+                shadow_equity_path=root / "equity.csv",
+            )
+            ticker = m.Ticker(symbol="BTCUSDT", last=100_000, mark=100_000, bid=99_990, ask=100_010)
+            candidate = m.Candidate(
+                symbol="BTCUSDT",
+                side="LONG",
+                signal_bar_ts=123,
+                entry_reference=100_000,
+                zone_low=99_200,
+                zone_high=99_600,
+                zone_center=99_400,
+                soft_stop=99_100,
+                hard_stop=98_500,
+                initial_risk=900,
+                stop_distance_pct=0.9,
+                score=82,
+                setup="TEST",
+                diagnostics={},
+            )
+            dummy_bars = m._synthetic_bars(260, 15, 1.0)
+            with (
+                patch.object(m, "make_public_client", return_value=object()),
+                patch.object(m, "fetch_instrument", return_value=self.instrument),
+                patch.object(m, "fetch_ticker", return_value=ticker),
+                patch.object(m, "fetch_candles", return_value=dummy_bars),
+                patch.object(m, "build_candidate", return_value=(candidate, {"reason": "candidate"})),
+            ):
+                result = m.run_shadow_once(settings, initial_equity=10_000)
+            self.assertFalse(result["order_capability"])
+            self.assertEqual(result["action"]["status"], "shadow_opened")
+            state = m.load_shadow_state(settings)
+            self.assertIsNotNone(state["managed_position"])
+            self.assertTrue(settings.shadow_state_path.exists())
+            self.assertTrue(settings.shadow_equity_path.exists())
+
+    def test_shadow_mark_hard_stop_closes_without_exchange_order(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            settings = replace(
+                self.settings,
+                notify=False,
+                shadow_state_path=root / "state.json",
+                shadow_log_path=root / "shadow.log",
+                shadow_trades_path=root / "trades.csv",
+                shadow_events_path=root / "events.jsonl",
+                shadow_equity_path=root / "equity.csv",
+            )
+            state = m.default_shadow_state(10_000)
+            managed = m.ManagedPosition(
+                symbol="BTCUSDT",
+                side="LONG",
+                qty=0.25,
+                entry_price=100_000,
+                entry_ts=m.iso(),
+                entry_order_id="shadow",
+                entry_client_oid="shadow",
+                hold_mode="hedge_mode",
+                initial_soft_stop=99_100,
+                soft_stop=99_100,
+                hard_stop=98_500,
+                initial_risk=900,
+                zone_low=99_200,
+                zone_high=99_600,
+                best_price=100_000,
+                entry_fee=15.0,
+                entry_notional=25_000,
+                entry_equity=10_000,
+            )
+            state["shadow_balance"] = 9_985.0
+            state["shadow_total_fees"] = 15.0
+            state["managed_position"] = m.asdict(managed)
+            ticker = m.Ticker(symbol="BTCUSDT", last=98_400, mark=98_400, bid=98_390, ask=98_410)
+            result = m.manage_shadow_position(object(), settings, state, ticker, self.instrument)
+            self.assertEqual(result["status"], "shadow_closed")
+            self.assertEqual(result["result"]["exit_reason"], "SHADOW_MARK_HARD_STOP")
+            self.assertIsNone(state["managed_position"])
 
 
 if __name__ == "__main__":

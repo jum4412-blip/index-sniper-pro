@@ -2,7 +2,7 @@
 set -Eeuo pipefail
 source "$(dirname "$0")/_btc_structure_common.sh"
 echo "===== screen ====="
-screen -list 2>/dev/null | grep -E 'btc-structure-trend-(live|observe)' || true
+screen -list 2>/dev/null | grep -E 'btc-structure-trend-(live|observe|shadow)' || true
 echo
 echo "===== engine status ====="
 "$PY" -m "$MODULE" --config "$CONFIG" status

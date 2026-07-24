@@ -1,6 +1,6 @@
 {
   "ok": true,
-  "version": "1.1.0",
+  "version": "1.2.0",
   "tests": {
     "volume_profile_has_zones": true,
     "volume_zone_ordering": true,
@@ -12,7 +12,9 @@
     "adx_bounded": true,
     "client_oid_length": true,
     "strong_break_detector_math": true,
-    "arm_phrases": true
+    "arm_phrases": true,
+    "shadow_long_entry_fill_is_worse_than_ask": true,
+    "shadow_long_exit_fill_is_worse_than_bid": true
   },
   "zones": [
     {
