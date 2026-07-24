@@ -10,11 +10,8 @@ MODULE="index_sniper.btc_structure_trend_v1"
 STATE="$ROOT/data/btc_structure_trend_v1_state.json"
 ARM_FILE="$ROOT/data/BTC_STRUCTURE_TREND_V1_ARMED.json"
 LOG="$ROOT/logs/btc-structure-trend-v1.log"
-SHADOW_STATE="$ROOT/data/btc_structure_trend_v1_shadow_state.json"
-SHADOW_LOG="$ROOT/logs/btc-structure-trend-v1-shadow.log"
 LIVE_SESSION="btc-structure-trend-live"
 OBSERVE_SESSION="btc-structure-trend-observe"
-SHADOW_SESSION="btc-structure-trend-shadow"
 
 [[ -d "$ROOT" ]] || { echo "프로젝트 경로가 없습니다: $ROOT" >&2; exit 1; }
 [[ -x "$PY" ]] || { echo "Python을 찾을 수 없습니다." >&2; exit 1; }

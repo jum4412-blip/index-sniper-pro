@@ -2,7 +2,6 @@
 set -Eeuo pipefail
 source "$(dirname "$0")/_btc_structure_common.sh"
 stop_session "$OBSERVE_SESSION"
-stop_session "$SHADOW_SESSION"
 stop_session "$LIVE_SESSION"
 pkill -f '[i]ndex_sniper[.]btc_structure_trend_v1.*loop' 2>/dev/null || true
 mkdir -p "$ROOT/logs"
