@@ -1,0 +1,121 @@
+{
+  "name": "btc_structure_trend_v1_cross",
+  "version": "1.1.0",
+  "release_variant": "bitget_uta_cross_5x_50pct",
+  "contract": {
+    "symbol": "BTCUSDT",
+    "category": "USDT-FUTURES",
+    "margin_mode": "crossed",
+    "cross_capable_account_levels": [
+      "basic",
+      "advanced"
+    ],
+    "hold_mode": "hedge_mode",
+    "leverage": 5,
+    "entry_margin_pct_sizing_reference": 50.0,
+    "notional_equity_multiple": 2.5,
+    "fixed_take_profit": false
+  },
+  "files": [
+    {
+      "path": ".gitignore",
+      "size": 68,
+      "sha256": "78ba6820e886813d6a43919360ccbe047c14c499fffcde4072ebc3f91a4f42fd"
+    },
+    {
+      "path": "README_KO.md",
+      "size": 13628,
+      "sha256": "d6989ee4845d59e8ef3c9034fbcc93b45321799e0d38593dcd978bdb9be31ddd"
+    },
+    {
+      "path": "RELEASE_NOTES_KO.md",
+      "size": 1604,
+      "sha256": "0212caa0a15d419aa8cd23b10a6d803d6ab80111f0e5c89edcb80fc2cf67bc67"
+    },
+    {
+      "path": "config/btc_structure_trend_v1.json",
+      "size": 1637,
+      "sha256": "e857428ae966f906efffa1e7cc326447151ae474e14a0ec0a76e628c72de7f4f"
+    },
+    {
+      "path": "index_sniper/btc_structure_trend_v1.py",
+      "size": 96185,
+      "sha256": "24017f1c476ba154cdb36249331dd851c686e531ef33c5edb17b58b701a8affb"
+    },
+    {
+      "path": "requirements.txt",
+      "size": 22,
+      "sha256": "27631edde8cb4deb7fffb466b64eeebd06e80464827c1652e0035aff40d3f6c8"
+    },
+    {
+      "path": "scripts/_btc_structure_common.sh",
+      "size": 1814,
+      "sha256": "56cd2a30a3d28c2a646f192e4f542192a5270f3ac41ef47cf6919e845690ca1f"
+    },
+    {
+      "path": "scripts/arm_btc_structure_trend_v1.sh",
+      "size": 641,
+      "sha256": "99eb3fb455df26ef37f41b71f34e2385015a10d5d40df6158fdb0b61c92a4c87"
+    },
+    {
+      "path": "scripts/disarm_btc_structure_trend_v1.sh",
+      "size": 283,
+      "sha256": "7a04730d26bb8a68cf8a77f92d78063d1bb55ff172c53148655fbc1c4e950785"
+    },
+    {
+      "path": "scripts/doctor_btc_structure_trend_v1.sh",
+      "size": 139,
+      "sha256": "9c7a7c469eb0fa2662de8935d18ddbb59fb25473119ead46ed574a63a4a902be"
+    },
+    {
+      "path": "scripts/install_btc_structure_trend_v1.sh",
+      "size": 4688,
+      "sha256": "47009d28bbf2b41779b6abc2c4e16eddb2b8f8cfbcfaa02c46cbc3f1f7e8d386"
+    },
+    {
+      "path": "scripts/run_btc_structure_trend_v1_tests.sh",
+      "size": 392,
+      "sha256": "0dbd4219d0f3d0f8f76bc6050086ebd64ac140b008210c11468d06153eb18113"
+    },
+    {
+      "path": "scripts/setup_btc_structure_trend_v1_account.sh",
+      "size": 923,
+      "sha256": "529485d262cd43d4884abe2858134ca4b8b863c9faeaf72dcd21c29482c071a4"
+    },
+    {
+      "path": "scripts/start_btc_structure_trend_v1.sh",
+      "size": 660,
+      "sha256": "02fdad8df4402abfce7f20e2edebb15082ba040c3d963e8269a6fcd00fd37723"
+    },
+    {
+      "path": "scripts/start_btc_structure_trend_v1_observe.sh",
+      "size": 577,
+      "sha256": "1c2dfc3b69e5beae01fd91f2a6bb801eaffabc84ef3cb40a9961c5189705b776"
+    },
+    {
+      "path": "scripts/status_btc_structure_trend_v1.sh",
+      "size": 349,
+      "sha256": "ebf3569e2ad4408dac871416f4c988b6eb095b02ffd4f1c378ac063599362260"
+    },
+    {
+      "path": "scripts/stop_btc_structure_trend_v1.sh",
+      "size": 398,
+      "sha256": "4c0d17b790414c0cf769335fc24a859ae1dd609501778d347f3bbed82ce5d5f6"
+    },
+    {
+      "path": "self_test.json",
+      "size": 1083,
+      "sha256": "485da3dc1c98e5be04095b175fde4755d4faba16510d52827374e0c277ffe8e6"
+    },
+    {
+      "path": "tests/test_btc_structure_trend_v1.py",
+      "size": 8478,
+      "sha256": "d38ac4906baf026d53e10d198b174ed2b3f4d0541bf739ce8247cb3befe6ef24"
+    },
+    {
+      "path": "unit_test.txt",
+      "size": 1174,
+      "sha256": "ec7c59b342ad7cee6a36044bdd8f69373d9220110f8790a568c170ddd43e7fa9"
+    }
+  ]
+}

@@ -1,191 +1,308 @@
-# Larry Williams Core v1.0 — ETHUSDT + SKHYUSDT
+# BTC Structure Trend v1.1 — Cross
 
-Bitget UTA용 **완전 신규 엔진**입니다. 기존 v6.x의 점수·IMPULSE·레짐 로직은 가져오지 않고, 기존 프로젝트에서는 API 통신 클래스와 텔레그램 전송 기반만 재사용합니다.
+Bitget UTA용 BTCUSDT 추세 눌림목·되돌림 실매매 엔진입니다.
 
-## 확정된 실거래 조건
+## 고정 운용 계약
 
-- 거래 대상: `ETHUSDT`, `SKHYUSDT`
-- 레버리지: 두 종목 모두 `Cross 5x`
-- 진입 증거금: 신호 1회마다 현재 계좌 자산의 `30%`
-- 동시 포지션: **전체 합산 1개**
-- 주문: 시장가 진입 + 거래소 측 초기 손절 + 비상 익절
-- 신규 진입은 명시적 ARM 절차를 통과한 뒤에만 허용
+- 종목: `BTCUSDT` USDT 무기한
+- 계정: 전용 계정
+- 증거금 모드: `crossed` (Bitget 화면의 크로스 모드)
+- 포지션 모드: `hedge_mode`
+- 레버리지: 5배
+- 1회 주문 수량 기준 증거금 환산: 계좌 평가자산의 50%
+- 명목 포지션: 계좌 평가자산의 약 2.5배
+- 동시 포지션: 1개
+- 물타기·마틴게일·추가진입: 없음
+- 고정 익절: 없음
 
-스크린샷의 가용자산 `1,251.7674 USDT`를 예로 들면:
+예를 들어 평가자산이 10,000 USDT라면 주문 수량은 5,000 USDT × 5배, 즉 약 25,000 USDT 명목가치로 계산됩니다. 수수료와 펀딩비를 빼기 전 기준으로 BTC가 1% 역행하면 계좌 영향은 약 -2.5%, 1% 순행하면 약 +2.5%입니다.
 
-- 진입 증거금: 약 `375.53 USDT`
-- 5배 명목가치: 약 `1,877.65 USDT`
-- 기초자산이 반대로 1% 움직일 때 계좌 영향: 약 `-1.5%` 전후(수수료·슬리피지 제외)
-- 두 종목을 동시에 30%씩 열면 명목가치가 계좌의 약 300%가 되므로, 이 버전은 신호 점수가 높은 한 종목만 선택합니다.
+**크로스 모드에서는 “시드 절반 진입”이 손실을 시드 절반으로 격리한다는 뜻이 아닙니다.** 50%는 주문 수량 산정 기준일 뿐이며, Bitget의 크로스 담보로 인정되는 나머지 계정 자산도 포지션 유지에 사용될 수 있습니다. 따라서 같은 계정의 다른 크로스 포지션·손익·담보 변화가 청산 여유에 영향을 줄 수 있습니다.
 
-## 래리 윌리엄스 핵심의 구현 방식
+설정 파일의 레버리지, 수량 기준 비율, 종목, 크로스 모드를 바꾸면 엔진이 시작 단계에서 계약 위반으로 중단됩니다. 의도치 않은 설정 드리프트를 막기 위한 동작입니다.
 
-### 1. Volatility Breakout
+## 진입 논리
 
-- ETH: UTC 00:00 일일 세션 시가를 기준으로 최근 일일 변동폭의 일부를 더하거나 빼서 돌파선을 계산합니다.
-- SKHY: 미국 정규장 시가와 전 정규장 고저 범위를 사용합니다.
-- 전일 변동폭이 압축됐으면 K를 낮추고, 이미 확장됐으면 K를 높입니다.
-- 돌파 직후 너무 멀리 추격한 신호는 폐기합니다.
+### 롱
 
-### 2. OOPS!
+1. 4시간봉 `EMA 50 > EMA 200`
+2. 두 EMA가 모두 상승 중
+3. 4시간봉 ADX가 18 이상이고 `+DI > -DI`
+4. 1시간봉 `EMA 20 > EMA 50`
+5. 최근 168시간의 거래량 프로파일에서 고거래량 지지 구역을 계산
+6. 15분봉이 그 구역을 터치한 뒤 구역 상단을 다시 회복
+7. 신호 봉 거래량이 직전 20개 중앙값의 1.05배 이상
+8. 신호 봉 몸통 비율, 상단 마감 위치, 다음 매물대까지의 공간을 점수화
+9. 점수 75 이상인 A급 이상 셋업만 계좌 평가자산 50%의 증거금 환산 수량으로 시장가 진입
 
-- ETH: 전 UTC 세션 고가·저가를 순간적으로 넘긴 뒤 다시 범위 안으로 복귀한 실패 돌파를 거래합니다.
-- SKHY: 실제 미국 장 시작 갭 또는 전일 고저 스윕 후 복귀를 사용하므로 원형 OOPS에 더 가깝습니다.
+### 숏
 
-### 3. Williams %R
+위 조건을 반대로 적용합니다. 4시간·1시간 하락 추세에서 1시간 고거래량 저항 구역까지 반등한 뒤, 15분봉이 구역 아래로 다시 밀리는 경우에만 숏 진입합니다.
 
-과매수·과매도 자체로 역매매하지 않습니다. 돌파에서는 모멘텀 지속 여부, OOPS에서는 극단권 이탈 여부를 진입 타이밍 확인용으로 씁니다.
+## 매물대 계산
 
-### 4. Ultimate Oscillator
+일반 OHLCV 캔들에는 체결별 가격대 거래량이 없으므로 완전한 거래소 Volume Profile을 재현할 수 없습니다. 이 엔진은 각 1시간봉의 거래량을 해당 봉의 고가~저가에 걸친 가격 구간에 분산하고, 64개 가격 구간 중 거래량 상위 30%에 해당하는 인접 구간을 합쳐 고거래량 매물대로 봅니다.
 
-7·14·28 구간을 결합해 단일 기간 오실레이터의 거짓 다이버전스를 줄이는 확인 신호로 사용합니다.
+모든 거래량을 종가나 HLC3 한 지점에 몰아넣지 않기 때문에 일반적인 캔들 기반 근사치보다 과도한 정밀도 착각을 줄이는 방식입니다. 다만 체결별 데이터 기반 프로파일과 동일하지는 않습니다.
 
-### 5. WILLSTOP 방식의 가격점 트레일
+## 손절: 두 겹 구조
 
-공개되지 않은 독점 수식을 임의로 꾸며내지 않습니다. 공개된 핵심인 **이동평균이 아닌 시장의 특정 가격점과 패턴**을 따라 다음과 같이 구현합니다.
+### 1. 정상 손절 — 소프트 구조손절
 
-- 최초 손절: 신호봉 저점/고점 또는 OOPS 스윕 극단값 바깥
-- +1R 도달: 손절을 손익분기점+비용 버퍼로 이동
-- 이후: 직전 2개 완료 15분봉의 저점/고점을 이용해 스톱을 한 방향으로만 조정
-- 거래소 초기 손절은 항상 남아 있고, 동적 트레일은 엔진이 시장가 청산으로 집행합니다.
+단순히 가격이 매물대를 잠깐 찌른 것만으로 청산하지 않습니다. 다음 중 하나가 완성된 15분봉에서 확인될 때 시장가 청산합니다.
 
-### 6. Bailout Exit
+- 매물대 무효화 가격을 ATR 0.08만큼 더 돌파하고,
+- 거래량이 직전 20봉 중앙값의 1.35배 이상이고,
+- 몸통이 전체 봉 범위의 55% 이상이며,
+- 롱은 저가 부근, 숏은 고가 부근에서 마감한 강한 돌파봉
 
-- ETH: 최소 2시간 보유 후, +1R 이전 구간에서 첫 수익성 1시간 구간 시작 시 청산
-- SKHY: 최소 1시간 보유 후, +1R 이전 구간에서 첫 수익성 30분 구간 시작 시 청산
-- +1R 이후에는 bailout보다 가격점 트레일로 수익을 끌고 갑니다.
+또는 강한 단일봉 조건이 아니더라도 소프트스톱 바깥에서 15분봉이 2개 연속 마감하면 구조가 무효화된 것으로 처리합니다.
 
-## 크립토와 Stock Perp의 차별 처리
+이 방식은 단순 1% 계좌손실 고정손절보다 꼬리와 짧은 휩쏘에 덜 민감하지만, 15분봉 마감을 기다리는 동안 손실이 커질 수 있습니다.
 
-### ETHUSDT
+### 2. 장애 손절 — 거래소 하드스톱
 
-- 24시간 거래를 UTC 일일 세션으로 재구성
-- 펀딩이 한쪽으로 과도하게 몰린 경우 점수 감점
-- OI와 스프레드 확인
-- 최대 보유 36시간
+진입 주문에는 마크가격 기준 시장가 `stopLoss`를 반드시 첨부합니다. 정상 전략은 이 가격까지 기다리지 않으며, 서버 정지·네트워크 단절·API 오류·급격한 갭에 대비한 최후 방어선입니다.
 
-### SKHYUSDT
+- 정상 소프트스톱 바깥으로 ATR 0.65 또는 진입가의 0.30% 중 큰 값을 추가
+- 진입가 대비 최대 2.00% 이내
+- 주문 체결 후 `order-info`로 하드스톱이 실제 주문에 기록됐는지 재검증
+- 스톱이 확인되지 않으면 즉시 시장가 비상청산 후 자동 DISARM
+- 타임아웃·알 수 없는 주문 오류는 `clientOid`로 조회해 중복 주문 없이 복구
 
-SKHYUSDT는 일반 코인처럼 24시간 같은 품질의 기초가격이 들어오는 상품이 아닙니다. 따라서:
+계좌 평가자산 50%의 증거금 환산 수량·5배에서 2% 가격 역행은 수수료 전 계좌 약 -5%에 해당합니다. 하드스톱은 목표 손실이 아니라 장애 시 상한선에 가까운 장치입니다. 급변·슬리피지·청산 위험으로 실제 결과는 더 나쁠 수 있습니다.
 
-- 신규 진입: 미국 뉴욕시간 `09:45–15:30`만
-- 첫 15분은 일반 돌파 진입에서 제외
-- 뉴욕시간 `15:55` 이전 강제 청산
-- 주말·미국 증시 휴장일 진입 금지
-- 장외 시간에는 신규 신호를 만들지 않음
-- `status=online`, `symbolType=stock`, `isReality=no`, `maxLeverage>=5`를 매번 검증
-- 종목 상태가 `restrictedAPI`, `limit_open`, `offline`이면 자동 차단
-- 거래소 instrument API에서 가격·수량 단위, 최소 주문금액을 동적으로 읽음
-- SKHY는 상장 이력이 짧으므로 계절성 가중치는 데이터가 쌓일 때까지 사용하지 않음
+## 짧은 손절, 추세수익 끝까지
 
-## 위험 제한
+- 구조손절 폭이 진입가의 0.25% 미만이면 미세 잡음일 가능성이 높아 진입하지 않습니다.
+- 구조손절 폭이 1.25%를 넘으면 50% 고정 증거금에서 손실이 너무 커지므로 진입하지 않습니다.
+- 고정 익절 주문은 사용하지 않습니다.
+- +1R에서 자동 본절 이동을 하지 않습니다. 강한 추세가 본절 휩쏘로 잘리는 것을 줄이기 위한 선택입니다.
+- +1.5R부터 추적손절을 활성화합니다.
+- 추적손절은 새로 형성된 15분 고거래량 구역·확정 피벗과 `최고가/최저가 ± 3.2 ATR` 중 더 여유 있는 값을 사용합니다.
+- 스톱은 수익 방향으로만 이동하며 절대로 다시 넓히지 않습니다.
+- 1시간 EMA 20/50 추세가 반전되고 거래량까지 동반되면 전량 청산합니다.
 
-- ETH 한 거래 계좌 위험 상한: 약 2.0%
-- SKHY 한 거래 계좌 위험 상한: 약 2.5%
-- 구조적 손절폭이 이 상한을 넘으면 수량을 줄이는 대신 **그 신호를 건너뜁니다**. 진입 증거금 30% 조건을 유지하기 위해서입니다.
-- 일간 계좌 낙폭 5%: 신규 진입 정지
-- 주간 계좌 낙폭 9%: 신규 진입 정지
-- 2연속 손실: 신규 진입 정지
-- 물타기·손실 포지션 추가진입 없음
-- 거래소 전체에서 관리되지 않은 포지션이 발견되면 자동 중단
+즉, 손실은 가까운 구조 무효화에서 끊고 수익은 고정 목표가 없이 추세 구조가 살아 있는 동안 보유합니다.
+
+## 공격적 운용 방식
+
+이 버전은 모든 신호에 작게 들어가는 방식이 아니라 **좋은 신호에는 크게, 애매한 신호에는 아예 안 들어가는 방식**입니다.
+
+- 점수 75 미만: 진입하지 않음
+- 다음 반대 매물대까지 최소 2.2R 공간이 없으면 진입하지 않음
+- 통과한 셋업: 계좌 평가자산 50% × 5배로 주문 수량 계산
+- 하루 최대 4회
+- 3연속 손실이면 4시간 신규 진입 중지
+- 일간 -7.5%, 주간 -15%, 계좌 최고점 대비 -20% 도달 시 신규 진입 차단
+
+이 제한은 진입 자체를 지나치게 작게 만드는 것이 아니라, 나쁜 구간에서 2.5배 명목 노출이 연속으로 복리 훼손을 일으키는 것을 막습니다. 물타기와 손실 후 배팅 확대는 구현하지 않았습니다.
 
 ## 설치
 
-압축을 풀고 서버로 올린 뒤:
+기존 GitHub 저장소를 서버의 `~/index-sniper-pro`에 배포한 구조를 기준으로 합니다. 저장소에 다음 모듈이 있어야 합니다.
+
+- `index_sniper.exchange.bitget_uta.BitgetUTAClient`
+- 선택: `index_sniper.telegram.bot.TelegramBot`
+
+압축을 풀고 릴리스 폴더에서 실행합니다.
 
 ```bash
-cd <압축을 푼 폴더>
-bash install_larry_core_v1.sh ~/index-sniper-pro
+bash scripts/install_btc_structure_trend_v1.sh
 ```
 
-설치는 기존 동명 파일을 `local_backups/larry_core_v1_날짜시간`에 백업하고, 신규 엔진을 **DISARMED** 상태로 설치합니다. 기존 v6.3 프로세스는 중지하지만 포지션 청산 주문은 보내지 않습니다.
-
-## 실행 순서
+다른 경로에 설치할 때:
 
 ```bash
-cd ~/index-sniper-pro
+bash scripts/install_btc_structure_trend_v1.sh /원하는/index-sniper-pro
+```
 
-# 1. API·계정·종목 상태 확인
-bash doctor_larry_core_v1.sh
+설치만으로는 주문하지 않습니다. `.env`의 `BTC_STRUCTURE_V1_LIVE_ENABLED=false`로 저장되고 ARM 파일도 제거됩니다.
 
-# 2. ETHUSDT와 SKHYUSDT를 Cross 5x로 설정
-bash setup_larry_core_v1_account.sh
+## 환경변수
 
-# 3. 엔진 실행 — 아직 신규 실진입은 차단됨
-bash start_larry_core_v1.sh
+`~/index-sniper-pro/.env`:
 
-# 4. 실매매 활성화
-bash arm_larry_core_v1.sh \
-  START_LARRY_CORE_LIVE_5X_CROSS_30_ETH_SKHY \
-  I_UNDERSTAND_30PCT_MARGIN_5X \
+```dotenv
+BITGET_API_KEY=...
+BITGET_SECRET_KEY=...
+BITGET_PASSPHRASE=...
+
+# 선택 사항
+TELEGRAM_TOKEN=...
+TELEGRAM_CHAT_ID=...
+
+# arm 스크립트가 true로 설정하기 전에는 신규 실진입 없음
+BTC_STRUCTURE_V1_LIVE_ENABLED=false
+```
+
+API 키에는 거래 권한만 부여하고 출금 권한은 부여하지 않습니다. 전용 서브계정과 IP 화이트리스트 사용을 전제로 ARM 문구를 구성했습니다.
+
+## 계정 설정
+
+앱과 다른 봇에서 모든 포지션·일반 주문·TP/SL 주문을 정리한 전용 계정에서 실행합니다.
+
+```bash
+bash doctor_btc_structure_trend_v1.sh
+```
+
+크로스 사용이 가능한 account level과 BTCUSDT 5배·hedge 설정:
+
+```bash
+BTC_STRUCTURE_CONFIRM_CROSS_ACCOUNT_MODE=YES \
+  bash setup_btc_structure_trend_v1_account.sh
+```
+
+현재 accountLevel이 이미 `basic` 또는 `advanced`이면 계정 레벨을 변경하지 않습니다. `isolated`, `delta` 또는 알 수 없는 상태라면 위 확인 변수가 있을 때 기본적으로 `basic`으로 전환합니다. 기존에 `advanced`를 사용하는 계정은 그대로 유지됩니다. 강제로 advanced 전환을 요청하려면 다음처럼 지정할 수 있지만, Bitget의 자격 조건을 충족해야 합니다.
+
+```bash
+BTC_STRUCTURE_CONFIRM_CROSS_ACCOUNT_MODE=YES \
+BTC_STRUCTURE_CROSS_ACCOUNT_LEVEL=advanced \
+  bash setup_btc_structure_trend_v1_account.sh
+```
+
+설정 스크립트는 다음을 검증합니다.
+
+- 계정에 포지션 0
+- 일반 미체결 주문 0
+- TP/SL 전략 주문 0
+- account level: `basic` 또는 `advanced`
+- hold mode: `hedge_mode`
+- BTCUSDT margin mode: `crossed`
+- BTCUSDT cross leverage: 5
+
+## 관찰 모드
+
+실주문 없이 실제 Bitget 시세·계정 읽기와 신호 계산을 반복합니다.
+
+```bash
+bash start_btc_structure_trend_v1_observe.sh
+bash status_btc_structure_trend_v1.sh
+```
+
+로그:
+
+```bash
+tail -f ~/index-sniper-pro/logs/btc-structure-trend-v1.log
+```
+
+## 실매매 활성화
+
+먼저 관찰 프로세스를 정지합니다.
+
+```bash
+bash stop_btc_structure_trend_v1.sh
+```
+
+ARM:
+
+```bash
+bash arm_btc_structure_trend_v1.sh \
+  START_BTC_STRUCTURE_TREND_LIVE_5X_CROSS_50 \
+  I_UNDERSTAND_CROSS_2_5X_NOTIONAL_CAN_USE_FULL_COLLATERAL \
   API_HAS_NO_WITHDRAW_PERMISSION \
   API_IP_WHITELISTED
 ```
 
-관찰 전용으로 먼저 실행하려면:
+시작:
 
 ```bash
-bash start_larry_core_v1_observe.sh
+bash start_btc_structure_trend_v1.sh
 ```
 
-상태 확인:
+상태:
 
 ```bash
-bash status_larry_core_v1.sh
+bash status_btc_structure_trend_v1.sh
 ```
 
-신규 진입만 차단하고 열린 포지션 관리는 계속하려면:
+신규 진입만 차단하면서 열린 포지션 관리는 계속하려면:
 
 ```bash
-bash disarm_larry_core_v1.sh
+bash disarm_btc_structure_trend_v1.sh
 ```
 
-엔진 완전 정지:
+프로세스까지 정지하려면:
 
 ```bash
-bash stop_larry_core_v1.sh
+bash stop_btc_structure_trend_v1.sh
 ```
 
-정지는 청산 명령이 아닙니다. 열린 포지션이 있을 때 정지하면 거래소 초기 SL/비상 TP는 남지만 소프트웨어 WILLSTOP과 bailout은 멈춥니다.
+프로세스를 정지하면 거래소 초기 하드스톱은 남아 있지만 소프트 구조손절과 수익 추적손절은 작동하지 않습니다.
 
-## 주요 파일
+## 상태와 기록
 
-- `index_sniper/larry_williams_core_v1.py`: 전략·주문·위험관리 엔진
-- `config/larry_williams_core_v1.json`: ETH/SKHY별 설정
-- `data/larry_williams_core_v1_state.json`: 런타임 상태
-- `research/larry_williams_core_v1_trades.csv`: 거래 기록
-- `research/larry_williams_core_v1_events.jsonl`: 이벤트 기록
-- `logs/larry-williams-core-v1.log`: 실행 로그
+- 상태: `data/btc_structure_trend_v1_state.json`
+- ARM: `data/BTC_STRUCTURE_TREND_V1_ARMED.json`
+- 로그: `logs/btc-structure-trend-v1.log`
+- 거래: `research/btc_structure_trend_v1_trades.csv`
+- 이벤트: `research/btc_structure_trend_v1_events.jsonl`
 
-## API 권한
+ARM 파일에는 설정 파일 SHA-256이 들어갑니다. ARM 이후 설정을 변경하면 ARM이 자동 무효화됩니다.
 
-Bitget API 키에는 UTA 조회·거래·계정설정 권한이 필요합니다. 출금 권한은 제거하고 IP 화이트리스트를 적용해야 ARM 문구와 실제 보안 상태가 일치합니다.
+## 테스트
 
-## v6.2를 조용한 paper 기록기로 두고 Larry를 켜는 순서
-
-v6.2는 원래부터 강제 paper-only이며 주문 함수가 없습니다. 아래 스크립트는
-v6.2의 paper episode/trade 기록은 유지하고 Telegram 알림만 완전히 끕니다.
+릴리스 폴더에서:
 
 ```bash
-cd ~/index-sniper-pro
-bash prepare_v62_silent_paper.sh
+bash scripts/run_btc_structure_trend_v1_tests.sh
 ```
 
-그 다음 Larry를 DISARMED 상태로 먼저 실행하고 계정 검사를 통과한 뒤에만 ARM합니다.
+포함된 검증:
 
-```bash
-bash doctor_larry_core_v1.sh
-bash setup_larry_core_v1_account.sh
-bash start_larry_core_v1.sh
+- Python 문법 검사
+- 내부 self-test
+- 100개 단위 캔들 역방향 페이지네이션
+- 50% × 5배 수량 계산
+- 거래량 프로파일 매물대 생성
+- 거래소 하드스톱 주문 페이로드
+- 고정 익절이 없는지 확인
+- 강한 매물대 돌파 손절 판정
+- 추적스톱이 절대 느슨해지지 않는지 확인
+- 설정 계약 변경 차단
 
-bash arm_larry_core_v1.sh \
-  START_LARRY_CORE_LIVE_5X_CROSS_30_ETH_SKHY \
-  I_UNDERSTAND_30PCT_MARGIN_5X \
-  API_HAS_NO_WITHDRAW_PERMISSION \
-  API_IP_WHITELISTED
+릴리스 환경에서는 모의 API 단위검사까지 수행했습니다. 실제 사용자 Bitget 계정의 인증 API 호출과 실주문 체결 검증은 서버에서 `doctor`, 관찰 모드, 소액 또는 별도 테스트 계정 순서로 확인해야 합니다.
 
-bash status_larry_core_v1.sh
-```
+## 핵심 설정값
 
-`setup-account`는 Bitget 전체 USDT 선물 포지션과 미체결 주문이 0일 때만 진행됩니다.
-하나라도 남아 있으면 실패하고 Larry는 실주문 상태로 전환되지 않습니다.
+`config/btc_structure_trend_v1.json`의 전략 민감도는 수정할 수 있지만, `symbol`, `leverage`, `margin_mode`, `hold_mode`, `entry_margin_pct`는 고정 계약입니다.
+
+| 설정 | 기본값 | 의미 |
+|---|---:|---|
+| `signal_score_min` | 75 | 진입 최소 품질 점수 |
+| `min_stop_pct` | 0.25 | 지나치게 짧은 구조손절 진입 제외 |
+| `max_stop_pct` | 1.25 | 50% 증거금 환산 수량 진입 허용 최대 소프트스톱 폭 |
+| `hard_stop_max_pct` | 2.00 | 장애용 거래소 스톱 최대 거리 |
+| `strong_break_volume_ratio` | 1.35 | 강한 돌파 거래량 기준 |
+| `trail_activate_r` | 1.50 | 추적손절 시작 수익 |
+| `trail_chandelier_atr` | 3.20 | 추세 보유용 느슨한 ATR 추적 |
+| `max_daily_loss_pct` | 7.5 | 신규 진입 일간 차단선 |
+| `max_peak_drawdown_pct` | 20.0 | 신규 진입 최고점 낙폭 차단선 |
+
+## Bitget UTA API 경로
+
+이 엔진이 사용하는 핵심 경로:
+
+- `GET /api/v3/market/candles`
+- `GET /api/v3/market/tickers`
+- `GET /api/v3/market/instruments`
+- `GET /api/v3/account/assets`
+- `GET /api/v3/account/settings`
+- `POST /api/v3/account/adjust-account-mode` — 현재 accountLevel이 basic/advanced가 아닐 때만 사용
+- `POST /api/v3/account/set-hold-mode`
+- `POST /api/v3/account/set-leverage`
+- `GET /api/v3/position/current-position`
+- `POST /api/v3/trade/place-order`
+- `GET /api/v3/trade/order-info`
+- `POST /api/v3/trade/close-positions`
+
+Bitget UTA는 주문과 레버리지의 크로스 열거값으로 `crossed`를 사용하며, 크로스 선물은 `basic` 또는 `advanced` account level에서 설정합니다. 현재 공식 UTA 문서 기준으로 작성했습니다. 거래소가 요청 필드나 계정 모드 동작을 변경하면 `doctor`가 실패할 수 있으므로 오류를 무시하고 ARM하지 마세요.
+## 공식 Bitget UTA 문서
+
+확인 기준일: 2026-07-23
+
+- 주문 `marginMode`: https://www.bitget.com/api-doc/uta/trade/Place-Order
+- 거래쌍 레버리지 설정: https://www.bitget.com/api-doc/uta/account/Change-Leverage
+- accountLevel·symbolConfig 조회: https://www.bitget.com/api-doc/uta/account/Get-Account-Setting
+- UTA 계정·크로스 설정 가이드: https://www.bitget.com/api-doc/uta/best-practices
+

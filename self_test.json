@@ -1,0 +1,46 @@
+{
+  "ok": true,
+  "version": "1.1.0",
+  "tests": {
+    "volume_profile_has_zones": true,
+    "volume_zone_ordering": true,
+    "notional_math_2_5x": true,
+    "qty_rounding": true,
+    "price_floor": true,
+    "price_ceil": true,
+    "atr_positive": true,
+    "adx_bounded": true,
+    "client_oid_length": true,
+    "strong_break_detector_math": true,
+    "arm_phrases": true
+  },
+  "zones": [
+    {
+      "low": 109.30275017478832,
+      "high": 110.64793514699993,
+      "center": 109.969803303993,
+      "volume": 2363.15,
+      "relative_volume": 1.0,
+      "first_bin": 12,
+      "last_bin": 15
+    },
+    {
+      "low": 112.66571260531734,
+      "high": 114.01089757752895,
+      "center": 113.34560961833725,
+      "volume": 2335.3500000000004,
+      "relative_volume": 0.9882360408776423,
+      "first_bin": 22,
+      "last_bin": 25
+    },
+    {
+      "low": 116.36497127889928,
+      "high": 117.71015625111087,
+      "center": 117.03131488104502,
+      "volume": 2293.95,
+      "relative_volume": 0.9707170513932674,
+      "first_bin": 33,
+      "last_bin": 36
+    }
+  ]
+}
