@@ -1,0 +1,172 @@
+#!/usr/bin/env bash
+set -Eeuo pipefail
+umask 077
+ROOT="${1:-$HOME/index-sniper-pro}"
+ROOT="$(realpath -m "$ROOT")"
+cd "$ROOT"
+PY="$ROOT/.larry-v2-venv/bin/python"
+[[ -x "$PY" ]] || { echo '❌ Larry v2 venv not found' >&2; exit 2; }
+command -v sudo >/dev/null
+sudo -n true
+
+STAMP="$(date -u +%Y%m%dT%H%M%SZ)"
+BACKUP="$ROOT/backups/larry-v2-rc1.1-instrument-hotfix-$STAMP"
+mkdir -p "$BACKUP"
+
+MODEL="$ROOT/larry_v2/model.py"
+TRANSPORT="$ROOT/larry_v2/transport.py"
+INIT="$ROOT/larry_v2/__init__.py"
+TEST="$ROOT/tests/larry_v2/test_core.py"
+for p in "$MODEL" "$TRANSPORT" "$INIT" "$TEST"; do [[ -f "$p" ]] || { echo "❌ missing $p" >&2; exit 2; }; done
+
+# Refuse to patch unknown code. These are exact RC1 hashes from the distributed installer.
+check_hash(){ local file="$1" expected="$2"; local got; got="$(sha256sum "$file" | awk '{print $1}')"; [[ "$got" == "$expected" ]] || { echo "❌ 예상하지 못한 코드: $file" >&2; echo "expected=$expected" >&2; echo "actual=$got" >&2; exit 2; }; }
+check_hash "$MODEL"     247cffc0a65a7d6e290d59c557cc7ca5660499103f6acfe6788708ad18206739
+check_hash "$TRANSPORT" 904cafc1b9d9b63987c3c3de1cbffdeb4b51171dae9568310ae52a828a0b1f3b
+check_hash "$INIT"      54cdd9cd3df9d702574942d31a9a57a59918a34569c4bfbf050a1acddabbce56
+check_hash "$TEST"      1ca5a48bbc4edbc023ced097c196870818972a4e74a1f7edeb52e594fbd4597a
+
+echo '===== 1. 실매매 비활성 / SHADOW 무거래 확인 ====='
+if systemctl is-active --quiet larry-v2-live.service; then
+  echo '❌ Larry v2 LIVE service가 실행 중이므로 패치하지 않습니다.' >&2; exit 3
+fi
+if pgrep -af -- '-m larry_v2 .*live' >/dev/null 2>&1; then
+  echo '❌ Larry v2 LIVE process가 감지되어 패치하지 않습니다.' >&2; exit 3
+fi
+
+REPORT_JSON="$($PY -m larry_v2 --root "$ROOT" report --mode shadow)"
+printf '%s\n' "$REPORT_JSON" > "$BACKUP/pre-report.json"
+REPORT_JSON="$REPORT_JSON" "$PY" - <<'PY'
+import json, os
+r=json.loads(os.environ['REPORT_JSON'])
+for name in ('control','revised'):
+    x=r.get(name,{})
+    if x.get('trades',0)!=0 or x.get('position') is not None:
+        raise SystemExit(f'❌ {name}: 이미 거래/포지션이 있어 자동 초기화를 거부합니다.')
+print('✅ control/revised 모두 0 trades, no position')
+PY
+
+printf '\n===== 2. SHADOW 정지 및 백업 =====\n'
+sudo -n systemctl stop larry-v2-shadow.service
+sleep 2
+if systemctl is-active --quiet larry-v2-shadow.service; then echo '❌ shadow service stop failed' >&2; exit 3; fi
+cp -a "$MODEL" "$TRANSPORT" "$INIT" "$TEST" "$BACKUP/"
+for p in "$ROOT/data/larry_v2/shadow.sqlite" "$ROOT/data/larry_v2/shadow.sqlite-wal" "$ROOT/data/larry_v2/shadow.sqlite-shm" "$ROOT/data/larry_v2/shadow_status.json" "$ROOT/data/larry_v2/shadow.lock"; do
+  [[ -e "$p" ]] && cp -a "$p" "$BACKUP/"
+done
+
+rollback(){
+  echo '⚠️ 패치 검증 실패 — 코드 롤백' >&2
+  cp -a "$BACKUP/model.py" "$MODEL" || true
+  cp -a "$BACKUP/transport.py" "$TRANSPORT" || true
+  cp -a "$BACKUP/__init__.py" "$INIT" || true
+  cp -a "$BACKUP/test_core.py" "$TEST" || true
+  sudo -n systemctl start larry-v2-shadow.service || true
+}
+trap rollback ERR
+
+printf '\n===== 3. Bitget futures isReality 스키마 호환 패치 =====\n'
+"$PY" - "$MODEL" "$TRANSPORT" "$INIT" "$TEST" <<'PY'
+from pathlib import Path
+import sys
+model,transport,init,test=map(Path,sys.argv[1:])
+
+s=model.read_text()
+old="""        if self.symbol not in SYMBOLS: raise SafetyError('symbol is not ETH/SKHY/HYPE')\n        if self.status.lower()!='online' or self.reality.lower()!='no': raise SafetyError('instrument unavailable or unsupported Reality product')\n        if not self.min_leverage<=5<=self.max_leverage: raise SafetyError('5x leverage not supported')\n"""
+new="""        if self.symbol not in SYMBOLS: raise SafetyError('symbol is not ETH/SKHY/HYPE')\n        if self.status.lower()!='online': raise SafetyError('instrument unavailable')\n        # Bitget UTA USDT-FUTURES instrument rows may omit isReality.\n        # Reject only an explicit Reality flag; absence is not evidence of Reality.\n        reality=(self.reality or '').strip().lower()\n        if reality=='yes': raise SafetyError('Reality product not supported')\n        if reality not in ('', 'no', 'not_applicable', 'unknown', 'none'):\n            raise SafetyError('unexpected Reality flag')\n        if not self.min_leverage<=5<=self.max_leverage: raise SafetyError('5x leverage not supported')\n"""
+if old not in s: raise SystemExit('model patch anchor missing')
+model.write_text(s.replace(old,new))
+
+s=transport.read_text()
+old="str(r.get('isReality','unknown')),finite(r.get('minLeverage',1)),finite(r.get('maxLeverage',0)))"
+new="str(r.get('isReality') or 'not_applicable'),finite(r.get('minLeverage',1)),finite(r.get('maxLeverage',0)))"
+if old not in s: raise SystemExit('transport reality patch anchor missing')
+s=s.replace(old,new)
+s=s.replace("'User-Agent':'LarryV2/2.0.0-rc1'", "'User-Agent':'LarryV2/2.0.0-rc1.1'")
+transport.write_text(s)
+
+s=init.read_text()
+if "__version__ = '2.0.0-rc1'" not in s: raise SystemExit('version patch anchor missing')
+init.write_text(s.replace("__version__ = '2.0.0-rc1'", "__version__ = '2.0.0-rc1.1'"))
+
+s=test.read_text()
+needle="""    def test_reality(self):\n        with self.assertRaises(SafetyError):replace(instrument(),reality='yes').validate()\n"""
+repl="""    def test_reality(self):\n        with self.assertRaises(SafetyError):replace(instrument(),reality='yes').validate()\n        # USDT-FUTURES currently omits isReality in the public instrument schema.\n        replace(instrument(),reality='not_applicable').validate()\n        replace(instrument(),reality='unknown').validate()\n"""
+if needle not in s: raise SystemExit('test patch anchor missing')
+test.write_text(s.replace(needle,repl))
+PY
+
+check_hash "$MODEL"     ec7b945716c8fc4a76d17f87fb45fcee6aa12f61867badccbf249162dc376001
+check_hash "$TRANSPORT" 38ab7299e3886c47b5b671dd625f3c54f8f413d6261d122efd138052e46b982e
+check_hash "$INIT"      8c01f37b10d846cbea308cd025b9d0ac077e20bb943297e128a0937ad575e488
+check_hash "$TEST"      9b0edfb7c17ea67e11098caca5c4c383bdc9f69c5ad9294371705d5bfdc115de
+
+printf '\n===== 4. 컴파일 + 94개 테스트 =====\n'
+PYTHONPATH="$ROOT" "$PY" -m compileall -q "$ROOT/larry_v2"
+PYTHONPATH="$ROOT" "$PY" -m unittest discover -s "$ROOT/tests/larry_v2" -v 2>&1 | tee "$BACKUP/tests.txt"
+
+grep -q '^OK$' "$BACKUP/tests.txt" || { echo '❌ tests did not finish OK' >&2; false; }
+
+printf '\n===== 5. 공개 Bitget instrument doctor =====\n'
+DOCTOR_OK=0
+for n in 1 2 3; do
+  if PYTHONPATH="$ROOT" "$PY" -m larry_v2 --root "$ROOT" doctor > "$BACKUP/doctor.json" 2> "$BACKUP/doctor.err"; then DOCTOR_OK=1; break; fi
+  sleep $((n*2))
+done
+[[ "$DOCTOR_OK" -eq 1 ]] || { cat "$BACKUP/doctor.err" >&2; false; }
+"$PY" - "$BACKUP/doctor.json" <<'PY'
+import json,sys
+j=json.load(open(sys.argv[1]))
+assert j.get('ok') is True
+for s in ('ETHUSDT','SKHYUSDT','HYPEUSDT'):
+    x=j['symbols'][s]
+    print(f"{s}: status={x['status']} type={x['symbol_type']} reality={x['reality']} leverage={x['min_leverage']}-{x['max_leverage']}")
+PY
+
+# Code fingerprint changed by design, so archive the zero-trade invalid run and start a clean 14-day clock.
+printf '\n===== 6. 잘못 시작된 0-trade SHADOW 실험 아카이브 후 새 시작 =====\n'
+for p in "$ROOT/data/larry_v2/shadow.sqlite" "$ROOT/data/larry_v2/shadow.sqlite-wal" "$ROOT/data/larry_v2/shadow.sqlite-shm" "$ROOT/data/larry_v2/shadow_status.json" "$ROOT/data/larry_v2/shadow.lock"; do rm -f "$p"; done
+
+sudo -n systemctl start larry-v2-shadow.service
+
+printf '\n===== 7. 프레임 워밍업 확인 (최대 180초) =====\n'
+READY=0
+for _ in $(seq 1 36); do
+  sleep 5
+  STATUS="$ROOT/data/larry_v2/shadow_status.json"
+  if [[ -f "$STATUS" ]]; then
+    if "$PY" - "$STATUS" <<'PY' >/dev/null 2>&1
+import json,sys
+j=json.load(open(sys.argv[1]))
+assert j.get('version')=='2.0.0-rc1.1'
+assert set(j.get('quotes',{}))=={'ETHUSDT','SKHYUSDT','HYPEUSDT'}
+assert not j.get('frame_errors')
+plans=j.get('plans',{})
+assert all(plans.get(s) for s in ('ETHUSDT','SKHYUSDT','HYPEUSDT'))
+PY
+    then READY=1; break; fi
+  fi
+done
+
+if [[ "$READY" -ne 1 ]]; then
+  echo '❌ 180초 안에 3종목 frame/plans 준비가 완료되지 않았습니다.' >&2
+  [[ -f "$ROOT/data/larry_v2/shadow_status.json" ]] && cat "$ROOT/data/larry_v2/shadow_status.json" >&2 || true
+  sudo -n journalctl -u larry-v2-shadow.service -n 80 --no-pager >&2 || true
+  exit 4
+fi
+
+trap - ERR
+
+echo
+echo '✅ Larry v2 2.0.0-rc1.1 instrument hotfix 완료'
+echo '✅ ETH / SKHY / HYPE quotes + frame + plans 정상'
+echo '✅ CL 제외 유지'
+echo '✅ LIVE 비활성 유지'
+echo '✅ 잘못된 0-trade 실험은 백업 후 새 14일 SHADOW 시작'
+echo "backup: $BACKUP"
+echo
+echo '===== STATUS ====='
+"$ROOT/larry-v2" status
+echo
+echo '===== REPORT ====='
+"$ROOT/larry-v2" report
