@@ -1,0 +1,242 @@
+#!/usr/bin/env bash
+# Larry v2 rc1.4C migration: archive the rc1.3 run, preserve verified HYPE loss evidence,
+# seed risk continuity, and stage a fresh rc1.4 LIVE run with NEW ENTRY STILL DISARMED.
+set -Eeuo pipefail
+umask 077
+
+ROOT="$(realpath -m "${1:-$HOME/index-sniper-pro}")"
+[[ "$(id -u)" -ne 0 ]] || { echo 'ubuntu 사용자로 실행하세요 (sudo bash 금지).' >&2; exit 2; }
+cd "$ROOT"
+PY="$ROOT/.larry-v2-venv/bin/python"
+[[ -x "$PY" && -x "$ROOT/larry-live" ]] || { echo 'Larry v2 설치를 찾지 못했습니다.' >&2; exit 2; }
+for cmd in sudo systemctl flock sha256sum; do command -v "$cmd" >/dev/null; done
+sudo -n true
+
+TARGET_BROKER='1f5a59218fca0c6b2abe9ec2e9492ead0128fd0b8c19f51b0ecd8d9ef538ee44'
+TARGET_INIT='ba346d2a001acbda401e8717f95963193d4e59f7c4e932631bd61b7bd17bf8c6'
+ACTUAL_BROKER="$(sha256sum "$ROOT/larry_live/broker.py" | awk '{print $1}')"
+ACTUAL_INIT="$(sha256sum "$ROOT/larry_live/__init__.py" | awk '{print $1}')"
+[[ "$ACTUAL_BROKER" == "$TARGET_BROKER" && "$ACTUAL_INIT" == "$TARGET_INIT" ]] || {
+  echo 'rc1.4 감사 코드와 일치하지 않습니다. 자동 마이그레이션하지 않습니다.' >&2
+  echo "broker=$ACTUAL_BROKER" >&2
+  echo "init=$ACTUAL_INIT" >&2
+  exit 2
+}
+
+mkdir -p "$ROOT/data/larry_v2" "$ROOT/backups"
+exec 9>"$ROOT/data/larry_v2/rc14-newrun.lock"
+flock -n 9 || { echo '다른 Larry 설치/복구 작업이 진행 중입니다.' >&2; exit 2; }
+
+MARKER="$ROOT/data/larry_v2/RC14_NEW_RUN_MIGRATED.json"
+if [[ -f "$MARKER" ]]; then
+  echo '이미 rc1.4 새 run 마이그레이션 마커가 있습니다. 중복 실행하지 않습니다.'
+  cat "$MARKER"
+  "$ROOT/larry-live" status || true
+  exit 0
+fi
+
+# Revoke any entry authorization first; preserve no live position by exchange check below.
+"$ROOT/larry-live" pause >/dev/null || true
+rm -f "$ROOT/data/larry_v2/ARM.json" "$ROOT/data/larry_v2/LIVE_STARTUP.json"
+
+# Stop restart loop before touching durable files.
+echo '== 1. LIVE 서비스 정지 =='
+sudo -n systemctl disable --now larry-v2-live.service >/dev/null 2>&1 || true
+sudo -n systemctl reset-failed larry-v2-live.service >/dev/null 2>&1 || true
+for _ in $(seq 1 20); do
+  if ! pgrep -f '[p]ython.*-m larry_live.*run' >/dev/null; then break; fi
+  sleep 1
+done
+if pgrep -f '[p]ython.*-m larry_live.*run' >/dev/null; then
+  echo 'LIVE manager가 정상 종료되지 않았습니다. 강제 종료하지 않습니다.' >&2
+  exit 2
+fi
+
+OLD_DB="$ROOT/data/larry_v2/live.sqlite"
+[[ -f "$OLD_DB" ]] || { echo '기존 live.sqlite가 없습니다. 수동 확인이 필요합니다.' >&2; exit 2; }
+
+STAMP="$(date -u +%Y%m%dT%H%M%SZ)"
+ARCHIVE="$ROOT/backups/larry-v2-rc13-archived-$STAMP"
+mkdir -m 700 -p "$ARCHIVE"
+
+echo '== 2. rc1.3 durable state + 거래소 청산증거 검증 =='
+PYTHONPATH="$ROOT" "$PY" - "$ROOT" "$ARCHIVE" <<'PY'
+import json, sqlite3, sys, time, hashlib
+from pathlib import Path
+from larry_v2.cli import credentials
+from larry_v2.transport import Rest
+
+root=Path(sys.argv[1]).resolve(); archive=Path(sys.argv[2]).resolve()
+db=root/'data/larry_v2/live.sqlite'
+with sqlite3.connect(db.as_uri()+'?mode=ro',uri=True) as c:
+    c.execute('PRAGMA query_only=ON')
+    row=c.execute('SELECT json FROM state WHERE key=?',('live',)).fetchone()
+    runrow=c.execute('SELECT json FROM state WHERE key=?',('run',)).fetchone()
+    if not row or not runrow: raise SystemExit('기존 run/live state가 없습니다.')
+    state=json.loads(row[0]); run=json.loads(runrow[0])
+    p=state.get('position')
+    if state.get('pending'): raise SystemExit('기존 DB에 pending 주문이 있습니다. 자동 마이그레이션 금지')
+    if not p: raise SystemExit('기존 durable HYPE position이 없습니다. 이미 다른 복구가 되었는지 확인하세요.')
+    expected=('LW2E_52a3f29c2d554b2bbfe5d3f5e','HYPEUSDT','SHORT')
+    got=(str(p.get('id')),str(p.get('symbol')),str(p.get('side')).upper())
+    if got!=expected or abs(float(p.get('qty',0))-12.83)>1e-8 or str(p.get('entry_order_id'))!='1481233658386857984':
+        raise SystemExit('기존 durable position이 감사한 HYPE 거래와 다릅니다. 자동 마이그레이션 금지')
+    if run.get('version')!='2.0.0-rc1.3-live': raise SystemExit('기존 run 버전이 rc1.3-live가 아닙니다.')
+    old_state=state; old_run=run
+
+rest=Rest(credentials(root),can_write=False)
+assets=rest.get('/api/v3/account/assets',private=True)
+if abs(float(assets.get('positionValue') or 0))>1e-8 or abs(float(assets.get('imr') or 0))>1e-8:
+    raise SystemExit('거래소 계좌가 flat이 아닙니다. 자동 마이그레이션 금지')
+for cat in ('USDT-FUTURES','USDC-FUTURES','COIN-FUTURES'):
+    d=rest.get('/api/v3/position/current-position',{'category':cat},private=True)
+    rows=d if isinstance(d,list) else d.get('list') if isinstance(d,dict) else None
+    if isinstance(rows,list) and any(abs(float(x.get('total') or 0))>1e-8 for x in rows if isinstance(x,dict)):
+        raise SystemExit(cat+': 실제 포지션 발견')
+    if rest.pages('/api/v3/trade/unfilled-orders',{'category':cat}):
+        raise SystemExit(cat+': 미체결 일반 주문 존재')
+    for typ in ('tpsl','trigger','oco','trailing_stop','iceberg','twap'):
+        rows=rest.pages('/api/v3/trade/unfilled-strategy-orders',{'category':cat,'type':typ})
+        if rows: raise SystemExit(cat+': 미체결 전략/보호 주문 존재: '+typ)
+
+start=max(0,int(p['opened'])-60000); end=int(time.time()*1000)
+orders=rest.pages('/api/v3/trade/history-orders',{'category':'USDT-FUTURES','symbol':'HYPEUSDT','startTime':str(start),'endTime':str(end)})
+entry=[x for x in orders if str(x.get('orderId'))=='1481233658386857984']
+close=[x for x in orders if str(x.get('orderId'))=='1481234852165468161']
+if len(entry)!=1 or len(close)!=1: raise SystemExit('감사한 HYPE 진입/청산 주문을 정확히 1개씩 찾지 못했습니다.')
+e=entry[0]; x=close[0]
+if str(e.get('orderStatus','')).lower()!='filled' or abs(float(e.get('cumExecQty') or 0)-12.83)>1e-8:
+    raise SystemExit('HYPE 진입 주문 체결수량 불일치')
+if str(x.get('orderStatus','')).lower()!='filled' or abs(float(x.get('cumExecQty') or 0)-12.83)>1e-8:
+    raise SystemExit('HYPE 청산 주문 체결수량 불일치')
+if str(x.get('delegateType','')).lower()!='pos_loss_market':
+    raise SystemExit('HYPE 청산이 native position loss 주문이 아닙니다.')
+
+hist=rest.pages('/api/v3/position/history-position',{'category':'USDT-FUTURES','symbol':'HYPEUSDT','startTime':str(start),'endTime':str(end)})
+match=[r for r in hist if str(r.get('posSide','')).lower()=='short' and abs(float(r.get('openTotalPos') or 0)-12.83)<1e-8 and abs(float(r.get('closeTotalPos') or 0)-12.83)<1e-8]
+if len(match)!=1: raise SystemExit('HYPE position history를 유일하게 확정하지 못했습니다.')
+h=match[0]
+net=float(h.get('netProfit'))
+if abs(net-(-4.60151386))>0.0001: raise SystemExit('HYPE netProfit가 감사값과 다릅니다.')
+
+record={
+  'legacy_run':old_run,
+  'legacy_position':{k:p.get(k) for k in ('id','symbol','side','qty','entry','opened','entry_order_id','initial_stop','stop','tp')},
+  'exchange_flat':{'positionValue':assets.get('positionValue'),'imr':assets.get('imr'),'usdtEquity':assets.get('usdtEquity')},
+  'verified_close':{
+    'entry_order_id':e.get('orderId'),'entry_avg':e.get('avgPrice'),'entry_qty':e.get('cumExecQty'),
+    'close_order_id':x.get('orderId'),'close_avg':x.get('avgPrice'),'close_qty':x.get('cumExecQty'),'delegateType':x.get('delegateType'),
+    'cumRealisedPnl':h.get('cumRealisedPnl'),'netProfit':h.get('netProfit'),'openFeeTotal':h.get('openFeeTotal'),'closeFeeTotal':h.get('closeFeeTotal'),'totalFunding':h.get('totalFunding'),
+    'reason':'EXCHANGE_SL','accounting':'POSITION_HISTORY_VERIFIED'
+  },
+  'risk_carry':{
+    'week_key':old_state.get('week_key'),
+    'week_start_equity':old_state.get('week_start_equity'),
+    'old_day_key':old_state.get('day_key'),
+    'old_day_start_equity':old_state.get('day_start_equity'),
+    'old_peak_equity':old_state.get('peak_equity'),
+    'consecutive_losses_after_verified_close':max(1,int(old_state.get('consecutive_losses',0)))
+  },
+  'verified_at_ms':int(time.time()*1000)
+}
+(archive/'legacy_rc13_hype_reconciliation.json').write_text(json.dumps(record,ensure_ascii=False,indent=2))
+print(json.dumps(record,ensure_ascii=False,indent=2))
+PY
+
+# Backup the old SQLite with sqlite backup API so WAL state is safely captured.
+echo '== 3. 기존 rc1.3 run 전체 보관 =='
+"$PY" - "$OLD_DB" "$ARCHIVE/live-rc1.3.sqlite" <<'PY'
+import sqlite3,sys
+src,dst=sys.argv[1:]
+a=sqlite3.connect(src); b=sqlite3.connect(dst); a.backup(b); b.close(); a.close()
+PY
+cp -p "$ROOT/data/larry_v2/live_status.json" "$ARCHIVE/" 2>/dev/null || true
+cp -p "$ROOT/config/larry_v2.json" "$ARCHIVE/" 2>/dev/null || true
+cp -p "$ROOT/config/larry_v2_live.json" "$ARCHIVE/" 2>/dev/null || true
+sha256sum "$ROOT"/larry_v2/*.py "$ROOT"/larry_live/*.py "$ROOT"/config/larry_v2*.json 2>/dev/null > "$ARCHIVE/current-code-config-sha256.txt" || true
+
+# Preserve old DB files verbatim in the archive too, then remove active copies.
+cp -p "$OLD_DB" "$ARCHIVE/live.sqlite.raw" 2>/dev/null || true
+cp -p "$OLD_DB-wal" "$ARCHIVE/live.sqlite-wal.raw" 2>/dev/null || true
+cp -p "$OLD_DB-shm" "$ARCHIVE/live.sqlite-shm.raw" 2>/dev/null || true
+rm -f "$OLD_DB" "$OLD_DB-wal" "$OLD_DB-shm" "$ROOT/data/larry_v2/live_status.json"
+rm -f "$ROOT/data/larry_v2/ARM.json" "$ROOT/data/larry_v2/LIVE_STARTUP.json"
+
+# Create a fresh rc1.4 state while carrying weekly risk continuity and one verified loss.
+echo '== 4. rc1.4 새 run 위험 기준 이관 =='
+PYTHONPATH="$ROOT" "$PY" - "$ROOT" "$ARCHIVE" <<'PY'
+import json, time, sys
+from pathlib import Path
+from larry_v2.store import Store
+from larry_v2.cli import credentials
+from larry_v2.transport import Rest
+root=Path(sys.argv[1]).resolve(); archive=Path(sys.argv[2]).resolve()
+rec=json.loads((archive/'legacy_rc13_hype_reconciliation.json').read_text())
+assets=Rest(credentials(root),can_write=False).get('/api/v3/account/assets',private=True)
+equity=float(assets.get('usdtEquity') or assets.get('accountEquity') or 0)
+if equity<=0: raise SystemExit('현재 equity를 확인하지 못했습니다.')
+r=rec['risk_carry']
+state={
+  'equity':equity,
+  'position':None,
+  'pending':None,
+  'cooldown':{},
+  'consecutive_losses':int(r.get('consecutive_losses_after_verified_close') or 1),
+  'week_key':r.get('week_key'),
+  'week_start_equity':float(r.get('week_start_equity') or equity),
+  # Keep the old day key so the first rc1.4 risk poll resets daily baseline to today's live equity.
+  'day_key':r.get('old_day_key'),
+  'day_start_equity':float(r.get('old_day_start_equity') or equity),
+  'peak_equity':max(float(r.get('old_peak_equity') or 0),float(r.get('week_start_equity') or 0),equity),
+  'halt':None,
+  'migration':{'from':'2.0.0-rc1.3-live','verified_hype_net_usdt':-4.60151386,'archive':str(archive),'at_ms':int(time.time()*1000)}
+}
+s=Store(root/'data/larry_v2/live.sqlite')
+try:
+    s.set('live',state)
+    s.set('risk_migrated',{'from_rc13':True,'weekly_baseline_preserved':True,'verified_legacy_loss_usdt':-4.60151386,'at_ms':int(time.time()*1000)})
+finally:s.close()
+print(json.dumps({'new_live_seed':state},ensure_ascii=False,indent=2))
+PY
+
+# Preflight stages the new run but does not arm it or place orders.
+echo '== 5. rc1.4 새 run PREPARE (실주문 승인 OFF) =='
+"$ROOT/larry-live" prepare
+
+# Start staged manager. It may adjust approved Cross 5x settings during prepare, but no new entry is authorized.
+echo '== 6. rc1.4 staged manager 시작 =='
+sudo -n systemctl reset-failed larry-v2-live.service >/dev/null 2>&1 || true
+sudo -n systemctl enable --now larry-v2-live.service >/dev/null
+
+READY=0
+for _ in $(seq 1 120); do
+  sleep 2
+  if ! systemctl is-active --quiet larry-v2-live.service; then
+    sudo -n journalctl -u larry-v2-live.service -n 100 --no-pager >&2 || true
+    echo '새 rc1.4 manager 시작 실패' >&2
+    exit 2
+  fi
+  if "$ROOT/larry-live" check-ready >/dev/null 2>&1; then READY=1; break; fi
+done
+if [[ "$READY" != 1 ]]; then
+  echo 'rc1.4 manager는 실행 중이지만 240초 내 READY를 확인하지 못했습니다. 신규진입은 계속 OFF입니다.' >&2
+  "$ROOT/larry-live" status || true
+  exit 2
+fi
+
+# Persist an idempotency marker only after staged manager is healthy.
+PYTHONPATH="$ROOT" "$PY" - "$ROOT" "$ARCHIVE" "$MARKER" <<'PY'
+import json,sys,time
+from pathlib import Path
+root=Path(sys.argv[1]);archive=Path(sys.argv[2]);marker=Path(sys.argv[3])
+rec=json.loads((archive/'legacy_rc13_hype_reconciliation.json').read_text())
+data={'version':'2.0.0-rc1.4-live','staged_ready':True,'live_authorized':False,'archive':str(archive),'legacy_close':rec['verified_close'],'created_ms':int(time.time()*1000)}
+marker.write_text(json.dumps(data,ensure_ascii=False,indent=2))
+print(json.dumps(data,ensure_ascii=False,indent=2))
+PY
+
+printf '\n✅ rc1.3 run 보관 + HYPE 손실 증거 보존 + rc1.4 새 run READY 완료\n'
+printf '중요: 신규 실진입은 아직 OFF입니다.\n'
+printf '확인: ./larry-live status && ./larry-live report\n'
+printf '검증 후에만: ./larry-live arm\n'
+printf 'archive: %s\n' "$ARCHIVE"
