@@ -1,0 +1,34 @@
+{
+  "name": "BTC ETH Trend Core",
+  "version": "1.0.0-rc1",
+  "symbols": [
+    "BTCUSDT",
+    "ETHUSDT"
+  ],
+  "leverage": 5,
+  "risk_pct": 0.5,
+  "offline_tests_passed": 51,
+  "public_api_check_passed": true,
+  "live_order_execution_verified": false,
+  "profitability_verified": false,
+  "sha256": {
+    "config.json": "d7ef3b63d22abd16e1f9b1a44e39a32b7ff3a7b76b04ce2d03cbfb174337ebd3",
+    "trend": "4359c7aafb6e8e808f4c50d3c716ec0b6d0adfafd4895784ef4a53d97080fb5d",
+    "install.sh": "7c15604326830b301f867d8eb99b6d0c746da1ef0c90d1e70d68ef811106cee8",
+    "install_service.sh": "2daa3687394f03b571e782220ad75c3f2f0268c5408d9fcd415d0b53b4f591aa",
+    "README_KO.md": "4471517dd988b4a3d2a3e825ce30367d721b6a0d28c1065d87d5ed685f0c38c9",
+    "VALIDATION.md": "0800055418d695e7b484e09c6a5ee9d34feb38c304b08498048d1f8729b69359",
+    "trend_core/__init__.py": "93fa901259671613f82b6277ba867ef2328ad013dd36408b83151a5fdef976fd",
+    "trend_core/__main__.py": "79ee6f134c5c5193377cf9b189cbdcc3e2095e49ba9cec310114441c15a917c4",
+    "trend_core/account.py": "f16c9c8f832d5d7f1ed5be36f5e1e43840326e34e47acdf324fc1604b4ea7e39",
+    "trend_core/api.py": "e9ecc08a5ac1bb19b7a153f8c4f5404f5ca26a67eb21d7b20e3f12944966c380",
+    "trend_core/cli.py": "2b3865460158c7bd4f9d677bcb003c6c71ddd05890ae043b4a7c115d015addad",
+    "trend_core/core.py": "21848fae828961de1a284dceb09f44c21607b4324940a56cbea1e55dabfba4bc",
+    "trend_core/engine.py": "481fdbe0b27c1395ecc414e53104b45e8274e1f7a1bb75c7d5092257716faebe",
+    "trend_core/risk.py": "e673fcc1a736fd1b78371c67a324259449d5912b4d2d311cc3f655194d0a2dbe",
+    "trend_core/runtime.py": "7f03ad9f1f92116bc99687e2f5310cdc5974eb5be36934c304734089a46d086f",
+    "trend_core/store.py": "921938364fd039746c87fee76f2dad60b395886149b2383b4d454632f029ed7a",
+    "trend_core/strategy.py": "be05a052e967b0b11d4a25ed057a09e42fb4e2a27d590f764b64b53bfa236ab4",
+    "tests/test_safety.py": "0860bd9bc86ae08be7b0901ce99886e7fcff9ac5484fdfe0cb8e58427c8448f3"
+  }
+}
