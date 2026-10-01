@@ -1,0 +1,154 @@
+{
+  "reviewer": "independent_probability_review",
+  "completed_utc": "2026-09-30T15:38:03.804264+00:00",
+  "status": "Independent source/data/model/selection audit and 22 offline probes passed; no remaining identified code-level blocker within reviewed scope.",
+  "scope": "Read-only source/data/model review and offline synthetic tests; no exchange credentials, orders, private API calls or actual Telegram delivery tested. Additional nine-profile source/selection/embargo/Brier checks are reported separately below; those are exploratory hypothetical labels.",
+  "independent_tests": {
+    "file": "tests/test_probability_independent.py",
+    "command": "python -m unittest discover -s tests -p test_probability_independent.py -v",
+    "tests": 22,
+    "pass": 22,
+    "fail": 0,
+    "coverage": [
+      "completed price/volume feature prefix causality",
+      "post-exit future data invariance",
+      "strict sixty-minute purging and overlap thinning",
+      "minimum distinct-day support",
+      "net win/loss break-even calculation",
+      "funding close-time exact tie",
+      "planned-risk and fixed-notional behavior",
+      "Telegram actual payload schemas",
+      "outbox failure/backoff and restart persistence via fake opener",
+      "no forwarding of unlisted private fields",
+      "emergency child reconciliation before unavailable parent read",
+      "cumulative fill regression preserves durable intent",
+      "child known order ID/category mismatch preserves durable intent",
+      "rejected execution cannot contribute probability support",
+      "duplicate input indices cannot multiply probability support",
+      "latest timestamped UTA settlement excludes future and other symbols",
+      "missing or conflicting settled funding fails closed",
+      "settled funding cache refresh at five-minute boundary"
+    ]
+  },
+  "baseline_research_audit": {
+    "frozen_source_hash_checks": {
+      "probability_strategy.py": true,
+      "outcome_labels.cpp": true,
+      "outcome_labels.py": true,
+      "portfolio_kernel.cpp": true,
+      "portfolio_kernel.py": true,
+      "research_runner.py": true
+    },
+    "source_count": 6,
+    "raw_events": 70658,
+    "execution_eligible_hypothetical_events": 47621,
+    "maximum_ledger_absolute_error": 1.0658141036401503e-14,
+    "net_r_equals_net_divided_by_cost_inclusive_risk_verified": true,
+    "net_profitable_label_definition_verified": true,
+    "risk_ceiling_25_verified": true,
+    "both_models_independently_refitted_against_saved_csv_and_all_state_fields_match_tolerance": 1e-11,
+    "brier_and_constant_training_base_rate_benchmark_recomputed_tolerance": 1e-12,
+    "actual_guarded_trade_csv_counts_match_summary": true,
+    "models": {
+      "evaluation_model_2022.json": {
+        "fit_label_count": 13543,
+        "state_count": 139,
+        "eligible_state_count": 0,
+        "training_cut_ms": 1672531200000,
+        "purge_ms": 3600000,
+        "latest_label_end_ms": 1672525095659,
+        "strict_resolved_purge_boundary_verified": true
+      },
+      "deployment_model_2026.json": {
+        "fit_label_count": 37875,
+        "state_count": 144,
+        "eligible_state_count": 0,
+        "training_cut_ms": 1790002800000,
+        "purge_ms": 3600000,
+        "latest_label_end_ms": 1789993155738,
+        "strict_resolved_purge_boundary_verified": true
+      }
+    },
+    "calibration_brier": 0.12133692573829412,
+    "calibration_constant_benchmark_brier": 0.12053734290844481,
+    "evaluation_brier": 0.14890118299867985,
+    "evaluation_constant_benchmark_brier": 0.14873945775222286,
+    "evaluation_hypothetical_net_profitability_rate": 0.17912157861234881,
+    "evaluation_actual_guarded_trades": 0
+  },
+  "resolved_findings": [
+    "Native shared-object name no longer shadows Python wrapper.",
+    "Execution-ineligible hypothetical labels excluded before training support calculation.",
+    "Live fingerprint includes root probability strategy and deployment model.",
+    "Live fee and spread ceilings constrained to modeled assumptions; reserve aligns with historical replay.",
+    "Heartbeat and OPEN Telegram payload field mismatches corrected.",
+    "Unprotected confirmed partial entry now has durable emergency child intent.",
+    "Child read occurs before parent read; cumulative fill regression fails closed and preserves intent.",
+    "Emergency child validates response known order ID/category; wrong ownership preserves intent.",
+    "UTAv3 settled funding history selected by fundingRateTimestamp <= current time, with conflicts/staleness rejected; ticker is a separately stricter extra veto.",
+    "Owned recovery uses frozen entry instrument steps when new entry metadata is unavailable; flat sibling metadata failures do not abort owned recovery.",
+    "Known prior ETH Larry Trail3 eth_core live process, default trail3_root arm/state, lock and account-guard migration are checked.",
+    "Public DataFrame-index hardening explicitly amended and all twelve models and numerical metrics remained identical after rerun."
+  ],
+  "followup_pending": [],
+  "material_limits": [
+    "All baseline evaluation portfolio stress cases contain zero positions because the qualified set is empty; zero loss is absence of exposure, not strategy robustness.",
+    "Historical evaluation data was seen in earlier research; no genuinely blind out-of-sample claim.",
+    "Synthetic minute paths and historical Binance proxy data do not establish Bitget live fill quality, liquidation behavior, outage response or profitability.",
+    "Telegram is at least once after durable enqueue and can duplicate after a crash between successful delivery and local acknowledgment.",
+    "A fill-state save followed by notification enqueue is not one atomic transaction; no exactly-once trade-alert guarantee is asserted.",
+    "Funding parser was tested with synthetic offline responses; authenticated account response compatibility remains unverified.",
+    "No assurance that all possible concurrency, propagation, manual intervention or outage scenarios are covered by tests; native initial stop and local target/time exits have distinct availability limits."
+  ],
+  "additional_exit_profile_audit": {
+    "profiles": 9,
+    "source_hashes_verified": 9,
+    "selection_training_only_recomputed": true,
+    "diagnostic_selected_id": "R4_H360",
+    "no_profile_train_eligible": true,
+    "all_profiles_evaluation_qualified_count_zero": true,
+    "selected_deployment_eligible_states": 0,
+    "selected_brier_recomputed": true,
+    "selected_purge_and_all_evaluation_model_cutoffs_verified": true,
+    "scope_limit": "Verified data/source/selection/model gate integrity; did not re-execute all profile labels or produce executed portfolio trade evidence.",
+    "current_source_and_parent_hash_checks": {
+      "profile": {
+        "profile_labels.cpp": true,
+        "profile_labels.py": true,
+        "run_profiles.py": true
+      },
+      "parent": {
+        "probability_strategy.py": true,
+        "outcome_labels.cpp": true,
+        "outcome_labels.py": true,
+        "research_runner.py": true,
+        "portfolio_kernel.cpp": true,
+        "portfolio_kernel.py": true
+      }
+    }
+  },
+  "correctness_amendment_audit": {
+    "old_and_new_sources_explicitly_recorded": true,
+    "original_protocol_preserved_hash_verified": true,
+    "old_source_sha256": "921cab5d54f88e53ec9b203a88beb4973119df32d381dc165deebf26977ed43c",
+    "new_source_sha256": "6d77e2828678c378cfc36db5836d9e526b531a9d7ed3b8f164ecdf7eb9643805",
+    "strategy_specification_hash_unchanged": "a57f5f2cea31f842d27c6f1043b12b3b485f8a6ce3ab2a1f77f6039cc3d088fa",
+    "all_12_model_byte_hashes_recomputed_against_prefixed_results": {
+      "evaluation_model_2022.json": true,
+      "deployment_model_2026.json": true,
+      "profile_study/R4_H180_evaluation_model_2022.json": true,
+      "profile_study/R4_H60_evaluation_model_2022.json": true,
+      "profile_study/R3_H180_evaluation_model_2022.json": true,
+      "profile_study/R2_H60_evaluation_model_2022.json": true,
+      "profile_study/R3_H60_evaluation_model_2022.json": true,
+      "profile_study/R3_H360_evaluation_model_2022.json": true,
+      "profile_study/R2_H360_evaluation_model_2022.json": true,
+      "profile_study/R4_H360_evaluation_model_2022.json": true,
+      "profile_study/R2_H180_evaluation_model_2022.json": true,
+      "profile_study/R4_H360_deployment_model_2026.json": true
+    },
+    "all_main_numeric_metrics_identical_independently_rechecked": true,
+    "all_nine_profile_numeric_metrics_identical_independently_rechecked": true
+  },
+  "live_extra_guard_not_in_historical_replay": "Ticker fundingRate sign may independently veto an otherwise settled-rate-qualified entry; ticker is not used as the historical settlement label. This extra guard can reduce live entries relative to replay."
+}

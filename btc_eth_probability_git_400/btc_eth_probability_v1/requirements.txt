@@ -1,0 +1,4 @@
+# Live runtime and frozen probability model (Python 3.10+).
+numpy>=1.26,<3
+pandas>=2.2,<4
+scipy>=1.12,<2

@@ -1,0 +1,14 @@
+{
+  "release": "Korean Telegram six-hour combined status, immediate fills and safety, manual notify-now",
+  "pure_extraction_passed": true,
+  "no_service_or_order_started": true,
+  "no_credentials_included": true,
+  "all_runtime_source_hashes_match": true,
+  "guide_byte_identical": true,
+  "packaged_self_test_count": 137,
+  "packaged_self_test_passed": true,
+  "native_kernel_rebuilt_from_cpp": true,
+  "existing_destination_refused": true,
+  "status": "LIVE NOT_STARTED",
+  "real_private_api_or_telegram_tested": false
+}

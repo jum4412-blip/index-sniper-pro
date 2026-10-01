@@ -1,0 +1,8 @@
+{
+  "env": "~/index-sniper-pro/.env",
+  "legacy_root": "~/index-sniper-pro",
+  "trend_root": "~/btc_eth_trend_v1",
+  "basic_root": "~/btc_eth_larry_basic_v1",
+  "psych_root": "~/btc_eth_psych_trend_v1",
+  "trail3_root": "~/eth_larry_trail3_500"
+}

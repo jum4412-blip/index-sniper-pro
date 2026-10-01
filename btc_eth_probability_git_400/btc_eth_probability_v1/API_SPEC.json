@@ -1,0 +1,338 @@
+{
+  "checked_utc": "2026-09-30",
+  "scope": "Read-only official documentation and predecessor code review; no authenticated calls or exchange orders were made.",
+  "api_base": "https://api.bitget.com",
+  "category": "USDT-FUTURES",
+  "sources": [
+    {
+      "id": "orders",
+      "url": "https://www.bitget.com/docs/catalog/trading/order-management",
+      "retrieval_ref": "turn33view2"
+    },
+    {
+      "id": "strategies",
+      "url": "https://www.bitget.com/docs/catalog/trading/strategy-trading",
+      "retrieval_ref": "turn34view0"
+    },
+    {
+      "id": "positions",
+      "url": "https://www.bitget.com/docs/catalog/trading/position-management",
+      "retrieval_ref": "turn34view1"
+    },
+    {
+      "id": "settings",
+      "url": "https://www.bitget.com/docs/catalog/account/account-settings",
+      "retrieval_ref": "turn34view2"
+    },
+    {
+      "id": "market",
+      "url": "https://www.bitget.com/docs/catalog/market/market-data",
+      "retrieval_ref": "turn36view3"
+    },
+    {
+      "id": "assets",
+      "url": "https://www.bitget.com/docs/catalog/account/assets-balance",
+      "retrieval_ref": "turn39view0"
+    },
+    {
+      "id": "changelog",
+      "url": "https://www.bitget.com/legacy-docs/uta/changelog",
+      "retrieval_ref": "turn38view0"
+    },
+    {
+      "id": "funding_history",
+      "url": "https://www.bitget.com/docs/catalog/market/derivatives",
+      "retrieval_ref": "turn43view0"
+    },
+    {
+      "id": "funding_current_history_explanation",
+      "url": "https://www.bitget.com/support/articles/12560603837210",
+      "retrieval_ref": "turn43view2"
+    }
+  ],
+  "place_order": {
+    "source": "orders",
+    "method": "POST",
+    "path": "/api/v3/trade/place-order",
+    "quantity_field": "qty",
+    "quantity_unit": "base coin",
+    "orderType": [
+      "limit",
+      "market"
+    ],
+    "side": [
+      "buy",
+      "sell"
+    ],
+    "limit_requirements": [
+      "price",
+      "timeInForce"
+    ],
+    "one_way": {
+      "open_long": {
+        "side": "buy"
+      },
+      "open_short": {
+        "side": "sell"
+      },
+      "close_long": {
+        "side": "sell",
+        "reduceOnly": "yes"
+      },
+      "close_short": {
+        "side": "buy",
+        "reduceOnly": "yes"
+      }
+    },
+    "hedge": {
+      "open_long": {
+        "side": "buy",
+        "posSide": "long"
+      },
+      "open_short": {
+        "side": "sell",
+        "posSide": "short"
+      },
+      "close_long": {
+        "side": "sell",
+        "posSide": "long"
+      },
+      "close_short": {
+        "side": "buy",
+        "posSide": "short"
+      }
+    },
+    "marginMode": "crossed",
+    "preset_protection_fields": [
+      "stopLoss",
+      "slTriggerBy",
+      "slOrderType",
+      "takeProfit",
+      "tpTriggerBy",
+      "tpOrderType"
+    ],
+    "trigger_types": [
+      "market",
+      "mark"
+    ],
+    "protective_execution_type": "market",
+    "ack_is_fill_confirmation": false,
+    "get_order_details": "/api/v3/trade/order-info",
+    "fill_history": "/api/v3/trade/fills",
+    "terminal_order_states": [
+      "filled",
+      "cancelled"
+    ],
+    "nonterminal_order_states": [
+      "live",
+      "new",
+      "partially_filled"
+    ],
+    "fully_filled_order_can_use_modify_order": false,
+    "reduce_only_null_order_id_possible": true,
+    "cancelled_api_order_retention_hours": 2
+  },
+  "tpsl_strategy": {
+    "source": "strategies",
+    "place": "/api/v3/trade/place-strategy-order",
+    "modify": "/api/v3/trade/modify-strategy-order",
+    "cancel": "/api/v3/trade/cancel-strategy-order",
+    "type": "tpsl",
+    "tpslMode": [
+      "full",
+      "partial"
+    ],
+    "default_mode": "full",
+    "partial_requires_qty": true,
+    "clientOid_idempotency_hours": 6,
+    "idempotency_fully_guaranteed": false,
+    "pending_query": "/api/v3/trade/unfilled-strategy-orders",
+    "pending_response": "data object[]; no cursor documented",
+    "status_enum": {
+      "pending": "waiting",
+      "success": "executed",
+      "failed": "failed",
+      "cancelled": "cancelled",
+      "submitting": "submitting"
+    },
+    "bot_active_protection_status_allowlist": [
+      "pending"
+    ],
+    "query_does_not_document_tpslMode": true,
+    "coverage_rule": "Verify exact symbol, direction, order ID, trigger price/type, execution type, and total covered quantity; do not invent full-position coverage from zero/missing qty."
+  },
+  "position": {
+    "source": "positions",
+    "current": "/api/v3/position/current-position",
+    "size": "total",
+    "available_size": "available",
+    "direction": "posSide",
+    "entry_price": "avgPrice",
+    "leverage": "leverage",
+    "margin": "marginMode",
+    "hold_mode": "holdMode",
+    "pnl": "unrealisedPnl",
+    "history": "/api/v3/position/history-position",
+    "history_retention_days": 90,
+    "history_max_request_days": 30,
+    "history_ledger_fields": [
+      "positionId",
+      "openTotalPos",
+      "closeTotalPos",
+      "openPriceAvg",
+      "closePriceAvg",
+      "cumRealisedPnl",
+      "openFeeTotal",
+      "closeFeeTotal",
+      "totalFunding",
+      "netProfit"
+    ]
+  },
+  "account": {
+    "source": [
+      "settings",
+      "assets"
+    ],
+    "info": "/api/v3/account/info",
+    "settings": "/api/v3/account/settings",
+    "assets": "/api/v3/account/assets",
+    "account_mode": "unified",
+    "holdMode": [
+      "one_way_mode",
+      "hedge_mode"
+    ],
+    "crossed_symbol_leverage": 5,
+    "set_leverage": "/api/v3/account/set-leverage",
+    "set_leverage_body": {
+      "category": "USDT-FUTURES",
+      "symbol": "BTCUSDT",
+      "leverage": "5",
+      "marginMode": "crossed"
+    },
+    "total_equity": "usdtEquity",
+    "effective_collateral_usd": "effEquity",
+    "initial_margin_usd": "imr",
+    "coin_asset_fields": [
+      "coin",
+      "equity",
+      "usdValue",
+      "available",
+      "balance",
+      "debt",
+      "locked"
+    ],
+    "bot_free_margin_formula": "min(USDT.available, max(0,effEquity-imr-excluded_nonUSDT_USD)*USDT.equity/USDT.usdValue)"
+  },
+  "instrument_and_candles": {
+    "source": [
+      "market",
+      "changelog"
+    ],
+    "instruments": "/api/v3/market/instruments",
+    "base_quantity_minimum": "minOrderQty",
+    "base_quantity_step": "quantityMultiplier",
+    "price_step": "priceMultiplier",
+    "notional_minimum": "minOrderAmount",
+    "notional_minimum_unit": "USDT",
+    "maximum_market_quantity": "maxMarketOrderQty",
+    "maximum_limit_quantity": "maxOrderQty",
+    "zero_max_means": "no limit",
+    "quantity_precision": "quantityPrecision",
+    "price_precision": "pricePrecision",
+    "fee": "takerFeeRate",
+    "status_required": "online",
+    "maintenance_fields": [
+      "limitOpenTime",
+      "maintainTime",
+      "offTime"
+    ],
+    "current_candles": "/api/v3/market/candles",
+    "current_limit_max": 1000,
+    "history_candles": "/api/v3/market/history-candles",
+    "history_limit_max": 100,
+    "history_request_span_days": 90,
+    "five_minute_interval": "5m",
+    "row_fields": [
+      "timestamp",
+      "open",
+      "high",
+      "low",
+      "close",
+      "base_volume",
+      "quote_turnover"
+    ]
+  },
+  "predecessor_audit_findings": [
+    {
+      "severity": "high",
+      "file": "basic_core/account.py",
+      "function": "protection",
+      "finding": "Status success means executed, but predecessor excludes only cancelled/canceled/failed/triggered and could count an executed TPSL as active coverage. Engine agent informed; enforce pending and test."
+    },
+    {
+      "severity": "medium",
+      "file": "basic_core/account.py",
+      "function": "protection",
+      "finding": "Missing slOrderType defaults to market; absent fields and unknown states should fail closed."
+    },
+    {
+      "severity": "medium",
+      "file": "basic_core/engine.py",
+      "function": "enter",
+      "finding": "Instrument metadata cache can preserve outdated online status and fees. Refresh before each new entry."
+    },
+    {
+      "severity": "compatibility",
+      "file": "basic_core/api.py",
+      "function": "strategies",
+      "finding": "rows supports array, compatible with pending-strategy docs. Generic pagination rejects large array without cursor rather than silently claiming complete inventory."
+    },
+    {
+      "severity": "compatibility",
+      "file": "basic_core/api.py",
+      "finding": "Do not mix classic v2 presetStopLossPrice,size,tradeSide parameters with UTA v3 qty,stopLoss,posSide."
+    }
+  ],
+  "live_uncertainties": [
+    "No account credentials or server were available to verify live responses, account permissions, current fee tier, or actual protective order coverage.",
+    "Documentation verifies endpoint semantics, not strategy profitability, exchange availability, or guaranteed stop prices.",
+    "Pending TP/SL binding must be confirmed from the actual response after entry; on unverifiable coverage halt and close owned exposure.",
+    "Original trade preset coverage behavior may differ for partial IOC fills; exact filled-quantity coverage must be checked."
+  ],
+  "funding_history": {
+    "source": "funding_history",
+    "method": "GET",
+    "private": false,
+    "path": "/api/v3/market/history-fund-rate",
+    "request": {
+      "category": "USDT-FUTURES",
+      "symbol": "BTCUSDT",
+      "limit": "20",
+      "cursor": "1"
+    },
+    "required_params": [
+      "category",
+      "symbol"
+    ],
+    "limit_default": 20,
+    "limit_maximum": 100,
+    "cursor_semantics": "Page number, default 1, maximum 100; not opaque response cursor.",
+    "history_days": 90,
+    "data_schema": "object containing resultList array",
+    "row_fields": {
+      "symbol": "symbol",
+      "rate": "fundingRate",
+      "settlement_time_ms": "fundingRateTimestamp"
+    },
+    "entry_value_selection": "Among rows for the requested symbol with finite rate and valid positive timestamp <= entry as-of time, use the maximum fundingRateTimestamp. Conflicting duplicate timestamps fail closed.",
+    "runtime_freshness_policy_hours": 16,
+    "runtime_freshness_is_bot_policy": true,
+    "future_timestamp_policy": "Reject future rows from eligible observations; do not use upcoming funding to stand in for settled history.",
+    "ticker_limitation": "Ticker fundingRate is not documented as the latest settled rate; current-fund-rate is documented separately with nextUpdate. Exact current/predicted timing of ticker field is not independently established by its field description.",
+    "research_parity": "Frozen labels gate the most recent historical settlement at execution time. Use this history value in entry gating; adding an upcoming/current funding veto changes eligibility and must be declared and tested separately.",
+    "generic_pages_compatible": false,
+    "generic_rows_compatible": false,
+    "compatibility_reason": "Existing rows() understands data arrays or data.list, not data.resultList; implement a dedicated parser, not generic cursor pagination.",
+    "no_authenticated_or_live_calls": true
+  }
+}

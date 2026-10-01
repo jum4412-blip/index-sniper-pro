@@ -1,0 +1,1234 @@
+{
+  "method": "Fixed closed-15m signals, +1-minute market open, fixed exits, nonoverlap per symbol, no stops or drawdown guards; proxy funding at prior minute open; entry within period and exit <= end",
+  "source": "Binance USD-M BTCUSDT/ETHUSDT minute OHLCV proxy, not Bitget historical fills",
+  "source_coverage_utc": "2022-07-18 15:00 through 2026-09-21 14:59",
+  "raw_npz_in_git": false,
+  "reproduce_data_note": "Six required *_minute.npz, *_features.npz and *_funding.npz must be supplied separately in btc_eth_15m_backtest/cache; never commit the 132MB local cache to GitHub",
+  "discovery_utc": [
+    "2023-01-01",
+    "2025-01-01"
+  ],
+  "evaluation_utc": [
+    "2025-01-01",
+    "2026-09-21 15:00"
+  ],
+  "candidate_profiles": 432,
+  "structurally_impossible_pullback_counter_profiles": 36,
+  "active_candidate_profiles": 396,
+  "discovery_min100_each_symbol": 396,
+  "cost_rate_base": 0.0029,
+  "cost_rate_double": 0.0058,
+  "capital_per_symbol": 400,
+  "leverage": 5,
+  "notional_per_symbol": 2000,
+  "discovery_positive_with_min100_each": 0,
+  "source_sha256": {
+    "BTCUSDT_features.npz": "70cba5d265a2ab05ed7eccd75d022850fbfe2a40d5c9bc0696cf446d5c0cb650",
+    "BTCUSDT_funding.npz": "2e63badc8d0f7cf68828b6ce5328c6cf2971d66c6e64cb74c55815d1eccb9df3",
+    "BTCUSDT_minute.npz": "9b75ba34d34c173806ecebb4970ce16358a7a70c77a6319b0f914ba5c7266be9",
+    "ETHUSDT_features.npz": "f1e9339c706d9c0ae9004732213e1e25f1e9285f13b94d69af7a3772cf40e816",
+    "ETHUSDT_funding.npz": "0d93f8937f3909573471217ea2cefec544d7b21e80dda8a7f11718198b3a204e",
+    "ETHUSDT_minute.npz": "a71223e1bb57c634b2626bf531dd48df4726eff6a136bd4dd2c473b7b46bcb30"
+  },
+  "top_discovery": [
+    {
+      "index": 104,
+      "spec": {
+        "family": "breakout",
+        "lookback": 48,
+        "volume": 1.5,
+        "regime": "counter",
+        "invert": false,
+        "minutes": 480
+      },
+      "discovery": {
+        "trades": 384,
+        "per_year": 191.9,
+        "total_pnl": -1470.69,
+        "avg_usdt": -3.83,
+        "breakeven_cost_bps": 9.85,
+        "btc_pnl": -323.57,
+        "eth_pnl": -1147.12,
+        "btc_trades": 196,
+        "eth_trades": 188,
+        "win_rate": 0.3984
+      },
+      "discovery_cost2": {
+        "trades": 384,
+        "per_year": 191.9,
+        "total_pnl": -3697.89,
+        "avg_usdt": -9.63,
+        "breakeven_cost_bps": 9.85,
+        "btc_pnl": -1460.37,
+        "eth_pnl": -2237.52,
+        "btc_trades": 196,
+        "eth_trades": 188,
+        "win_rate": 0.3177
+      },
+      "evaluation": {
+        "trades": 401,
+        "per_year": 233.0,
+        "total_pnl": -2452.45,
+        "avg_usdt": -6.116,
+        "breakeven_cost_bps": -1.58,
+        "btc_pnl": -1544.18,
+        "eth_pnl": -908.27,
+        "btc_trades": 208,
+        "eth_trades": 193,
+        "win_rate": 0.3915
+      },
+      "evaluation_cost2": {
+        "trades": 401,
+        "per_year": 233.0,
+        "total_pnl": -4778.25,
+        "avg_usdt": -11.916,
+        "breakeven_cost_bps": -1.58,
+        "btc_pnl": -2750.58,
+        "eth_pnl": -2027.67,
+        "btc_trades": 208,
+        "eth_trades": 193,
+        "win_rate": 0.2818
+      },
+      "discovery_calendar_block_ci": {
+        "period_calendar_days": 731,
+        "block_days": 7,
+        "repetitions": 2000,
+        "total_pnl_95pct_interval_usdt": [
+          -2829.4,
+          -254.38
+        ]
+      },
+      "evaluation_calendar_block_ci": {
+        "period_calendar_days": 629,
+        "block_days": 7,
+        "repetitions": 2000,
+        "total_pnl_95pct_interval_usdt": [
+          -4054.22,
+          -918.35
+        ]
+      }
+    },
+    {
+      "index": 86,
+      "spec": {
+        "family": "breakout",
+        "lookback": 48,
+        "volume": 0.0,
+        "regime": "counter",
+        "invert": false,
+        "minutes": 480
+      },
+      "discovery": {
+        "trades": 443,
+        "per_year": 221.3,
+        "total_pnl": -2120.46,
+        "avg_usdt": -4.787,
+        "breakeven_cost_bps": 5.07,
+        "btc_pnl": -422.15,
+        "eth_pnl": -1698.32,
+        "btc_trades": 227,
+        "eth_trades": 216,
+        "win_rate": 0.3905
+      },
+      "discovery_cost2": {
+        "trades": 443,
+        "per_year": 221.3,
+        "total_pnl": -4689.86,
+        "avg_usdt": -10.587,
+        "breakeven_cost_bps": 5.07,
+        "btc_pnl": -1738.75,
+        "eth_pnl": -2951.12,
+        "btc_trades": 227,
+        "eth_trades": 216,
+        "win_rate": 0.3115
+      },
+      "evaluation": {
+        "trades": 475,
+        "per_year": 276.0,
+        "total_pnl": -3239.47,
+        "avg_usdt": -6.82,
+        "breakeven_cost_bps": -5.1,
+        "btc_pnl": -1868.42,
+        "eth_pnl": -1371.05,
+        "btc_trades": 251,
+        "eth_trades": 224,
+        "win_rate": 0.3895
+      },
+      "evaluation_cost2": {
+        "trades": 475,
+        "per_year": 276.0,
+        "total_pnl": -5994.47,
+        "avg_usdt": -12.62,
+        "breakeven_cost_bps": -5.1,
+        "btc_pnl": -3324.22,
+        "eth_pnl": -2670.25,
+        "btc_trades": 251,
+        "eth_trades": 224,
+        "win_rate": 0.2695
+      }
+    },
+    {
+      "index": 103,
+      "spec": {
+        "family": "breakout",
+        "lookback": 48,
+        "volume": 1.5,
+        "regime": "counter",
+        "invert": false,
+        "minutes": 240
+      },
+      "discovery": {
+        "trades": 401,
+        "per_year": 200.4,
+        "total_pnl": -2322.83,
+        "avg_usdt": -5.793,
+        "breakeven_cost_bps": 0.04,
+        "btc_pnl": -793.72,
+        "eth_pnl": -1529.11,
+        "btc_trades": 206,
+        "eth_trades": 195,
+        "win_rate": 0.3367
+      },
+      "discovery_cost2": {
+        "trades": 401,
+        "per_year": 200.4,
+        "total_pnl": -4648.63,
+        "avg_usdt": -11.593,
+        "breakeven_cost_bps": 0.04,
+        "btc_pnl": -1988.52,
+        "eth_pnl": -2660.11,
+        "btc_trades": 206,
+        "eth_trades": 195,
+        "win_rate": 0.2369
+      },
+      "evaluation": {
+        "trades": 419,
+        "per_year": 243.5,
+        "total_pnl": -2541.33,
+        "avg_usdt": -6.065,
+        "breakeven_cost_bps": -1.33,
+        "btc_pnl": -1434.55,
+        "eth_pnl": -1106.78,
+        "btc_trades": 215,
+        "eth_trades": 204,
+        "win_rate": 0.3222
+      },
+      "evaluation_cost2": {
+        "trades": 419,
+        "per_year": 243.5,
+        "total_pnl": -4971.53,
+        "avg_usdt": -11.865,
+        "breakeven_cost_bps": -1.33,
+        "btc_pnl": -2681.55,
+        "eth_pnl": -2289.98,
+        "btc_trades": 215,
+        "eth_trades": 204,
+        "win_rate": 0.2411
+      }
+    },
+    {
+      "index": 106,
+      "spec": {
+        "family": "breakout",
+        "lookback": 48,
+        "volume": 1.5,
+        "regime": "counter",
+        "invert": true,
+        "minutes": 240
+      },
+      "discovery": {
+        "trades": 401,
+        "per_year": 200.4,
+        "total_pnl": -2328.77,
+        "avg_usdt": -5.807,
+        "breakeven_cost_bps": -0.04,
+        "btc_pnl": -1595.88,
+        "eth_pnl": -732.89,
+        "btc_trades": 206,
+        "eth_trades": 195,
+        "win_rate": 0.3716
+      },
+      "discovery_cost2": {
+        "trades": 401,
+        "per_year": 200.4,
+        "total_pnl": -4654.57,
+        "avg_usdt": -11.607,
+        "breakeven_cost_bps": -0.04,
+        "btc_pnl": -2790.68,
+        "eth_pnl": -1863.89,
+        "btc_trades": 206,
+        "eth_trades": 195,
+        "win_rate": 0.2519
+      },
+      "evaluation": {
+        "trades": 419,
+        "per_year": 243.5,
+        "total_pnl": -2319.07,
+        "avg_usdt": -5.535,
+        "breakeven_cost_bps": 1.33,
+        "btc_pnl": -1059.45,
+        "eth_pnl": -1259.62,
+        "btc_trades": 215,
+        "eth_trades": 204,
+        "win_rate": 0.3795
+      },
+      "evaluation_cost2": {
+        "trades": 419,
+        "per_year": 243.5,
+        "total_pnl": -4749.27,
+        "avg_usdt": -11.335,
+        "breakeven_cost_bps": 1.33,
+        "btc_pnl": -2306.45,
+        "eth_pnl": -2442.82,
+        "btc_trades": 215,
+        "eth_trades": 204,
+        "win_rate": 0.2554
+      }
+    },
+    {
+      "index": 105,
+      "spec": {
+        "family": "breakout",
+        "lookback": 48,
+        "volume": 1.5,
+        "regime": "counter",
+        "invert": true,
+        "minutes": 60
+      },
+      "discovery": {
+        "trades": 450,
+        "per_year": 224.8,
+        "total_pnl": -2357.69,
+        "avg_usdt": -5.239,
+        "breakeven_cost_bps": 2.8,
+        "btc_pnl": -1428.56,
+        "eth_pnl": -929.13,
+        "btc_trades": 229,
+        "eth_trades": 221,
+        "win_rate": 0.28
+      },
+      "discovery_cost2": {
+        "trades": 450,
+        "per_year": 224.8,
+        "total_pnl": -4967.69,
+        "avg_usdt": -11.039,
+        "breakeven_cost_bps": 2.8,
+        "btc_pnl": -2756.76,
+        "eth_pnl": -2210.93,
+        "btc_trades": 229,
+        "eth_trades": 221,
+        "win_rate": 0.1333
+      },
+      "evaluation": {
+        "trades": 468,
+        "per_year": 271.9,
+        "total_pnl": -2546.13,
+        "avg_usdt": -5.44,
+        "breakeven_cost_bps": 1.8,
+        "btc_pnl": -1288.58,
+        "eth_pnl": -1257.56,
+        "btc_trades": 241,
+        "eth_trades": 227,
+        "win_rate": 0.2906
+      },
+      "evaluation_cost2": {
+        "trades": 468,
+        "per_year": 271.9,
+        "total_pnl": -5260.53,
+        "avg_usdt": -11.24,
+        "breakeven_cost_bps": 1.8,
+        "btc_pnl": -2686.38,
+        "eth_pnl": -2574.16,
+        "btc_trades": 241,
+        "eth_trades": 227,
+        "win_rate": 0.1474
+      }
+    },
+    {
+      "index": 88,
+      "spec": {
+        "family": "breakout",
+        "lookback": 48,
+        "volume": 0.0,
+        "regime": "counter",
+        "invert": true,
+        "minutes": 240
+      },
+      "discovery": {
+        "trades": 468,
+        "per_year": 233.8,
+        "total_pnl": -2444.32,
+        "avg_usdt": -5.223,
+        "breakeven_cost_bps": 2.89,
+        "btc_pnl": -1849.29,
+        "eth_pnl": -595.04,
+        "btc_trades": 240,
+        "eth_trades": 228,
+        "win_rate": 0.3611
+      },
+      "discovery_cost2": {
+        "trades": 468,
+        "per_year": 233.8,
+        "total_pnl": -5158.72,
+        "avg_usdt": -11.023,
+        "breakeven_cost_bps": 2.89,
+        "btc_pnl": -3241.29,
+        "eth_pnl": -1917.44,
+        "btc_trades": 240,
+        "eth_trades": 228,
+        "win_rate": 0.25
+      },
+      "evaluation": {
+        "trades": 504,
+        "per_year": 292.8,
+        "total_pnl": -2873.94,
+        "avg_usdt": -5.702,
+        "breakeven_cost_bps": 0.49,
+        "btc_pnl": -1402.86,
+        "eth_pnl": -1471.08,
+        "btc_trades": 265,
+        "eth_trades": 239,
+        "win_rate": 0.3651
+      },
+      "evaluation_cost2": {
+        "trades": 504,
+        "per_year": 292.8,
+        "total_pnl": -5797.14,
+        "avg_usdt": -11.502,
+        "breakeven_cost_bps": 0.49,
+        "btc_pnl": -2939.86,
+        "eth_pnl": -2857.28,
+        "btc_trades": 265,
+        "eth_trades": 239,
+        "win_rate": 0.2381
+      }
+    },
+    {
+      "index": 87,
+      "spec": {
+        "family": "breakout",
+        "lookback": 48,
+        "volume": 0.0,
+        "regime": "counter",
+        "invert": true,
+        "minutes": 60
+      },
+      "discovery": {
+        "trades": 538,
+        "per_year": 268.8,
+        "total_pnl": -2678.7,
+        "avg_usdt": -4.979,
+        "breakeven_cost_bps": 4.11,
+        "btc_pnl": -1731.5,
+        "eth_pnl": -947.2,
+        "btc_trades": 275,
+        "eth_trades": 263,
+        "win_rate": 0.2862
+      },
+      "discovery_cost2": {
+        "trades": 538,
+        "per_year": 268.8,
+        "total_pnl": -5799.1,
+        "avg_usdt": -10.779,
+        "breakeven_cost_bps": 4.11,
+        "btc_pnl": -3326.5,
+        "eth_pnl": -2472.6,
+        "btc_trades": 275,
+        "eth_trades": 263,
+        "win_rate": 0.132
+      },
+      "evaluation": {
+        "trades": 601,
+        "per_year": 349.2,
+        "total_pnl": -3347.08,
+        "avg_usdt": -5.569,
+        "breakeven_cost_bps": 1.15,
+        "btc_pnl": -1695.61,
+        "eth_pnl": -1651.47,
+        "btc_trades": 320,
+        "eth_trades": 281,
+        "win_rate": 0.2795
+      },
+      "evaluation_cost2": {
+        "trades": 601,
+        "per_year": 349.2,
+        "total_pnl": -6832.88,
+        "avg_usdt": -11.369,
+        "breakeven_cost_bps": 1.15,
+        "btc_pnl": -3551.61,
+        "eth_pnl": -3281.27,
+        "btc_trades": 320,
+        "eth_trades": 281,
+        "win_rate": 0.1364
+      }
+    },
+    {
+      "index": 206,
+      "spec": {
+        "family": "sweep",
+        "lookback": 48,
+        "volume": 1.5,
+        "regime": "trend",
+        "invert": false,
+        "minutes": 480
+      },
+      "discovery": {
+        "trades": 568,
+        "per_year": 283.8,
+        "total_pnl": -2785.76,
+        "avg_usdt": -4.904,
+        "breakeven_cost_bps": 4.48,
+        "btc_pnl": -1429.06,
+        "eth_pnl": -1356.7,
+        "btc_trades": 286,
+        "eth_trades": 282,
+        "win_rate": 0.3345
+      },
+      "discovery_cost2": {
+        "trades": 568,
+        "per_year": 283.8,
+        "total_pnl": -6080.16,
+        "avg_usdt": -10.704,
+        "breakeven_cost_bps": 4.48,
+        "btc_pnl": -3087.86,
+        "eth_pnl": -2992.3,
+        "btc_trades": 286,
+        "eth_trades": 282,
+        "win_rate": 0.2447
+      },
+      "evaluation": {
+        "trades": 440,
+        "per_year": 255.7,
+        "total_pnl": -3592.79,
+        "avg_usdt": -8.165,
+        "breakeven_cost_bps": -11.83,
+        "btc_pnl": -1483.02,
+        "eth_pnl": -2109.76,
+        "btc_trades": 212,
+        "eth_trades": 228,
+        "win_rate": 0.3932
+      },
+      "evaluation_cost2": {
+        "trades": 440,
+        "per_year": 255.7,
+        "total_pnl": -6144.79,
+        "avg_usdt": -13.965,
+        "breakeven_cost_bps": -11.83,
+        "btc_pnl": -2712.62,
+        "eth_pnl": -3432.16,
+        "btc_trades": 212,
+        "eth_trades": 228,
+        "win_rate": 0.275
+      }
+    },
+    {
+      "index": 102,
+      "spec": {
+        "family": "breakout",
+        "lookback": 48,
+        "volume": 1.5,
+        "regime": "counter",
+        "invert": false,
+        "minutes": 60
+      },
+      "discovery": {
+        "trades": 450,
+        "per_year": 224.8,
+        "total_pnl": -2862.31,
+        "avg_usdt": -6.361,
+        "breakeven_cost_bps": -2.8,
+        "btc_pnl": -1227.84,
+        "eth_pnl": -1634.47,
+        "btc_trades": 229,
+        "eth_trades": 221,
+        "win_rate": 0.2222
+      },
+      "discovery_cost2": {
+        "trades": 450,
+        "per_year": 224.8,
+        "total_pnl": -5472.31,
+        "avg_usdt": -12.161,
+        "breakeven_cost_bps": -2.8,
+        "btc_pnl": -2556.04,
+        "eth_pnl": -2916.27,
+        "btc_trades": 229,
+        "eth_trades": 221,
+        "win_rate": 0.1222
+      },
+      "evaluation": {
+        "trades": 468,
+        "per_year": 271.9,
+        "total_pnl": -2882.67,
+        "avg_usdt": -6.16,
+        "breakeven_cost_bps": -1.8,
+        "btc_pnl": -1507.02,
+        "eth_pnl": -1375.64,
+        "btc_trades": 241,
+        "eth_trades": 227,
+        "win_rate": 0.2415
+      },
+      "evaluation_cost2": {
+        "trades": 468,
+        "per_year": 271.9,
+        "total_pnl": -5597.07,
+        "avg_usdt": -11.96,
+        "breakeven_cost_bps": -1.8,
+        "btc_pnl": -2904.82,
+        "eth_pnl": -2692.24,
+        "btc_trades": 241,
+        "eth_trades": 227,
+        "win_rate": 0.1325
+      }
+    },
+    {
+      "index": 107,
+      "spec": {
+        "family": "breakout",
+        "lookback": 48,
+        "volume": 1.5,
+        "regime": "counter",
+        "invert": true,
+        "minutes": 480
+      },
+      "discovery": {
+        "trades": 384,
+        "per_year": 191.9,
+        "total_pnl": -2983.71,
+        "avg_usdt": -7.77,
+        "breakeven_cost_bps": -9.85,
+        "btc_pnl": -1950.03,
+        "eth_pnl": -1033.68,
+        "btc_trades": 196,
+        "eth_trades": 188,
+        "win_rate": 0.3698
+      },
+      "discovery_cost2": {
+        "trades": 384,
+        "per_year": 191.9,
+        "total_pnl": -5210.91,
+        "avg_usdt": -13.57,
+        "breakeven_cost_bps": -9.85,
+        "btc_pnl": -3086.83,
+        "eth_pnl": -2124.08,
+        "btc_trades": 196,
+        "eth_trades": 188,
+        "win_rate": 0.2734
+      },
+      "evaluation": {
+        "trades": 401,
+        "per_year": 233.0,
+        "total_pnl": -2199.15,
+        "avg_usdt": -5.484,
+        "breakeven_cost_bps": 1.58,
+        "btc_pnl": -868.62,
+        "eth_pnl": -1330.53,
+        "btc_trades": 208,
+        "eth_trades": 193,
+        "win_rate": 0.404
+      },
+      "evaluation_cost2": {
+        "trades": 401,
+        "per_year": 233.0,
+        "total_pnl": -4524.95,
+        "avg_usdt": -11.284,
+        "breakeven_cost_bps": 1.58,
+        "btc_pnl": -2075.02,
+        "eth_pnl": -2449.93,
+        "btc_trades": 208,
+        "eth_trades": 193,
+        "win_rate": 0.3067
+      }
+    },
+    {
+      "index": 85,
+      "spec": {
+        "family": "breakout",
+        "lookback": 48,
+        "volume": 0.0,
+        "regime": "counter",
+        "invert": false,
+        "minutes": 240
+      },
+      "discovery": {
+        "trades": 468,
+        "per_year": 233.8,
+        "total_pnl": -2984.48,
+        "avg_usdt": -6.377,
+        "breakeven_cost_bps": -2.89,
+        "btc_pnl": -934.71,
+        "eth_pnl": -2049.76,
+        "btc_trades": 240,
+        "eth_trades": 228,
+        "win_rate": 0.3162
+      },
+      "discovery_cost2": {
+        "trades": 468,
+        "per_year": 233.8,
+        "total_pnl": -5698.88,
+        "avg_usdt": -12.177,
+        "breakeven_cost_bps": -2.89,
+        "btc_pnl": -2326.71,
+        "eth_pnl": -3372.16,
+        "btc_trades": 240,
+        "eth_trades": 228,
+        "win_rate": 0.2286
+      },
+      "evaluation": {
+        "trades": 504,
+        "per_year": 292.8,
+        "total_pnl": -2972.46,
+        "avg_usdt": -5.898,
+        "breakeven_cost_bps": -0.49,
+        "btc_pnl": -1671.14,
+        "eth_pnl": -1301.32,
+        "btc_trades": 265,
+        "eth_trades": 239,
+        "win_rate": 0.3274
+      },
+      "evaluation_cost2": {
+        "trades": 504,
+        "per_year": 292.8,
+        "total_pnl": -5895.66,
+        "avg_usdt": -11.698,
+        "breakeven_cost_bps": -0.49,
+        "btc_pnl": -3208.14,
+        "eth_pnl": -2687.52,
+        "btc_trades": 265,
+        "eth_trades": 239,
+        "win_rate": 0.2321
+      }
+    },
+    {
+      "index": 89,
+      "spec": {
+        "family": "breakout",
+        "lookback": 48,
+        "volume": 0.0,
+        "regime": "counter",
+        "invert": true,
+        "minutes": 480
+      },
+      "discovery": {
+        "trades": 443,
+        "per_year": 221.3,
+        "total_pnl": -3018.34,
+        "avg_usdt": -6.813,
+        "breakeven_cost_bps": -5.07,
+        "btc_pnl": -2211.05,
+        "eth_pnl": -807.28,
+        "btc_trades": 227,
+        "eth_trades": 216,
+        "win_rate": 0.377
+      },
+      "discovery_cost2": {
+        "trades": 443,
+        "per_year": 221.3,
+        "total_pnl": -5587.74,
+        "avg_usdt": -12.613,
+        "breakeven_cost_bps": -5.07,
+        "btc_pnl": -3527.65,
+        "eth_pnl": -2060.08,
+        "btc_trades": 227,
+        "eth_trades": 216,
+        "win_rate": 0.2777
+      },
+      "evaluation": {
+        "trades": 475,
+        "per_year": 276.0,
+        "total_pnl": -2270.53,
+        "avg_usdt": -4.78,
+        "breakeven_cost_bps": 5.1,
+        "btc_pnl": -1043.18,
+        "eth_pnl": -1227.35,
+        "btc_trades": 251,
+        "eth_trades": 224,
+        "win_rate": 0.4105
+      },
+      "evaluation_cost2": {
+        "trades": 475,
+        "per_year": 276.0,
+        "total_pnl": -5025.53,
+        "avg_usdt": -10.58,
+        "breakeven_cost_bps": 5.1,
+        "btc_pnl": -2498.98,
+        "eth_pnl": -2526.55,
+        "btc_trades": 251,
+        "eth_trades": 224,
+        "win_rate": 0.3158
+      }
+    },
+    {
+      "index": 205,
+      "spec": {
+        "family": "sweep",
+        "lookback": 48,
+        "volume": 1.5,
+        "regime": "trend",
+        "invert": false,
+        "minutes": 240
+      },
+      "discovery": {
+        "trades": 602,
+        "per_year": 300.8,
+        "total_pnl": -3358.14,
+        "avg_usdt": -5.578,
+        "breakeven_cost_bps": 1.11,
+        "btc_pnl": -1516.51,
+        "eth_pnl": -1841.64,
+        "btc_trades": 305,
+        "eth_trades": 297,
+        "win_rate": 0.3007
+      },
+      "discovery_cost2": {
+        "trades": 602,
+        "per_year": 300.8,
+        "total_pnl": -6849.74,
+        "avg_usdt": -11.378,
+        "breakeven_cost_bps": 1.11,
+        "btc_pnl": -3285.51,
+        "eth_pnl": -3564.24,
+        "btc_trades": 305,
+        "eth_trades": 297,
+        "win_rate": 0.196
+      },
+      "evaluation": {
+        "trades": 463,
+        "per_year": 269.0,
+        "total_pnl": -3605.97,
+        "avg_usdt": -7.788,
+        "breakeven_cost_bps": -9.94,
+        "btc_pnl": -1875.15,
+        "eth_pnl": -1730.82,
+        "btc_trades": 227,
+        "eth_trades": 236,
+        "win_rate": 0.3434
+      },
+      "evaluation_cost2": {
+        "trades": 463,
+        "per_year": 269.0,
+        "total_pnl": -6291.37,
+        "avg_usdt": -13.588,
+        "breakeven_cost_bps": -9.94,
+        "btc_pnl": -3191.75,
+        "eth_pnl": -3099.62,
+        "btc_trades": 227,
+        "eth_trades": 236,
+        "win_rate": 0.2246
+      }
+    },
+    {
+      "index": 207,
+      "spec": {
+        "family": "sweep",
+        "lookback": 48,
+        "volume": 1.5,
+        "regime": "trend",
+        "invert": true,
+        "minutes": 60
+      },
+      "discovery": {
+        "trades": 666,
+        "per_year": 332.8,
+        "total_pnl": -3409.24,
+        "avg_usdt": -5.119,
+        "breakeven_cost_bps": 3.41,
+        "btc_pnl": -1761.54,
+        "eth_pnl": -1647.7,
+        "btc_trades": 342,
+        "eth_trades": 324,
+        "win_rate": 0.2177
+      },
+      "discovery_cost2": {
+        "trades": 666,
+        "per_year": 332.8,
+        "total_pnl": -7272.04,
+        "avg_usdt": -10.919,
+        "breakeven_cost_bps": 3.41,
+        "btc_pnl": -3745.14,
+        "eth_pnl": -3526.9,
+        "btc_trades": 342,
+        "eth_trades": 324,
+        "win_rate": 0.0946
+      },
+      "evaluation": {
+        "trades": 519,
+        "per_year": 301.6,
+        "total_pnl": -2708.66,
+        "avg_usdt": -5.219,
+        "breakeven_cost_bps": 2.91,
+        "btc_pnl": -1232.83,
+        "eth_pnl": -1475.82,
+        "btc_trades": 258,
+        "eth_trades": 261,
+        "win_rate": 0.264
+      },
+      "evaluation_cost2": {
+        "trades": 519,
+        "per_year": 301.6,
+        "total_pnl": -5718.86,
+        "avg_usdt": -11.019,
+        "breakeven_cost_bps": 2.91,
+        "btc_pnl": -2729.23,
+        "eth_pnl": -2989.62,
+        "btc_trades": 258,
+        "eth_trades": 261,
+        "win_rate": 0.1233
+      }
+    },
+    {
+      "index": 84,
+      "spec": {
+        "family": "breakout",
+        "lookback": 48,
+        "volume": 0.0,
+        "regime": "counter",
+        "invert": false,
+        "minutes": 60
+      },
+      "discovery": {
+        "trades": 538,
+        "per_year": 268.8,
+        "total_pnl": -3562.1,
+        "avg_usdt": -6.621,
+        "breakeven_cost_bps": -4.11,
+        "btc_pnl": -1458.5,
+        "eth_pnl": -2103.6,
+        "btc_trades": 275,
+        "eth_trades": 263,
+        "win_rate": 0.2119
+      },
+      "discovery_cost2": {
+        "trades": 538,
+        "per_year": 268.8,
+        "total_pnl": -6682.5,
+        "avg_usdt": -12.421,
+        "breakeven_cost_bps": -4.11,
+        "btc_pnl": -3053.5,
+        "eth_pnl": -3629.0,
+        "btc_trades": 275,
+        "eth_trades": 263,
+        "win_rate": 0.1208
+      },
+      "evaluation": {
+        "trades": 601,
+        "per_year": 349.2,
+        "total_pnl": -3624.52,
+        "avg_usdt": -6.031,
+        "breakeven_cost_bps": -1.15,
+        "btc_pnl": -2016.39,
+        "eth_pnl": -1608.13,
+        "btc_trades": 320,
+        "eth_trades": 281,
+        "win_rate": 0.228
+      },
+      "evaluation_cost2": {
+        "trades": 601,
+        "per_year": 349.2,
+        "total_pnl": -7110.32,
+        "avg_usdt": -11.831,
+        "breakeven_cost_bps": -1.15,
+        "btc_pnl": -3872.39,
+        "eth_pnl": -3237.93,
+        "btc_trades": 320,
+        "eth_trades": 281,
+        "win_rate": 0.1198
+      }
+    },
+    {
+      "index": 208,
+      "spec": {
+        "family": "sweep",
+        "lookback": 48,
+        "volume": 1.5,
+        "regime": "trend",
+        "invert": true,
+        "minutes": 240
+      },
+      "discovery": {
+        "trades": 602,
+        "per_year": 300.8,
+        "total_pnl": -3625.06,
+        "avg_usdt": -6.022,
+        "breakeven_cost_bps": -1.11,
+        "btc_pnl": -2021.49,
+        "eth_pnl": -1603.56,
+        "btc_trades": 305,
+        "eth_trades": 297,
+        "win_rate": 0.3106
+      },
+      "discovery_cost2": {
+        "trades": 602,
+        "per_year": 300.8,
+        "total_pnl": -7116.66,
+        "avg_usdt": -11.822,
+        "breakeven_cost_bps": -1.11,
+        "btc_pnl": -3790.49,
+        "eth_pnl": -3326.16,
+        "btc_trades": 305,
+        "eth_trades": 297,
+        "win_rate": 0.2043
+      },
+      "evaluation": {
+        "trades": 463,
+        "per_year": 269.0,
+        "total_pnl": -1764.83,
+        "avg_usdt": -3.812,
+        "breakeven_cost_bps": 9.94,
+        "btc_pnl": -758.05,
+        "eth_pnl": -1006.78,
+        "btc_trades": 227,
+        "eth_trades": 236,
+        "win_rate": 0.3434
+      },
+      "evaluation_cost2": {
+        "trades": 463,
+        "per_year": 269.0,
+        "total_pnl": -4450.23,
+        "avg_usdt": -9.612,
+        "breakeven_cost_bps": 9.94,
+        "btc_pnl": -2074.65,
+        "eth_pnl": -2375.58,
+        "btc_trades": 227,
+        "eth_trades": 236,
+        "win_rate": 0.2397
+      }
+    },
+    {
+      "index": 209,
+      "spec": {
+        "family": "sweep",
+        "lookback": 48,
+        "volume": 1.5,
+        "regime": "trend",
+        "invert": true,
+        "minutes": 480
+      },
+      "discovery": {
+        "trades": 568,
+        "per_year": 283.8,
+        "total_pnl": -3803.04,
+        "avg_usdt": -6.696,
+        "breakeven_cost_bps": -4.48,
+        "btc_pnl": -1888.54,
+        "eth_pnl": -1914.5,
+        "btc_trades": 286,
+        "eth_trades": 282,
+        "win_rate": 0.3644
+      },
+      "discovery_cost2": {
+        "trades": 568,
+        "per_year": 283.8,
+        "total_pnl": -7097.44,
+        "avg_usdt": -12.496,
+        "breakeven_cost_bps": -4.48,
+        "btc_pnl": -3547.34,
+        "eth_pnl": -3550.1,
+        "btc_trades": 286,
+        "eth_trades": 282,
+        "win_rate": 0.2887
+      },
+      "evaluation": {
+        "trades": 440,
+        "per_year": 255.7,
+        "total_pnl": -1511.21,
+        "avg_usdt": -3.435,
+        "breakeven_cost_bps": 11.83,
+        "btc_pnl": -976.18,
+        "eth_pnl": -535.04,
+        "btc_trades": 212,
+        "eth_trades": 228,
+        "win_rate": 0.3864
+      },
+      "evaluation_cost2": {
+        "trades": 440,
+        "per_year": 255.7,
+        "total_pnl": -4063.21,
+        "avg_usdt": -9.235,
+        "breakeven_cost_bps": 11.83,
+        "btc_pnl": -2205.78,
+        "eth_pnl": -1857.44,
+        "btc_trades": 212,
+        "eth_trades": 228,
+        "win_rate": 0.3023
+      }
+    },
+    {
+      "index": 188,
+      "spec": {
+        "family": "sweep",
+        "lookback": 48,
+        "volume": 0.0,
+        "regime": "trend",
+        "invert": false,
+        "minutes": 480
+      },
+      "discovery": {
+        "trades": 698,
+        "per_year": 348.8,
+        "total_pnl": -4011.77,
+        "avg_usdt": -5.748,
+        "breakeven_cost_bps": 0.26,
+        "btc_pnl": -1947.33,
+        "eth_pnl": -2064.44,
+        "btc_trades": 344,
+        "eth_trades": 354,
+        "win_rate": 0.3367
+      },
+      "discovery_cost2": {
+        "trades": 698,
+        "per_year": 348.8,
+        "total_pnl": -8060.17,
+        "avg_usdt": -11.548,
+        "breakeven_cost_bps": 0.26,
+        "btc_pnl": -3942.53,
+        "eth_pnl": -4117.64,
+        "btc_trades": 344,
+        "eth_trades": 354,
+        "win_rate": 0.2536
+      },
+      "evaluation": {
+        "trades": 599,
+        "per_year": 348.0,
+        "total_pnl": -4739.64,
+        "avg_usdt": -7.913,
+        "breakeven_cost_bps": -10.56,
+        "btc_pnl": -2082.75,
+        "eth_pnl": -2656.89,
+        "btc_trades": 290,
+        "eth_trades": 309,
+        "win_rate": 0.3706
+      },
+      "evaluation_cost2": {
+        "trades": 599,
+        "per_year": 348.0,
+        "total_pnl": -8213.84,
+        "avg_usdt": -13.713,
+        "breakeven_cost_bps": -10.56,
+        "btc_pnl": -3764.75,
+        "eth_pnl": -4449.09,
+        "btc_trades": 290,
+        "eth_trades": 309,
+        "win_rate": 0.2671
+      }
+    },
+    {
+      "index": 71,
+      "spec": {
+        "family": "breakout",
+        "lookback": 24,
+        "volume": 1.5,
+        "regime": "counter",
+        "invert": true,
+        "minutes": 480
+      },
+      "discovery": {
+        "trades": 812,
+        "per_year": 405.7,
+        "total_pnl": -4053.69,
+        "avg_usdt": -4.992,
+        "breakeven_cost_bps": 4.04,
+        "btc_pnl": -2165.74,
+        "eth_pnl": -1887.95,
+        "btc_trades": 410,
+        "eth_trades": 402,
+        "win_rate": 0.3682
+      },
+      "discovery_cost2": {
+        "trades": 812,
+        "per_year": 405.7,
+        "total_pnl": -8763.29,
+        "avg_usdt": -10.792,
+        "breakeven_cost_bps": 4.04,
+        "btc_pnl": -4543.74,
+        "eth_pnl": -4219.55,
+        "btc_trades": 410,
+        "eth_trades": 402,
+        "win_rate": 0.2808
+      },
+      "evaluation": {
+        "trades": 787,
+        "per_year": 457.3,
+        "total_pnl": -4831.99,
+        "avg_usdt": -6.14,
+        "breakeven_cost_bps": -1.7,
+        "btc_pnl": -2599.29,
+        "eth_pnl": -2232.69,
+        "btc_trades": 392,
+        "eth_trades": 395,
+        "win_rate": 0.3977
+      },
+      "evaluation_cost2": {
+        "trades": 787,
+        "per_year": 457.3,
+        "total_pnl": -9396.59,
+        "avg_usdt": -11.94,
+        "breakeven_cost_bps": -1.7,
+        "btc_pnl": -4872.89,
+        "eth_pnl": -4523.69,
+        "btc_trades": 392,
+        "eth_trades": 395,
+        "win_rate": 0.2922
+      }
+    },
+    {
+      "index": 191,
+      "spec": {
+        "family": "sweep",
+        "lookback": 48,
+        "volume": 0.0,
+        "regime": "trend",
+        "invert": true,
+        "minutes": 480
+      },
+      "discovery": {
+        "trades": 698,
+        "per_year": 348.8,
+        "total_pnl": -4085.03,
+        "avg_usdt": -5.852,
+        "breakeven_cost_bps": -0.26,
+        "btc_pnl": -2043.07,
+        "eth_pnl": -2041.96,
+        "btc_trades": 344,
+        "eth_trades": 354,
+        "win_rate": 0.3682
+      },
+      "discovery_cost2": {
+        "trades": 698,
+        "per_year": 348.8,
+        "total_pnl": -8133.43,
+        "avg_usdt": -11.652,
+        "breakeven_cost_bps": -0.26,
+        "btc_pnl": -4038.27,
+        "eth_pnl": -4095.16,
+        "btc_trades": 344,
+        "eth_trades": 354,
+        "win_rate": 0.2951
+      },
+      "evaluation": {
+        "trades": 599,
+        "per_year": 348.0,
+        "total_pnl": -2208.76,
+        "avg_usdt": -3.687,
+        "breakeven_cost_bps": 10.56,
+        "btc_pnl": -1281.25,
+        "eth_pnl": -927.51,
+        "btc_trades": 290,
+        "eth_trades": 309,
+        "win_rate": 0.409
+      },
+      "evaluation_cost2": {
+        "trades": 599,
+        "per_year": 348.0,
+        "total_pnl": -5682.96,
+        "avg_usdt": -9.487,
+        "breakeven_cost_bps": 10.56,
+        "btc_pnl": -2963.25,
+        "eth_pnl": -2719.71,
+        "btc_trades": 290,
+        "eth_trades": 309,
+        "win_rate": 0.3255
+      }
+    }
+  ],
+  "script_sha256": "078eb8c8bbb98987a9258f1b9a91521c8394d4541b2c78b0e877de38a2952782"
+}
