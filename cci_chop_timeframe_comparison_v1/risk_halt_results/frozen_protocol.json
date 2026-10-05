@@ -1,0 +1,37 @@
+{
+  "experiment": "SELECTED_CCI_CHOP_RUNTIME_ENTRY_HALT_APPROXIMATION_V1",
+  "created_utc": "2026-10-05T07:28:31.470088+00:00",
+  "source_sha256": "e7a6108ed3df6f63bcb7e7335efd1ba426963b455f627cc20461ebe376a78ca6",
+  "selected_rule": {
+    "id": "cci_h6_chop_m3",
+    "kind": "combined",
+    "cci_frame": "H6",
+    "chop_frame": "M3",
+    "cci_period": 20,
+    "cci_long": 100,
+    "cci_short": -100,
+    "chop_period": 14,
+    "chop_max": 38.2,
+    "selection_reason": "TRAIN_SAMPLE_SUFFICIENT_THEN_DOUBLED_COST_NET",
+    "protocol_sha256": "f214c14b2006f4e6f2cdaa75f6fefc13a942a1412f33d31fa9dfc5d31d4fe337"
+  },
+  "original_grid_protocol_sha256": "f214c14b2006f4e6f2cdaa75f6fefc13a942a1412f33d31fa9dfc5d31d4fe337",
+  "selection_changed": false,
+  "costs": [
+    1,
+    2
+  ],
+  "fees": [
+    "personal",
+    "public"
+  ],
+  "scenario_count": 8,
+  "daily_loss_fraction": 0.02,
+  "weekly_loss_fraction": 0.05,
+  "peak_drawdown_fraction": 0.1,
+  "halt_policy": "sticky on eligible new signal while any account risk block active; no automatic reset",
+  "account_observation": "1m opens; entry fees, conservative funding schedule, proxy exits settle next minute",
+  "mode": "historical cross-exchange proxy only; not identical to actual mark/effective equity or native fills",
+  "native_execution_verified": false,
+  "deployment_approved": false
+}

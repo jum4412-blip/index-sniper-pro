@@ -1,0 +1,17 @@
+{
+  "experiment": "GUARDED_ALREADY_SELECTED_CALENDAR_BOOTSTRAP_V1",
+  "created_utc": "2026-10-05T07:34:43.263636+00:00",
+  "source_sha256": "2af6baffde451a2650b6cfd15572946b835095ee49d050305ef06ba27e8f418d",
+  "guarded_grid_protocol_sha256": "f830d600c6e794f970437fab2e917210f7c26772ac75bce9c2af36ed7383e66a",
+  "names": [
+    "baseline",
+    "cci_h6_chop_m3",
+    "cci_m30_chop_h6"
+  ],
+  "bootstrap_repetitions": 100000,
+  "seed": 73217,
+  "corrected_lower_quantile": 0.00017361111111111112,
+  "family_count": 288,
+  "reselection": false,
+  "identical_calendar_draws_all_coins_and_baseline": true
+}

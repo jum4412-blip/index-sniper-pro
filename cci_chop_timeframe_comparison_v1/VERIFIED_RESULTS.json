@@ -1,0 +1,52 @@
+{
+  "test_count": 39,
+  "tests_passed": true,
+  "python": "3.12.14",
+  "numpy": "2.3.5",
+  "raw_variants": 144,
+  "raw_scenarios": 1152,
+  "guarded_variants": 144,
+  "guarded_scenarios": 1152,
+  "total_scenarios": 2304,
+  "raw_selected": {
+    "id": "cci_h6_chop_m3",
+    "kind": "combined",
+    "cci_frame": "H6",
+    "chop_frame": "M3"
+  },
+  "guarded_selected": {
+    "id": "cci_m30_chop_h6",
+    "kind": "combined",
+    "cci_frame": "M30",
+    "chop_frame": "H6"
+  },
+  "guarded_sufficient_sample_combined_count": 0,
+  "bitget_native_execution_verified": false,
+  "deployment_approved": false,
+  "live_eligible_states": 0,
+  "files_sha256": {
+    "runner.py": "0b3159eac08b16afeeb05262c7a6c7c89475ade86516e468c5a920a1a44e2f30",
+    "runner_base.py": "5add44825ae8942e195571bb875b21f4d1e99c4b5995ccef9f9eeb836445cf0c",
+    "_replay/research.py": "ec59a6e39d29513c1c1ff8c1497c2ae3a38223b330e133cb71dd22726a5bbdab",
+    "_replay/strategy.py": "0390edebef5092c2dd87b57a487970142c3c1769ba93e272eeb8f5a25af7a9d8",
+    "risk_halt_supplement.py": "e7a6108ed3df6f63bcb7e7335efd1ba426963b455f627cc20461ebe376a78ca6",
+    "guarded_grid.py": "7aeab87f07676ab4dabb67ad5aa97ad482190d43329aa5ab2243f94b5af0d41b",
+    "guarded_bootstrap.py": "2af6baffde451a2650b6cfd15572946b835095ee49d050305ef06ba27e8f418d",
+    "reproduce.py": "b4f112096917f56cb189e4e51067e15a8620a04e9e8a2d75ae7d74cd17f81526",
+    "REPORT_KO.txt": "0344268b9cba6c2751e852a9f7c056f625fd0238fd9a17eea8427193711bb389",
+    "README_KO.txt": "3376a9381f5849f9eecb441600cbc699e1d19b18b5b5fee58c13515a57cb5a61",
+    "results/frozen_protocol.json": "f214c14b2006f4e6f2cdaa75f6fefc13a942a1412f33d31fa9dfc5d31d4fe337",
+    "results/summary.json": "916be06c6a647c2ac94e002e3b0f82dd559c9bc5fdf50c66ceedf0bc7390729f",
+    "results/comparison_all.csv": "6ec2566d11a3cd59675f70de5d1243dd70736aff92265123e85fb85047fe99d9",
+    "risk_halt_results/frozen_protocol.json": "e5045ccc90feabadc278a0139e45100d8cd9b07d0d3e04c7205f93ccb533d17b",
+    "risk_halt_results/summary.json": "52e9a1ae37197c886a70f73e788d0a8c86c2054b74f56b0f863b092bdfaf1706",
+    "guarded_grid_results/frozen_protocol.json": "f830d600c6e794f970437fab2e917210f7c26772ac75bce9c2af36ed7383e66a",
+    "guarded_grid_results/summary.json": "4a8cd46ce3da478edf29b40ce932b792e6d5046b5eb18c9d7acc8bcc10f43731",
+    "guarded_grid_results/comparison_all.csv": "78929d961a826deea1526a73f78c64c6aad831420e38ea68c88b63346074856c",
+    "guarded_grid_results/guarded_selected_rule.json": "ca480703f6b61e5294e2a460075f57ecf0e233bf34f498cc5666344b4dc52cdc",
+    "guarded_grid_results/bootstrap_protocol.json": "080ea00d84570d8ecf16d8fb2538a7267e2cc9f980bc6ad31ecaadb7f5ecad5b",
+    "guarded_grid_results/bootstrap_bounds.json": "4a4f9aed5731402042f2f51742c11f06a8e98288067dd233abe70484582ea5b7"
+  },
+  "untouched_holdout": false,
+  "independent_full_reproduction_exact": true
+}

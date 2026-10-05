@@ -1,0 +1,881 @@
+{
+  "protocol_sha256": "080ea00d84570d8ecf16d8fb2538a7267e2cc9f980bc6ad31ecaadb7f5ecad5b",
+  "periods": {
+    "train_2023_2024": {
+      "day": {
+        "baseline|personal|cost1|BTCUSDT": {
+          "net_lower_5pct_usdt": -43.74081237200011,
+          "net_lower_familywise_usdt": -87.37948589083777,
+          "incremental_lower_5pct_usdt": 0.0,
+          "incremental_lower_familywise_usdt": 0.0
+        },
+        "baseline|personal|cost1|ETHUSDT": {
+          "net_lower_5pct_usdt": -117.98739160375978,
+          "net_lower_familywise_usdt": -226.5644325207859,
+          "incremental_lower_5pct_usdt": 0.0,
+          "incremental_lower_familywise_usdt": 0.0
+        },
+        "baseline|personal|cost1|PORTFOLIO": {
+          "net_lower_5pct_usdt": -138.0557293349021,
+          "net_lower_familywise_usdt": -254.11911234234097,
+          "incremental_lower_5pct_usdt": 0.0,
+          "incremental_lower_familywise_usdt": 0.0
+        },
+        "baseline|personal|cost2|BTCUSDT": {
+          "net_lower_5pct_usdt": -70.07051260800016,
+          "net_lower_familywise_usdt": -142.0604100208003,
+          "incremental_lower_5pct_usdt": 0.0,
+          "incremental_lower_familywise_usdt": 0.0
+        },
+        "baseline|personal|cost2|ETHUSDT": {
+          "net_lower_5pct_usdt": -140.19235528191265,
+          "net_lower_familywise_usdt": -250.5607646837536,
+          "incremental_lower_5pct_usdt": 0.0,
+          "incremental_lower_familywise_usdt": 0.0
+        },
+        "baseline|personal|cost2|PORTFOLIO": {
+          "net_lower_5pct_usdt": -178.08408615265333,
+          "net_lower_familywise_usdt": -301.8218429585044,
+          "incremental_lower_5pct_usdt": 0.0,
+          "incremental_lower_familywise_usdt": 0.0
+        },
+        "baseline|public|cost1|BTCUSDT": {
+          "net_lower_5pct_usdt": -79.89029016900054,
+          "net_lower_familywise_usdt": -157.85317992229625,
+          "incremental_lower_5pct_usdt": 0.0,
+          "incremental_lower_familywise_usdt": 0.0
+        },
+        "baseline|public|cost1|ETHUSDT": {
+          "net_lower_5pct_usdt": -101.69783761923534,
+          "net_lower_familywise_usdt": -186.84526314768422,
+          "incremental_lower_5pct_usdt": 0.0,
+          "incremental_lower_familywise_usdt": 0.0
+        },
+        "baseline|public|cost1|PORTFOLIO": {
+          "net_lower_5pct_usdt": -148.11340300916717,
+          "net_lower_familywise_usdt": -251.8614030508995,
+          "incremental_lower_5pct_usdt": 0.0,
+          "incremental_lower_familywise_usdt": 0.0
+        },
+        "baseline|public|cost2|BTCUSDT": {
+          "net_lower_5pct_usdt": -82.69742203200042,
+          "net_lower_familywise_usdt": -156.91846733445678,
+          "incremental_lower_5pct_usdt": 0.0,
+          "incremental_lower_familywise_usdt": 0.0
+        },
+        "baseline|public|cost2|ETHUSDT": {
+          "net_lower_5pct_usdt": -126.03296133190217,
+          "net_lower_familywise_usdt": -219.20078199363314,
+          "incremental_lower_5pct_usdt": 0.0,
+          "incremental_lower_familywise_usdt": 0.0
+        },
+        "baseline|public|cost2|PORTFOLIO": {
+          "net_lower_5pct_usdt": -177.27499283832657,
+          "net_lower_familywise_usdt": -285.4221754976921,
+          "incremental_lower_5pct_usdt": 0.0,
+          "incremental_lower_familywise_usdt": 0.0
+        },
+        "cci_h6_chop_m3|personal|cost1|BTCUSDT": {
+          "net_lower_5pct_usdt": -85.91215677726971,
+          "net_lower_familywise_usdt": -144.6308138422362,
+          "incremental_lower_5pct_usdt": -74.18645061338263,
+          "incremental_lower_familywise_usdt": -135.0655302825914
+        },
+        "cci_h6_chop_m3|personal|cost1|ETHUSDT": {
+          "net_lower_5pct_usdt": -101.86996491657882,
+          "net_lower_familywise_usdt": -215.97305813580886,
+          "incremental_lower_5pct_usdt": -39.731020823900096,
+          "incremental_lower_familywise_usdt": -92.6523625076224
+        },
+        "cci_h6_chop_m3|personal|cost1|PORTFOLIO": {
+          "net_lower_5pct_usdt": -159.1877006631017,
+          "net_lower_familywise_usdt": -280.2478345532549,
+          "incremental_lower_5pct_usdt": -92.50637884774784,
+          "incremental_lower_familywise_usdt": -181.83733707449707
+        },
+        "cci_h6_chop_m3|personal|cost2|BTCUSDT": {
+          "net_lower_5pct_usdt": -79.25219144028547,
+          "net_lower_familywise_usdt": -131.25888336214635,
+          "incremental_lower_5pct_usdt": -60.22493317572851,
+          "incremental_lower_familywise_usdt": -119.0595663070277
+        },
+        "cci_h6_chop_m3|personal|cost2|ETHUSDT": {
+          "net_lower_5pct_usdt": -111.52893959071257,
+          "net_lower_familywise_usdt": -222.99382317711618,
+          "incremental_lower_5pct_usdt": -24.747646630975918,
+          "incremental_lower_familywise_usdt": -71.34583336165191
+        },
+        "cci_h6_chop_m3|personal|cost2|PORTFOLIO": {
+          "net_lower_5pct_usdt": -164.94830177167665,
+          "net_lower_familywise_usdt": -284.7682488478179,
+          "incremental_lower_5pct_usdt": -63.74102386127733,
+          "incremental_lower_familywise_usdt": -155.579896342365
+        },
+        "cci_h6_chop_m3|public|cost1|BTCUSDT": {
+          "net_lower_5pct_usdt": -72.8759905638591,
+          "net_lower_familywise_usdt": -125.22143894515636,
+          "incremental_lower_5pct_usdt": -51.95697236767818,
+          "incremental_lower_familywise_usdt": -115.7546428174646
+        },
+        "cci_h6_chop_m3|public|cost1|ETHUSDT": {
+          "net_lower_5pct_usdt": -103.75748651015637,
+          "net_lower_familywise_usdt": -218.0163887283984,
+          "incremental_lower_5pct_usdt": -51.90565460040445,
+          "incremental_lower_familywise_usdt": -107.70568472287599
+        },
+        "cci_h6_chop_m3|public|cost1|PORTFOLIO": {
+          "net_lower_5pct_usdt": -150.38754742402745,
+          "net_lower_familywise_usdt": -275.0110722776748,
+          "incremental_lower_5pct_usdt": -80.22245024376379,
+          "incremental_lower_familywise_usdt": -174.850472826274
+        },
+        "cci_h6_chop_m3|public|cost2|BTCUSDT": {
+          "net_lower_5pct_usdt": -79.0501031806,
+          "net_lower_familywise_usdt": -130.4548700766613,
+          "incremental_lower_5pct_usdt": -51.902054127255276,
+          "incremental_lower_familywise_usdt": -111.34862276412642
+        },
+        "cci_h6_chop_m3|public|cost2|ETHUSDT": {
+          "net_lower_5pct_usdt": -114.13429553537011,
+          "net_lower_familywise_usdt": -225.1555773287427,
+          "incremental_lower_5pct_usdt": -37.880622226580805,
+          "incremental_lower_familywise_usdt": -93.02435283918493
+        },
+        "cci_h6_chop_m3|public|cost2|PORTFOLIO": {
+          "net_lower_5pct_usdt": -167.92665196045016,
+          "net_lower_familywise_usdt": -287.4282916960192,
+          "incremental_lower_5pct_usdt": -66.96489196700618,
+          "incremental_lower_familywise_usdt": -161.48076822408035
+        },
+        "cci_m30_chop_h6|personal|cost1|BTCUSDT": {
+          "net_lower_5pct_usdt": 46.848142246045626,
+          "net_lower_familywise_usdt": -150.58943105877813,
+          "incremental_lower_5pct_usdt": 64.00015874477914,
+          "incremental_lower_familywise_usdt": -129.52126088949123
+        },
+        "cci_m30_chop_h6|personal|cost1|ETHUSDT": {
+          "net_lower_5pct_usdt": -172.7801207487722,
+          "net_lower_familywise_usdt": -255.94259589004855,
+          "incremental_lower_5pct_usdt": -271.51367831447544,
+          "incremental_lower_familywise_usdt": -532.2964340645453
+        },
+        "cci_m30_chop_h6|personal|cost1|PORTFOLIO": {
+          "net_lower_5pct_usdt": -74.03118912182343,
+          "net_lower_familywise_usdt": -294.82000007862257,
+          "incremental_lower_5pct_usdt": -94.82838489604158,
+          "incremental_lower_familywise_usdt": -425.5562150067453
+        },
+        "cci_m30_chop_h6|personal|cost2|BTCUSDT": {
+          "net_lower_5pct_usdt": -12.411426861085953,
+          "net_lower_familywise_usdt": -169.72329185910183,
+          "incremental_lower_5pct_usdt": 15.48452693539269,
+          "incremental_lower_familywise_usdt": -140.14107343471596
+        },
+        "cci_m30_chop_h6|personal|cost2|ETHUSDT": {
+          "net_lower_5pct_usdt": -183.3989161950752,
+          "net_lower_familywise_usdt": -266.4177640220708,
+          "incremental_lower_5pct_usdt": -206.07596738639214,
+          "incremental_lower_familywise_usdt": -396.83246671260036
+        },
+        "cci_m30_chop_h6|personal|cost2|PORTFOLIO": {
+          "net_lower_5pct_usdt": -148.8035567185108,
+          "net_lower_familywise_usdt": -336.8396128210211,
+          "incremental_lower_5pct_usdt": -105.79236928923537,
+          "incremental_lower_familywise_usdt": -363.3803171099684
+        },
+        "cci_m30_chop_h6|public|cost1|BTCUSDT": {
+          "net_lower_5pct_usdt": 36.53406824292043,
+          "net_lower_familywise_usdt": -154.10532182552288,
+          "incremental_lower_5pct_usdt": 70.22949502689572,
+          "incremental_lower_familywise_usdt": -115.23531130432383
+        },
+        "cci_m30_chop_h6|public|cost1|ETHUSDT": {
+          "net_lower_5pct_usdt": -176.17015078090176,
+          "net_lower_familywise_usdt": -258.8242625942388,
+          "incremental_lower_5pct_usdt": -266.3881324869546,
+          "incremental_lower_familywise_usdt": -509.7120648966828
+        },
+        "cci_m30_chop_h6|public|cost1|PORTFOLIO": {
+          "net_lower_5pct_usdt": -87.70971848704879,
+          "net_lower_familywise_usdt": -301.0959509948402,
+          "incremental_lower_5pct_usdt": -89.4598013352196,
+          "incremental_lower_familywise_usdt": -415.3077874349575
+        },
+        "cci_m30_chop_h6|public|cost2|BTCUSDT": {
+          "net_lower_5pct_usdt": -25.911494614575915,
+          "net_lower_familywise_usdt": -172.86269348918555,
+          "incremental_lower_5pct_usdt": 11.489732080600081,
+          "incremental_lower_familywise_usdt": -135.86102133716946
+        },
+        "cci_m30_chop_h6|public|cost2|ETHUSDT": {
+          "net_lower_5pct_usdt": -185.22809993169122,
+          "net_lower_familywise_usdt": -266.24582755382966,
+          "incremental_lower_5pct_usdt": -200.19750146961545,
+          "incremental_lower_familywise_usdt": -374.8866410054622
+        },
+        "cci_m30_chop_h6|public|cost2|PORTFOLIO": {
+          "net_lower_5pct_usdt": -165.45214978909192,
+          "net_lower_familywise_usdt": -347.4828369806858,
+          "incremental_lower_5pct_usdt": -109.95342917552688,
+          "incremental_lower_familywise_usdt": -342.7502316068409
+        }
+      },
+      "week": {
+        "baseline|personal|cost1|BTCUSDT": {
+          "net_lower_5pct_usdt": -50.89433477100034,
+          "net_lower_familywise_usdt": -101.78866954200068,
+          "incremental_lower_5pct_usdt": 0.0,
+          "incremental_lower_familywise_usdt": 0.0
+        },
+        "baseline|personal|cost1|ETHUSDT": {
+          "net_lower_5pct_usdt": -108.30033704421447,
+          "net_lower_familywise_usdt": -237.4406695712541,
+          "incremental_lower_5pct_usdt": 0.0,
+          "incremental_lower_familywise_usdt": 0.0
+        },
+        "baseline|personal|cost1|PORTFOLIO": {
+          "net_lower_5pct_usdt": -147.74958416628007,
+          "net_lower_familywise_usdt": -322.26456085625466,
+          "incremental_lower_5pct_usdt": 0.0,
+          "incremental_lower_familywise_usdt": 0.0
+        },
+        "baseline|personal|cost2|BTCUSDT": {
+          "net_lower_5pct_usdt": -88.3245588480001,
+          "net_lower_familywise_usdt": -176.6491176960002,
+          "incremental_lower_5pct_usdt": 0.0,
+          "incremental_lower_familywise_usdt": 0.0
+        },
+        "baseline|personal|cost2|ETHUSDT": {
+          "net_lower_5pct_usdt": -152.09087298578402,
+          "net_lower_familywise_usdt": -320.88917684740005,
+          "incremental_lower_5pct_usdt": 0.0,
+          "incremental_lower_familywise_usdt": 0.0
+        },
+        "baseline|personal|cost2|PORTFOLIO": {
+          "net_lower_5pct_usdt": -221.86325232359232,
+          "net_lower_familywise_usdt": -443.0356286136522,
+          "incremental_lower_5pct_usdt": 0.0,
+          "incremental_lower_familywise_usdt": 0.0
+        },
+        "baseline|public|cost1|BTCUSDT": {
+          "net_lower_5pct_usdt": -105.8649305070009,
+          "net_lower_familywise_usdt": -211.7298610140018,
+          "incremental_lower_5pct_usdt": 0.0,
+          "incremental_lower_familywise_usdt": 0.0
+        },
+        "baseline|public|cost1|ETHUSDT": {
+          "net_lower_5pct_usdt": -92.89232975583394,
+          "net_lower_familywise_usdt": -202.91710378154218,
+          "incremental_lower_5pct_usdt": 0.0,
+          "incremental_lower_familywise_usdt": 0.0
+        },
+        "baseline|public|cost1|PORTFOLIO": {
+          "net_lower_5pct_usdt": -170.66527714327265,
+          "net_lower_familywise_usdt": -369.4225374061075,
+          "incremental_lower_5pct_usdt": 0.0,
+          "incremental_lower_familywise_usdt": 0.0
+        },
+        "baseline|public|cost2|BTCUSDT": {
+          "net_lower_5pct_usdt": -119.16100567200054,
+          "net_lower_familywise_usdt": -238.32201134400108,
+          "incremental_lower_5pct_usdt": 0.0,
+          "incremental_lower_familywise_usdt": 0.0
+        },
+        "baseline|public|cost2|ETHUSDT": {
+          "net_lower_5pct_usdt": -138.80770367029606,
+          "net_lower_familywise_usdt": -299.38129907124255,
+          "incremental_lower_5pct_usdt": 0.0,
+          "incremental_lower_familywise_usdt": 0.0
+        },
+        "baseline|public|cost2|PORTFOLIO": {
+          "net_lower_5pct_usdt": -229.7111724314529,
+          "net_lower_familywise_usdt": -455.348508615077,
+          "incremental_lower_5pct_usdt": 0.0,
+          "incremental_lower_familywise_usdt": 0.0
+        },
+        "cci_h6_chop_m3|personal|cost1|BTCUSDT": {
+          "net_lower_5pct_usdt": -81.20839522026084,
+          "net_lower_familywise_usdt": -136.04686169214472,
+          "incremental_lower_5pct_usdt": -68.61860244326061,
+          "incremental_lower_familywise_usdt": -123.4014031838167
+        },
+        "cci_h6_chop_m3|personal|cost1|ETHUSDT": {
+          "net_lower_5pct_usdt": -103.29289280143992,
+          "net_lower_familywise_usdt": -227.59810211132958,
+          "incremental_lower_5pct_usdt": -36.754204615131236,
+          "incremental_lower_familywise_usdt": -78.37295717074386
+        },
+        "cci_h6_chop_m3|personal|cost1|PORTFOLIO": {
+          "net_lower_5pct_usdt": -162.64218282041696,
+          "net_lower_familywise_usdt": -313.8868380828131,
+          "incremental_lower_5pct_usdt": -88.26269484250616,
+          "incremental_lower_familywise_usdt": -168.4862089536998
+        },
+        "cci_h6_chop_m3|personal|cost2|BTCUSDT": {
+          "net_lower_5pct_usdt": -73.8961812017999,
+          "net_lower_familywise_usdt": -122.16864357033471,
+          "incremental_lower_5pct_usdt": -56.431589966400104,
+          "incremental_lower_familywise_usdt": -105.67858917653065
+        },
+        "cci_h6_chop_m3|personal|cost2|ETHUSDT": {
+          "net_lower_5pct_usdt": -116.13538318907578,
+          "net_lower_familywise_usdt": -245.06867040865507,
+          "incremental_lower_5pct_usdt": -34.717410691360065,
+          "incremental_lower_familywise_usdt": -80.29874694403038
+        },
+        "cci_h6_chop_m3|personal|cost2|PORTFOLIO": {
+          "net_lower_5pct_usdt": -173.65269262034295,
+          "net_lower_familywise_usdt": -327.4536447144788,
+          "incremental_lower_5pct_usdt": -69.69726028771422,
+          "incremental_lower_familywise_usdt": -152.00597767647298
+        },
+        "cci_h6_chop_m3|public|cost1|BTCUSDT": {
+          "net_lower_5pct_usdt": -65.8679101700376,
+          "net_lower_familywise_usdt": -114.51296521207252,
+          "incremental_lower_5pct_usdt": -50.74275381820988,
+          "incremental_lower_familywise_usdt": -101.50901628934339
+        },
+        "cci_h6_chop_m3|public|cost1|ETHUSDT": {
+          "net_lower_5pct_usdt": -105.65267957419209,
+          "net_lower_familywise_usdt": -229.72067405701083,
+          "incremental_lower_5pct_usdt": -52.795643773424075,
+          "incremental_lower_familywise_usdt": -109.0398048907292
+        },
+        "cci_h6_chop_m3|public|cost1|PORTFOLIO": {
+          "net_lower_5pct_usdt": -152.90000196060097,
+          "net_lower_familywise_usdt": -299.3180271300849,
+          "incremental_lower_5pct_usdt": -67.44108063669242,
+          "incremental_lower_familywise_usdt": -140.86337024897946
+        },
+        "cci_h6_chop_m3|public|cost2|BTCUSDT": {
+          "net_lower_5pct_usdt": -74.25594169769573,
+          "net_lower_familywise_usdt": -121.83267450772257,
+          "incremental_lower_5pct_usdt": -57.2748984645185,
+          "incremental_lower_familywise_usdt": -108.49229750356788
+        },
+        "cci_h6_chop_m3|public|cost2|ETHUSDT": {
+          "net_lower_5pct_usdt": -119.63593534851152,
+          "net_lower_familywise_usdt": -248.3769829389173,
+          "incremental_lower_5pct_usdt": -48.07969490169579,
+          "incremental_lower_familywise_usdt": -102.87459992699144
+        },
+        "cci_h6_chop_m3|public|cost2|PORTFOLIO": {
+          "net_lower_5pct_usdt": -176.8179848373328,
+          "net_lower_familywise_usdt": -326.89713399071405,
+          "incremental_lower_5pct_usdt": -71.06861811483486,
+          "incremental_lower_familywise_usdt": -156.45634628716917
+        },
+        "cci_m30_chop_h6|personal|cost1|BTCUSDT": {
+          "net_lower_5pct_usdt": 37.59483880768229,
+          "net_lower_familywise_usdt": -155.37792191871654,
+          "incremental_lower_5pct_usdt": 56.18301240027894,
+          "incremental_lower_familywise_usdt": -141.35330552978752
+        },
+        "cci_m30_chop_h6|personal|cost1|ETHUSDT": {
+          "net_lower_5pct_usdt": -178.98816047398046,
+          "net_lower_familywise_usdt": -274.5711256393594,
+          "incremental_lower_5pct_usdt": -246.8643251313278,
+          "incremental_lower_familywise_usdt": -469.48054055244194
+        },
+        "cci_m30_chop_h6|personal|cost1|PORTFOLIO": {
+          "net_lower_5pct_usdt": -75.71505734269279,
+          "net_lower_familywise_usdt": -287.0365313648973,
+          "incremental_lower_5pct_usdt": -83.39042012308906,
+          "incremental_lower_familywise_usdt": -390.1523863588137
+        },
+        "cci_m30_chop_h6|personal|cost2|BTCUSDT": {
+          "net_lower_5pct_usdt": -18.438539510211807,
+          "net_lower_familywise_usdt": -171.74985835885266,
+          "incremental_lower_5pct_usdt": 11.801905797283402,
+          "incremental_lower_familywise_usdt": -149.14178003620003
+        },
+        "cci_m30_chop_h6|personal|cost2|ETHUSDT": {
+          "net_lower_5pct_usdt": -190.07758924467942,
+          "net_lower_familywise_usdt": -284.7341372575487,
+          "incremental_lower_5pct_usdt": -196.3232880522458,
+          "incremental_lower_familywise_usdt": -357.02980508170936
+        },
+        "cci_m30_chop_h6|personal|cost2|PORTFOLIO": {
+          "net_lower_5pct_usdt": -149.6722805109569,
+          "net_lower_familywise_usdt": -326.3670317365105,
+          "incremental_lower_5pct_usdt": -103.61048498152532,
+          "incremental_lower_familywise_usdt": -337.1358434999197
+        },
+        "cci_m30_chop_h6|public|cost1|BTCUSDT": {
+          "net_lower_5pct_usdt": 28.03081825782901,
+          "net_lower_familywise_usdt": -159.29612506905445,
+          "incremental_lower_5pct_usdt": 63.055391291439435,
+          "incremental_lower_familywise_usdt": -137.46125422679023
+        },
+        "cci_m30_chop_h6|public|cost1|ETHUSDT": {
+          "net_lower_5pct_usdt": -182.67059032015425,
+          "net_lower_familywise_usdt": -278.6050253141445,
+          "incremental_lower_5pct_usdt": -241.73234501990484,
+          "incremental_lower_familywise_usdt": -446.58061968709455
+        },
+        "cci_m30_chop_h6|public|cost1|PORTFOLIO": {
+          "net_lower_5pct_usdt": -89.25315551464065,
+          "net_lower_familywise_usdt": -292.29628042085767,
+          "incremental_lower_5pct_usdt": -81.1565569795579,
+          "incremental_lower_familywise_usdt": -370.7750117989238
+        },
+        "cci_m30_chop_h6|public|cost2|BTCUSDT": {
+          "net_lower_5pct_usdt": -31.16533231819214,
+          "net_lower_familywise_usdt": -176.83995336981857,
+          "incremental_lower_5pct_usdt": 6.821424985948908,
+          "incremental_lower_familywise_usdt": -150.7445836727866
+        },
+        "cci_m30_chop_h6|public|cost2|ETHUSDT": {
+          "net_lower_5pct_usdt": -191.31692670655679,
+          "net_lower_familywise_usdt": -281.82831610042615,
+          "incremental_lower_5pct_usdt": -192.73864320326138,
+          "incremental_lower_familywise_usdt": -337.8064340213353
+        },
+        "cci_m30_chop_h6|public|cost2|PORTFOLIO": {
+          "net_lower_5pct_usdt": -167.1982671386869,
+          "net_lower_familywise_usdt": -339.9750845361186,
+          "incremental_lower_5pct_usdt": -113.10042318471334,
+          "incremental_lower_familywise_usdt": -332.5040746802093
+        }
+      }
+    },
+    "previously_viewed_2025_2026": {
+      "day": {
+        "baseline|personal|cost1|BTCUSDT": {
+          "net_lower_5pct_usdt": -143.77717509839,
+          "net_lower_familywise_usdt": -252.8146882952565,
+          "incremental_lower_5pct_usdt": 0.0,
+          "incremental_lower_familywise_usdt": 0.0
+        },
+        "baseline|personal|cost1|ETHUSDT": {
+          "net_lower_5pct_usdt": -55.65464729440194,
+          "net_lower_familywise_usdt": -118.39604533014217,
+          "incremental_lower_5pct_usdt": 0.0,
+          "incremental_lower_familywise_usdt": 0.0
+        },
+        "baseline|personal|cost1|PORTFOLIO": {
+          "net_lower_5pct_usdt": -168.66632744460105,
+          "net_lower_familywise_usdt": -299.3385816184367,
+          "incremental_lower_5pct_usdt": 0.0,
+          "incremental_lower_familywise_usdt": 0.0
+        },
+        "baseline|personal|cost2|BTCUSDT": {
+          "net_lower_5pct_usdt": -159.07579837664815,
+          "net_lower_familywise_usdt": -266.7305776773742,
+          "incremental_lower_5pct_usdt": 0.0,
+          "incremental_lower_familywise_usdt": 0.0
+        },
+        "baseline|personal|cost2|ETHUSDT": {
+          "net_lower_5pct_usdt": -51.90216610757428,
+          "net_lower_familywise_usdt": -110.79608843128639,
+          "incremental_lower_5pct_usdt": 0.0,
+          "incremental_lower_familywise_usdt": 0.0
+        },
+        "baseline|personal|cost2|PORTFOLIO": {
+          "net_lower_5pct_usdt": -179.3342604964138,
+          "net_lower_familywise_usdt": -299.1720181242346,
+          "incremental_lower_5pct_usdt": 0.0,
+          "incremental_lower_familywise_usdt": 0.0
+        },
+        "baseline|public|cost1|BTCUSDT": {
+          "net_lower_5pct_usdt": -138.44115243508784,
+          "net_lower_familywise_usdt": -249.04832884238388,
+          "incremental_lower_5pct_usdt": 0.0,
+          "incremental_lower_familywise_usdt": 0.0
+        },
+        "baseline|public|cost1|ETHUSDT": {
+          "net_lower_5pct_usdt": -53.67970598742794,
+          "net_lower_familywise_usdt": -116.5971688594273,
+          "incremental_lower_5pct_usdt": 0.0,
+          "incremental_lower_familywise_usdt": 0.0
+        },
+        "baseline|public|cost1|PORTFOLIO": {
+          "net_lower_5pct_usdt": -161.4365835157098,
+          "net_lower_familywise_usdt": -292.88680932146303,
+          "incremental_lower_5pct_usdt": 0.0,
+          "incremental_lower_familywise_usdt": 0.0
+        },
+        "baseline|public|cost2|BTCUSDT": {
+          "net_lower_5pct_usdt": -166.548279899639,
+          "net_lower_familywise_usdt": -275.2141834729905,
+          "incremental_lower_5pct_usdt": 0.0,
+          "incremental_lower_familywise_usdt": 0.0
+        },
+        "baseline|public|cost2|ETHUSDT": {
+          "net_lower_5pct_usdt": -25.090309893626046,
+          "net_lower_familywise_usdt": -56.42821736506407,
+          "incremental_lower_5pct_usdt": 0.0,
+          "incremental_lower_familywise_usdt": 0.0
+        },
+        "baseline|public|cost2|PORTFOLIO": {
+          "net_lower_5pct_usdt": -174.13113890699873,
+          "net_lower_familywise_usdt": -284.23843321720403,
+          "incremental_lower_5pct_usdt": 0.0,
+          "incremental_lower_familywise_usdt": 0.0
+        },
+        "cci_h6_chop_m3|personal|cost1|BTCUSDT": {
+          "net_lower_5pct_usdt": -112.21925697350343,
+          "net_lower_familywise_usdt": -204.90684801291917,
+          "incremental_lower_5pct_usdt": -48.74399953492879,
+          "incremental_lower_familywise_usdt": -126.2819106475184
+        },
+        "cci_h6_chop_m3|personal|cost1|ETHUSDT": {
+          "net_lower_5pct_usdt": -89.4166245805709,
+          "net_lower_familywise_usdt": -163.07264857829165,
+          "incremental_lower_5pct_usdt": -79.31136576776404,
+          "incremental_lower_familywise_usdt": -152.72543167094122
+        },
+        "cci_h6_chop_m3|personal|cost1|PORTFOLIO": {
+          "net_lower_5pct_usdt": -162.87741029832557,
+          "net_lower_familywise_usdt": -281.9806041274411,
+          "incremental_lower_5pct_usdt": -91.15242743013302,
+          "incremental_lower_familywise_usdt": -194.7448453151877
+        },
+        "cci_h6_chop_m3|personal|cost2|BTCUSDT": {
+          "net_lower_5pct_usdt": -119.87151742562007,
+          "net_lower_familywise_usdt": -211.38555390631754,
+          "incremental_lower_5pct_usdt": -33.12770638343303,
+          "incremental_lower_familywise_usdt": -100.02753680957136
+        },
+        "cci_h6_chop_m3|personal|cost2|ETHUSDT": {
+          "net_lower_5pct_usdt": -78.26773025718992,
+          "net_lower_familywise_usdt": -142.24517527913258,
+          "incremental_lower_5pct_usdt": -70.33353427736002,
+          "incremental_lower_familywise_usdt": -136.2284837435628
+        },
+        "cci_h6_chop_m3|personal|cost2|PORTFOLIO": {
+          "net_lower_5pct_usdt": -164.08770711580758,
+          "net_lower_familywise_usdt": -268.53386857946566,
+          "incremental_lower_5pct_usdt": -70.58930896387346,
+          "incremental_lower_familywise_usdt": -161.9793252701023
+        },
+        "cci_h6_chop_m3|public|cost1|BTCUSDT": {
+          "net_lower_5pct_usdt": -106.58132686351634,
+          "net_lower_familywise_usdt": -200.7635746289861,
+          "incremental_lower_5pct_usdt": -44.34962144904449,
+          "incremental_lower_familywise_usdt": -116.09237450067538
+        },
+        "cci_h6_chop_m3|public|cost1|ETHUSDT": {
+          "net_lower_5pct_usdt": -91.50621567195532,
+          "net_lower_familywise_usdt": -160.65428858964603,
+          "incremental_lower_5pct_usdt": -84.04151452948187,
+          "incremental_lower_familywise_usdt": -157.80624911312267
+        },
+        "cci_h6_chop_m3|public|cost1|PORTFOLIO": {
+          "net_lower_5pct_usdt": -161.79136178275888,
+          "net_lower_familywise_usdt": -273.6801137170074,
+          "incremental_lower_5pct_usdt": -95.75724071780225,
+          "incremental_lower_familywise_usdt": -197.19257197997928
+        },
+        "cci_h6_chop_m3|public|cost2|BTCUSDT": {
+          "net_lower_5pct_usdt": -118.77706292708244,
+          "net_lower_familywise_usdt": -208.99523128737317,
+          "incremental_lower_5pct_usdt": -24.245669117965644,
+          "incremental_lower_familywise_usdt": -90.1364006707075
+        },
+        "cci_h6_chop_m3|public|cost2|ETHUSDT": {
+          "net_lower_5pct_usdt": -79.13846854832248,
+          "net_lower_familywise_usdt": -142.0194918889136,
+          "incremental_lower_5pct_usdt": -74.99239020080232,
+          "incremental_lower_familywise_usdt": -137.58527246763379
+        },
+        "cci_h6_chop_m3|public|cost2|PORTFOLIO": {
+          "net_lower_5pct_usdt": -165.4462749988219,
+          "net_lower_familywise_usdt": -266.1128735326747,
+          "incremental_lower_5pct_usdt": -68.765004758136,
+          "incremental_lower_familywise_usdt": -156.82890787171416
+        },
+        "cci_m30_chop_h6|personal|cost1|BTCUSDT": {
+          "net_lower_5pct_usdt": -61.50698010372837,
+          "net_lower_familywise_usdt": -111.57065336604042,
+          "incremental_lower_5pct_usdt": -81.10703473512113,
+          "incremental_lower_familywise_usdt": -219.86779459143665
+        },
+        "cci_m30_chop_h6|personal|cost1|ETHUSDT": {
+          "net_lower_5pct_usdt": -101.40519162293774,
+          "net_lower_familywise_usdt": -183.1871680486142,
+          "incremental_lower_5pct_usdt": -91.57744929754061,
+          "incremental_lower_familywise_usdt": -180.53415047323685
+        },
+        "cci_m30_chop_h6|personal|cost1|PORTFOLIO": {
+          "net_lower_5pct_usdt": -133.11839709351938,
+          "net_lower_familywise_usdt": -227.94203488975313,
+          "incremental_lower_5pct_usdt": -118.28324492067003,
+          "incremental_lower_familywise_usdt": -280.9864863092281
+        },
+        "cci_m30_chop_h6|personal|cost2|BTCUSDT": {
+          "net_lower_5pct_usdt": -74.86623848845,
+          "net_lower_familywise_usdt": -125.23586586333438,
+          "incremental_lower_5pct_usdt": -57.713738200682776,
+          "incremental_lower_familywise_usdt": -171.841286748036
+        },
+        "cci_m30_chop_h6|personal|cost2|ETHUSDT": {
+          "net_lower_5pct_usdt": -98.60220469021809,
+          "net_lower_familywise_usdt": -175.8972909068594,
+          "incremental_lower_5pct_usdt": -90.0996316642415,
+          "incremental_lower_familywise_usdt": -167.38881831012299
+        },
+        "cci_m30_chop_h6|personal|cost2|PORTFOLIO": {
+          "net_lower_5pct_usdt": -145.54432230600372,
+          "net_lower_familywise_usdt": -229.756058031351,
+          "incremental_lower_5pct_usdt": -98.87464343307047,
+          "incremental_lower_familywise_usdt": -238.209541331522
+        },
+        "cci_m30_chop_h6|public|cost1|BTCUSDT": {
+          "net_lower_5pct_usdt": -63.71661370069075,
+          "net_lower_familywise_usdt": -113.57358864568812,
+          "incremental_lower_5pct_usdt": -84.205522357379,
+          "incremental_lower_familywise_usdt": -219.56395625424713
+        },
+        "cci_m30_chop_h6|public|cost1|ETHUSDT": {
+          "net_lower_5pct_usdt": -103.53594158050113,
+          "net_lower_familywise_usdt": -184.1343051403893,
+          "incremental_lower_5pct_usdt": -95.7133669033809,
+          "incremental_lower_familywise_usdt": -182.94058351418363
+        },
+        "cci_m30_chop_h6|public|cost1|PORTFOLIO": {
+          "net_lower_5pct_usdt": -137.83807286452878,
+          "net_lower_familywise_usdt": -231.07254264297515,
+          "incremental_lower_5pct_usdt": -126.4723264968714,
+          "incremental_lower_familywise_usdt": -284.9913207519287
+        },
+        "cci_m30_chop_h6|public|cost2|BTCUSDT": {
+          "net_lower_5pct_usdt": -66.5567446893748,
+          "net_lower_familywise_usdt": -114.84370748779688,
+          "incremental_lower_5pct_usdt": -38.31675416709717,
+          "incremental_lower_familywise_usdt": -143.49906601172762
+        },
+        "cci_m30_chop_h6|public|cost2|ETHUSDT": {
+          "net_lower_5pct_usdt": -103.06493799462028,
+          "net_lower_familywise_usdt": -180.0998715684006,
+          "incremental_lower_5pct_usdt": -98.99383395919459,
+          "incremental_lower_familywise_usdt": -173.76168196822096
+        },
+        "cci_m30_chop_h6|public|cost2|PORTFOLIO": {
+          "net_lower_5pct_usdt": -143.4035927765448,
+          "net_lower_familywise_usdt": -228.39448082698297,
+          "incremental_lower_5pct_usdt": -91.53072264294896,
+          "incremental_lower_familywise_usdt": -219.32214910682876
+        }
+      },
+      "week": {
+        "baseline|personal|cost1|BTCUSDT": {
+          "net_lower_5pct_usdt": -133.71294164237483,
+          "net_lower_familywise_usdt": -261.320047917029,
+          "incremental_lower_5pct_usdt": 0.0,
+          "incremental_lower_familywise_usdt": 0.0
+        },
+        "baseline|personal|cost1|ETHUSDT": {
+          "net_lower_5pct_usdt": -49.53230224168212,
+          "net_lower_familywise_usdt": -99.06460448336423,
+          "incremental_lower_5pct_usdt": 0.0,
+          "incremental_lower_familywise_usdt": 0.0
+        },
+        "baseline|personal|cost1|PORTFOLIO": {
+          "net_lower_5pct_usdt": -167.841991242486,
+          "net_lower_familywise_usdt": -326.68530040129866,
+          "incremental_lower_5pct_usdt": 0.0,
+          "incremental_lower_familywise_usdt": 0.0
+        },
+        "baseline|personal|cost2|BTCUSDT": {
+          "net_lower_5pct_usdt": -155.0085906711483,
+          "net_lower_familywise_usdt": -281.9292663151783,
+          "incremental_lower_5pct_usdt": 0.0,
+          "incremental_lower_familywise_usdt": 0.0
+        },
+        "baseline|personal|cost2|ETHUSDT": {
+          "net_lower_5pct_usdt": -44.418167086014286,
+          "net_lower_familywise_usdt": -88.83633417202857,
+          "incremental_lower_5pct_usdt": 0.0,
+          "incremental_lower_familywise_usdt": 0.0
+        },
+        "baseline|personal|cost2|PORTFOLIO": {
+          "net_lower_5pct_usdt": -179.4358073243763,
+          "net_lower_familywise_usdt": -323.6962173589438,
+          "incremental_lower_5pct_usdt": 0.0,
+          "incremental_lower_familywise_usdt": 0.0
+        },
+        "baseline|public|cost1|BTCUSDT": {
+          "net_lower_5pct_usdt": -124.66901499251595,
+          "net_lower_familywise_usdt": -244.97007030039703,
+          "incremental_lower_5pct_usdt": 0.0,
+          "incremental_lower_familywise_usdt": 0.0
+        },
+        "baseline|public|cost1|ETHUSDT": {
+          "net_lower_5pct_usdt": -43.54369978454403,
+          "net_lower_familywise_usdt": -87.08739956908806,
+          "incremental_lower_5pct_usdt": 0.0,
+          "incremental_lower_familywise_usdt": 0.0
+        },
+        "baseline|public|cost1|PORTFOLIO": {
+          "net_lower_5pct_usdt": -151.25063936963028,
+          "net_lower_familywise_usdt": -288.04516508574346,
+          "incremental_lower_5pct_usdt": 0.0,
+          "incremental_lower_familywise_usdt": 0.0
+        },
+        "baseline|public|cost2|BTCUSDT": {
+          "net_lower_5pct_usdt": -166.86459168222,
+          "net_lower_familywise_usdt": -298.7167966243241,
+          "incremental_lower_5pct_usdt": 0.0,
+          "incremental_lower_familywise_usdt": 0.0
+        },
+        "baseline|public|cost2|ETHUSDT": {
+          "net_lower_5pct_usdt": -18.495801004170048,
+          "net_lower_familywise_usdt": -36.991602008340095,
+          "incremental_lower_5pct_usdt": 0.0,
+          "incremental_lower_familywise_usdt": 0.0
+        },
+        "baseline|public|cost2|PORTFOLIO": {
+          "net_lower_5pct_usdt": -176.24498451912223,
+          "net_lower_familywise_usdt": -316.71139954017104,
+          "incremental_lower_5pct_usdt": 0.0,
+          "incremental_lower_familywise_usdt": 0.0
+        },
+        "cci_h6_chop_m3|personal|cost1|BTCUSDT": {
+          "net_lower_5pct_usdt": -98.63389342320643,
+          "net_lower_familywise_usdt": -190.06711671665252,
+          "incremental_lower_5pct_usdt": -45.07264659896999,
+          "incremental_lower_familywise_usdt": -110.99733056477795
+        },
+        "cci_h6_chop_m3|personal|cost1|ETHUSDT": {
+          "net_lower_5pct_usdt": -94.49461576466305,
+          "net_lower_familywise_usdt": -173.04129739417695,
+          "incremental_lower_5pct_usdt": -80.64260391469844,
+          "incremental_lower_familywise_usdt": -158.77238942641446
+        },
+        "cci_h6_chop_m3|personal|cost1|PORTFOLIO": {
+          "net_lower_5pct_usdt": -160.73925827363541,
+          "net_lower_familywise_usdt": -284.1035395061542,
+          "incremental_lower_5pct_usdt": -100.7412644767568,
+          "incremental_lower_familywise_usdt": -214.8791461517364
+        },
+        "cci_h6_chop_m3|personal|cost2|BTCUSDT": {
+          "net_lower_5pct_usdt": -107.99932725230647,
+          "net_lower_familywise_usdt": -192.8185757186192,
+          "incremental_lower_5pct_usdt": -30.147039639702914,
+          "incremental_lower_familywise_usdt": -94.52917939708843
+        },
+        "cci_h6_chop_m3|personal|cost2|ETHUSDT": {
+          "net_lower_5pct_usdt": -89.26291401848887,
+          "net_lower_familywise_usdt": -165.54270192134655,
+          "incremental_lower_5pct_usdt": -76.03027832146839,
+          "incremental_lower_familywise_usdt": -150.55318634395786
+        },
+        "cci_h6_chop_m3|personal|cost2|PORTFOLIO": {
+          "net_lower_5pct_usdt": -161.7180723552189,
+          "net_lower_familywise_usdt": -271.17336068418484,
+          "incremental_lower_5pct_usdt": -76.67305017273671,
+          "incremental_lower_familywise_usdt": -175.52403674170253
+        },
+        "cci_h6_chop_m3|public|cost1|BTCUSDT": {
+          "net_lower_5pct_usdt": -93.06732041922014,
+          "net_lower_familywise_usdt": -178.4647636831291,
+          "incremental_lower_5pct_usdt": -37.52272939814901,
+          "incremental_lower_familywise_usdt": -102.67136632852615
+        },
+        "cci_h6_chop_m3|public|cost1|ETHUSDT": {
+          "net_lower_5pct_usdt": -101.8425880230101,
+          "net_lower_familywise_usdt": -183.05754465005157,
+          "incremental_lower_5pct_usdt": -89.15085506955408,
+          "incremental_lower_familywise_usdt": -168.7468253587603
+        },
+        "cci_h6_chop_m3|public|cost1|PORTFOLIO": {
+          "net_lower_5pct_usdt": -160.87844817696057,
+          "net_lower_familywise_usdt": -280.50878951485504,
+          "incremental_lower_5pct_usdt": -100.29079452345779,
+          "incremental_lower_familywise_usdt": -206.45405407374486
+        },
+        "cci_h6_chop_m3|public|cost2|BTCUSDT": {
+          "net_lower_5pct_usdt": -105.69405604701747,
+          "net_lower_familywise_usdt": -186.38800108017085,
+          "incremental_lower_5pct_usdt": -19.930630729303335,
+          "incremental_lower_familywise_usdt": -77.72018018658198
+        },
+        "cci_h6_chop_m3|public|cost2|ETHUSDT": {
+          "net_lower_5pct_usdt": -89.2082208589253,
+          "net_lower_familywise_usdt": -163.28623219665633,
+          "incremental_lower_5pct_usdt": -82.70392271351703,
+          "incremental_lower_familywise_usdt": -154.8802513710635
+        },
+        "cci_h6_chop_m3|public|cost2|PORTFOLIO": {
+          "net_lower_5pct_usdt": -161.26325310385639,
+          "net_lower_familywise_usdt": -261.39565489226493,
+          "incremental_lower_5pct_usdt": -72.64661889401762,
+          "incremental_lower_familywise_usdt": -165.4721224898437
+        },
+        "cci_m30_chop_h6|personal|cost1|BTCUSDT": {
+          "net_lower_5pct_usdt": -54.883888677138934,
+          "net_lower_familywise_usdt": -97.81347475546136,
+          "incremental_lower_5pct_usdt": -59.840668002536816,
+          "incremental_lower_familywise_usdt": -142.07844660916786
+        },
+        "cci_m30_chop_h6|personal|cost1|ETHUSDT": {
+          "net_lower_5pct_usdt": -96.84853320980788,
+          "net_lower_familywise_usdt": -174.80148533038263,
+          "incremental_lower_5pct_usdt": -83.87358519089065,
+          "incremental_lower_familywise_usdt": -161.67922796538957
+        },
+        "cci_m30_chop_h6|personal|cost1|PORTFOLIO": {
+          "net_lower_5pct_usdt": -132.15161654546446,
+          "net_lower_familywise_usdt": -223.17175259103632,
+          "incremental_lower_5pct_usdt": -110.27946741746501,
+          "incremental_lower_familywise_usdt": -235.95585321013922
+        },
+        "cci_m30_chop_h6|personal|cost2|BTCUSDT": {
+          "net_lower_5pct_usdt": -70.8535825575786,
+          "net_lower_familywise_usdt": -115.76198113315439,
+          "incremental_lower_5pct_usdt": -39.50248938248768,
+          "incremental_lower_familywise_usdt": -105.58635168426899
+        },
+        "cci_m30_chop_h6|personal|cost2|ETHUSDT": {
+          "net_lower_5pct_usdt": -94.27680880445678,
+          "net_lower_familywise_usdt": -165.3998183562036,
+          "incremental_lower_5pct_usdt": -82.48113590734734,
+          "incremental_lower_familywise_usdt": -155.19614824209222
+        },
+        "cci_m30_chop_h6|personal|cost2|PORTFOLIO": {
+          "net_lower_5pct_usdt": -141.849899734159,
+          "net_lower_familywise_usdt": -223.46545201379095,
+          "incremental_lower_5pct_usdt": -90.89183096549209,
+          "incremental_lower_familywise_usdt": -201.95779898841235
+        },
+        "cci_m30_chop_h6|public|cost1|BTCUSDT": {
+          "net_lower_5pct_usdt": -57.60368753517584,
+          "net_lower_familywise_usdt": -101.37892868742273,
+          "incremental_lower_5pct_usdt": -58.808632386004064,
+          "incremental_lower_familywise_usdt": -137.20055883849432
+        },
+        "cci_m30_chop_h6|public|cost1|ETHUSDT": {
+          "net_lower_5pct_usdt": -99.2886055882175,
+          "net_lower_familywise_usdt": -177.2532140015503,
+          "incremental_lower_5pct_usdt": -87.89319557142994,
+          "incremental_lower_familywise_usdt": -165.09120859017384
+        },
+        "cci_m30_chop_h6|public|cost1|PORTFOLIO": {
+          "net_lower_5pct_usdt": -137.53932947030975,
+          "net_lower_familywise_usdt": -228.34774131170172,
+          "incremental_lower_5pct_usdt": -113.8700491279623,
+          "incremental_lower_familywise_usdt": -235.70142217542562
+        },
+        "cci_m30_chop_h6|public|cost2|BTCUSDT": {
+          "net_lower_5pct_usdt": -63.456479186597306,
+          "net_lower_familywise_usdt": -107.48056578024904,
+          "incremental_lower_5pct_usdt": -24.945202562411602,
+          "incremental_lower_familywise_usdt": -89.77706786798092
+        },
+        "cci_m30_chop_h6|public|cost2|ETHUSDT": {
+          "net_lower_5pct_usdt": -98.36709088959627,
+          "net_lower_familywise_usdt": -169.19637309842082,
+          "incremental_lower_5pct_usdt": -92.3063413740148,
+          "incremental_lower_familywise_usdt": -163.72397733249164
+        },
+        "cci_m30_chop_h6|public|cost2|PORTFOLIO": {
+          "net_lower_5pct_usdt": -140.01200459568352,
+          "net_lower_familywise_usdt": -219.88568147608848,
+          "incremental_lower_5pct_usdt": -84.88871875417423,
+          "incremental_lower_familywise_usdt": -191.56027149599615
+        }
+      }
+    }
+  }
+}

@@ -1,0 +1,866 @@
+[
+  {
+    "id": "baseline",
+    "kind": "baseline",
+    "cci_frame": null,
+    "chop_frame": null
+  },
+  {
+    "id": "cci_w",
+    "kind": "cci",
+    "cci_frame": "W",
+    "chop_frame": null
+  },
+  {
+    "id": "cci_d",
+    "kind": "cci",
+    "cci_frame": "D",
+    "chop_frame": null
+  },
+  {
+    "id": "cci_h12",
+    "kind": "cci",
+    "cci_frame": "H12",
+    "chop_frame": null
+  },
+  {
+    "id": "cci_h6",
+    "kind": "cci",
+    "cci_frame": "H6",
+    "chop_frame": null
+  },
+  {
+    "id": "cci_h4",
+    "kind": "cci",
+    "cci_frame": "H4",
+    "chop_frame": null
+  },
+  {
+    "id": "cci_h1",
+    "kind": "cci",
+    "cci_frame": "H1",
+    "chop_frame": null
+  },
+  {
+    "id": "cci_m30",
+    "kind": "cci",
+    "cci_frame": "M30",
+    "chop_frame": null
+  },
+  {
+    "id": "cci_m15",
+    "kind": "cci",
+    "cci_frame": "M15",
+    "chop_frame": null
+  },
+  {
+    "id": "cci_m5",
+    "kind": "cci",
+    "cci_frame": "M5",
+    "chop_frame": null
+  },
+  {
+    "id": "cci_m3",
+    "kind": "cci",
+    "cci_frame": "M3",
+    "chop_frame": null
+  },
+  {
+    "id": "cci_m1",
+    "kind": "cci",
+    "cci_frame": "M1",
+    "chop_frame": null
+  },
+  {
+    "id": "chop_w",
+    "kind": "chop",
+    "cci_frame": null,
+    "chop_frame": "W"
+  },
+  {
+    "id": "chop_d",
+    "kind": "chop",
+    "cci_frame": null,
+    "chop_frame": "D"
+  },
+  {
+    "id": "chop_h12",
+    "kind": "chop",
+    "cci_frame": null,
+    "chop_frame": "H12"
+  },
+  {
+    "id": "chop_h6",
+    "kind": "chop",
+    "cci_frame": null,
+    "chop_frame": "H6"
+  },
+  {
+    "id": "chop_h4",
+    "kind": "chop",
+    "cci_frame": null,
+    "chop_frame": "H4"
+  },
+  {
+    "id": "chop_h1",
+    "kind": "chop",
+    "cci_frame": null,
+    "chop_frame": "H1"
+  },
+  {
+    "id": "chop_m30",
+    "kind": "chop",
+    "cci_frame": null,
+    "chop_frame": "M30"
+  },
+  {
+    "id": "chop_m15",
+    "kind": "chop",
+    "cci_frame": null,
+    "chop_frame": "M15"
+  },
+  {
+    "id": "chop_m5",
+    "kind": "chop",
+    "cci_frame": null,
+    "chop_frame": "M5"
+  },
+  {
+    "id": "chop_m3",
+    "kind": "chop",
+    "cci_frame": null,
+    "chop_frame": "M3"
+  },
+  {
+    "id": "chop_m1",
+    "kind": "chop",
+    "cci_frame": null,
+    "chop_frame": "M1"
+  },
+  {
+    "id": "cci_w_chop_w",
+    "kind": "combined",
+    "cci_frame": "W",
+    "chop_frame": "W"
+  },
+  {
+    "id": "cci_w_chop_d",
+    "kind": "combined",
+    "cci_frame": "W",
+    "chop_frame": "D"
+  },
+  {
+    "id": "cci_w_chop_h12",
+    "kind": "combined",
+    "cci_frame": "W",
+    "chop_frame": "H12"
+  },
+  {
+    "id": "cci_w_chop_h6",
+    "kind": "combined",
+    "cci_frame": "W",
+    "chop_frame": "H6"
+  },
+  {
+    "id": "cci_w_chop_h4",
+    "kind": "combined",
+    "cci_frame": "W",
+    "chop_frame": "H4"
+  },
+  {
+    "id": "cci_w_chop_h1",
+    "kind": "combined",
+    "cci_frame": "W",
+    "chop_frame": "H1"
+  },
+  {
+    "id": "cci_w_chop_m30",
+    "kind": "combined",
+    "cci_frame": "W",
+    "chop_frame": "M30"
+  },
+  {
+    "id": "cci_w_chop_m15",
+    "kind": "combined",
+    "cci_frame": "W",
+    "chop_frame": "M15"
+  },
+  {
+    "id": "cci_w_chop_m5",
+    "kind": "combined",
+    "cci_frame": "W",
+    "chop_frame": "M5"
+  },
+  {
+    "id": "cci_w_chop_m3",
+    "kind": "combined",
+    "cci_frame": "W",
+    "chop_frame": "M3"
+  },
+  {
+    "id": "cci_w_chop_m1",
+    "kind": "combined",
+    "cci_frame": "W",
+    "chop_frame": "M1"
+  },
+  {
+    "id": "cci_d_chop_w",
+    "kind": "combined",
+    "cci_frame": "D",
+    "chop_frame": "W"
+  },
+  {
+    "id": "cci_d_chop_d",
+    "kind": "combined",
+    "cci_frame": "D",
+    "chop_frame": "D"
+  },
+  {
+    "id": "cci_d_chop_h12",
+    "kind": "combined",
+    "cci_frame": "D",
+    "chop_frame": "H12"
+  },
+  {
+    "id": "cci_d_chop_h6",
+    "kind": "combined",
+    "cci_frame": "D",
+    "chop_frame": "H6"
+  },
+  {
+    "id": "cci_d_chop_h4",
+    "kind": "combined",
+    "cci_frame": "D",
+    "chop_frame": "H4"
+  },
+  {
+    "id": "cci_d_chop_h1",
+    "kind": "combined",
+    "cci_frame": "D",
+    "chop_frame": "H1"
+  },
+  {
+    "id": "cci_d_chop_m30",
+    "kind": "combined",
+    "cci_frame": "D",
+    "chop_frame": "M30"
+  },
+  {
+    "id": "cci_d_chop_m15",
+    "kind": "combined",
+    "cci_frame": "D",
+    "chop_frame": "M15"
+  },
+  {
+    "id": "cci_d_chop_m5",
+    "kind": "combined",
+    "cci_frame": "D",
+    "chop_frame": "M5"
+  },
+  {
+    "id": "cci_d_chop_m3",
+    "kind": "combined",
+    "cci_frame": "D",
+    "chop_frame": "M3"
+  },
+  {
+    "id": "cci_d_chop_m1",
+    "kind": "combined",
+    "cci_frame": "D",
+    "chop_frame": "M1"
+  },
+  {
+    "id": "cci_h12_chop_w",
+    "kind": "combined",
+    "cci_frame": "H12",
+    "chop_frame": "W"
+  },
+  {
+    "id": "cci_h12_chop_d",
+    "kind": "combined",
+    "cci_frame": "H12",
+    "chop_frame": "D"
+  },
+  {
+    "id": "cci_h12_chop_h12",
+    "kind": "combined",
+    "cci_frame": "H12",
+    "chop_frame": "H12"
+  },
+  {
+    "id": "cci_h12_chop_h6",
+    "kind": "combined",
+    "cci_frame": "H12",
+    "chop_frame": "H6"
+  },
+  {
+    "id": "cci_h12_chop_h4",
+    "kind": "combined",
+    "cci_frame": "H12",
+    "chop_frame": "H4"
+  },
+  {
+    "id": "cci_h12_chop_h1",
+    "kind": "combined",
+    "cci_frame": "H12",
+    "chop_frame": "H1"
+  },
+  {
+    "id": "cci_h12_chop_m30",
+    "kind": "combined",
+    "cci_frame": "H12",
+    "chop_frame": "M30"
+  },
+  {
+    "id": "cci_h12_chop_m15",
+    "kind": "combined",
+    "cci_frame": "H12",
+    "chop_frame": "M15"
+  },
+  {
+    "id": "cci_h12_chop_m5",
+    "kind": "combined",
+    "cci_frame": "H12",
+    "chop_frame": "M5"
+  },
+  {
+    "id": "cci_h12_chop_m3",
+    "kind": "combined",
+    "cci_frame": "H12",
+    "chop_frame": "M3"
+  },
+  {
+    "id": "cci_h12_chop_m1",
+    "kind": "combined",
+    "cci_frame": "H12",
+    "chop_frame": "M1"
+  },
+  {
+    "id": "cci_h6_chop_w",
+    "kind": "combined",
+    "cci_frame": "H6",
+    "chop_frame": "W"
+  },
+  {
+    "id": "cci_h6_chop_d",
+    "kind": "combined",
+    "cci_frame": "H6",
+    "chop_frame": "D"
+  },
+  {
+    "id": "cci_h6_chop_h12",
+    "kind": "combined",
+    "cci_frame": "H6",
+    "chop_frame": "H12"
+  },
+  {
+    "id": "cci_h6_chop_h6",
+    "kind": "combined",
+    "cci_frame": "H6",
+    "chop_frame": "H6"
+  },
+  {
+    "id": "cci_h6_chop_h4",
+    "kind": "combined",
+    "cci_frame": "H6",
+    "chop_frame": "H4"
+  },
+  {
+    "id": "cci_h6_chop_h1",
+    "kind": "combined",
+    "cci_frame": "H6",
+    "chop_frame": "H1"
+  },
+  {
+    "id": "cci_h6_chop_m30",
+    "kind": "combined",
+    "cci_frame": "H6",
+    "chop_frame": "M30"
+  },
+  {
+    "id": "cci_h6_chop_m15",
+    "kind": "combined",
+    "cci_frame": "H6",
+    "chop_frame": "M15"
+  },
+  {
+    "id": "cci_h6_chop_m5",
+    "kind": "combined",
+    "cci_frame": "H6",
+    "chop_frame": "M5"
+  },
+  {
+    "id": "cci_h6_chop_m3",
+    "kind": "combined",
+    "cci_frame": "H6",
+    "chop_frame": "M3"
+  },
+  {
+    "id": "cci_h6_chop_m1",
+    "kind": "combined",
+    "cci_frame": "H6",
+    "chop_frame": "M1"
+  },
+  {
+    "id": "cci_h4_chop_w",
+    "kind": "combined",
+    "cci_frame": "H4",
+    "chop_frame": "W"
+  },
+  {
+    "id": "cci_h4_chop_d",
+    "kind": "combined",
+    "cci_frame": "H4",
+    "chop_frame": "D"
+  },
+  {
+    "id": "cci_h4_chop_h12",
+    "kind": "combined",
+    "cci_frame": "H4",
+    "chop_frame": "H12"
+  },
+  {
+    "id": "cci_h4_chop_h6",
+    "kind": "combined",
+    "cci_frame": "H4",
+    "chop_frame": "H6"
+  },
+  {
+    "id": "cci_h4_chop_h4",
+    "kind": "combined",
+    "cci_frame": "H4",
+    "chop_frame": "H4"
+  },
+  {
+    "id": "cci_h4_chop_h1",
+    "kind": "combined",
+    "cci_frame": "H4",
+    "chop_frame": "H1"
+  },
+  {
+    "id": "cci_h4_chop_m30",
+    "kind": "combined",
+    "cci_frame": "H4",
+    "chop_frame": "M30"
+  },
+  {
+    "id": "cci_h4_chop_m15",
+    "kind": "combined",
+    "cci_frame": "H4",
+    "chop_frame": "M15"
+  },
+  {
+    "id": "cci_h4_chop_m5",
+    "kind": "combined",
+    "cci_frame": "H4",
+    "chop_frame": "M5"
+  },
+  {
+    "id": "cci_h4_chop_m3",
+    "kind": "combined",
+    "cci_frame": "H4",
+    "chop_frame": "M3"
+  },
+  {
+    "id": "cci_h4_chop_m1",
+    "kind": "combined",
+    "cci_frame": "H4",
+    "chop_frame": "M1"
+  },
+  {
+    "id": "cci_h1_chop_w",
+    "kind": "combined",
+    "cci_frame": "H1",
+    "chop_frame": "W"
+  },
+  {
+    "id": "cci_h1_chop_d",
+    "kind": "combined",
+    "cci_frame": "H1",
+    "chop_frame": "D"
+  },
+  {
+    "id": "cci_h1_chop_h12",
+    "kind": "combined",
+    "cci_frame": "H1",
+    "chop_frame": "H12"
+  },
+  {
+    "id": "cci_h1_chop_h6",
+    "kind": "combined",
+    "cci_frame": "H1",
+    "chop_frame": "H6"
+  },
+  {
+    "id": "cci_h1_chop_h4",
+    "kind": "combined",
+    "cci_frame": "H1",
+    "chop_frame": "H4"
+  },
+  {
+    "id": "cci_h1_chop_h1",
+    "kind": "combined",
+    "cci_frame": "H1",
+    "chop_frame": "H1"
+  },
+  {
+    "id": "cci_h1_chop_m30",
+    "kind": "combined",
+    "cci_frame": "H1",
+    "chop_frame": "M30"
+  },
+  {
+    "id": "cci_h1_chop_m15",
+    "kind": "combined",
+    "cci_frame": "H1",
+    "chop_frame": "M15"
+  },
+  {
+    "id": "cci_h1_chop_m5",
+    "kind": "combined",
+    "cci_frame": "H1",
+    "chop_frame": "M5"
+  },
+  {
+    "id": "cci_h1_chop_m3",
+    "kind": "combined",
+    "cci_frame": "H1",
+    "chop_frame": "M3"
+  },
+  {
+    "id": "cci_h1_chop_m1",
+    "kind": "combined",
+    "cci_frame": "H1",
+    "chop_frame": "M1"
+  },
+  {
+    "id": "cci_m30_chop_w",
+    "kind": "combined",
+    "cci_frame": "M30",
+    "chop_frame": "W"
+  },
+  {
+    "id": "cci_m30_chop_d",
+    "kind": "combined",
+    "cci_frame": "M30",
+    "chop_frame": "D"
+  },
+  {
+    "id": "cci_m30_chop_h12",
+    "kind": "combined",
+    "cci_frame": "M30",
+    "chop_frame": "H12"
+  },
+  {
+    "id": "cci_m30_chop_h6",
+    "kind": "combined",
+    "cci_frame": "M30",
+    "chop_frame": "H6"
+  },
+  {
+    "id": "cci_m30_chop_h4",
+    "kind": "combined",
+    "cci_frame": "M30",
+    "chop_frame": "H4"
+  },
+  {
+    "id": "cci_m30_chop_h1",
+    "kind": "combined",
+    "cci_frame": "M30",
+    "chop_frame": "H1"
+  },
+  {
+    "id": "cci_m30_chop_m30",
+    "kind": "combined",
+    "cci_frame": "M30",
+    "chop_frame": "M30"
+  },
+  {
+    "id": "cci_m30_chop_m15",
+    "kind": "combined",
+    "cci_frame": "M30",
+    "chop_frame": "M15"
+  },
+  {
+    "id": "cci_m30_chop_m5",
+    "kind": "combined",
+    "cci_frame": "M30",
+    "chop_frame": "M5"
+  },
+  {
+    "id": "cci_m30_chop_m3",
+    "kind": "combined",
+    "cci_frame": "M30",
+    "chop_frame": "M3"
+  },
+  {
+    "id": "cci_m30_chop_m1",
+    "kind": "combined",
+    "cci_frame": "M30",
+    "chop_frame": "M1"
+  },
+  {
+    "id": "cci_m15_chop_w",
+    "kind": "combined",
+    "cci_frame": "M15",
+    "chop_frame": "W"
+  },
+  {
+    "id": "cci_m15_chop_d",
+    "kind": "combined",
+    "cci_frame": "M15",
+    "chop_frame": "D"
+  },
+  {
+    "id": "cci_m15_chop_h12",
+    "kind": "combined",
+    "cci_frame": "M15",
+    "chop_frame": "H12"
+  },
+  {
+    "id": "cci_m15_chop_h6",
+    "kind": "combined",
+    "cci_frame": "M15",
+    "chop_frame": "H6"
+  },
+  {
+    "id": "cci_m15_chop_h4",
+    "kind": "combined",
+    "cci_frame": "M15",
+    "chop_frame": "H4"
+  },
+  {
+    "id": "cci_m15_chop_h1",
+    "kind": "combined",
+    "cci_frame": "M15",
+    "chop_frame": "H1"
+  },
+  {
+    "id": "cci_m15_chop_m30",
+    "kind": "combined",
+    "cci_frame": "M15",
+    "chop_frame": "M30"
+  },
+  {
+    "id": "cci_m15_chop_m15",
+    "kind": "combined",
+    "cci_frame": "M15",
+    "chop_frame": "M15"
+  },
+  {
+    "id": "cci_m15_chop_m5",
+    "kind": "combined",
+    "cci_frame": "M15",
+    "chop_frame": "M5"
+  },
+  {
+    "id": "cci_m15_chop_m3",
+    "kind": "combined",
+    "cci_frame": "M15",
+    "chop_frame": "M3"
+  },
+  {
+    "id": "cci_m15_chop_m1",
+    "kind": "combined",
+    "cci_frame": "M15",
+    "chop_frame": "M1"
+  },
+  {
+    "id": "cci_m5_chop_w",
+    "kind": "combined",
+    "cci_frame": "M5",
+    "chop_frame": "W"
+  },
+  {
+    "id": "cci_m5_chop_d",
+    "kind": "combined",
+    "cci_frame": "M5",
+    "chop_frame": "D"
+  },
+  {
+    "id": "cci_m5_chop_h12",
+    "kind": "combined",
+    "cci_frame": "M5",
+    "chop_frame": "H12"
+  },
+  {
+    "id": "cci_m5_chop_h6",
+    "kind": "combined",
+    "cci_frame": "M5",
+    "chop_frame": "H6"
+  },
+  {
+    "id": "cci_m5_chop_h4",
+    "kind": "combined",
+    "cci_frame": "M5",
+    "chop_frame": "H4"
+  },
+  {
+    "id": "cci_m5_chop_h1",
+    "kind": "combined",
+    "cci_frame": "M5",
+    "chop_frame": "H1"
+  },
+  {
+    "id": "cci_m5_chop_m30",
+    "kind": "combined",
+    "cci_frame": "M5",
+    "chop_frame": "M30"
+  },
+  {
+    "id": "cci_m5_chop_m15",
+    "kind": "combined",
+    "cci_frame": "M5",
+    "chop_frame": "M15"
+  },
+  {
+    "id": "cci_m5_chop_m5",
+    "kind": "combined",
+    "cci_frame": "M5",
+    "chop_frame": "M5"
+  },
+  {
+    "id": "cci_m5_chop_m3",
+    "kind": "combined",
+    "cci_frame": "M5",
+    "chop_frame": "M3"
+  },
+  {
+    "id": "cci_m5_chop_m1",
+    "kind": "combined",
+    "cci_frame": "M5",
+    "chop_frame": "M1"
+  },
+  {
+    "id": "cci_m3_chop_w",
+    "kind": "combined",
+    "cci_frame": "M3",
+    "chop_frame": "W"
+  },
+  {
+    "id": "cci_m3_chop_d",
+    "kind": "combined",
+    "cci_frame": "M3",
+    "chop_frame": "D"
+  },
+  {
+    "id": "cci_m3_chop_h12",
+    "kind": "combined",
+    "cci_frame": "M3",
+    "chop_frame": "H12"
+  },
+  {
+    "id": "cci_m3_chop_h6",
+    "kind": "combined",
+    "cci_frame": "M3",
+    "chop_frame": "H6"
+  },
+  {
+    "id": "cci_m3_chop_h4",
+    "kind": "combined",
+    "cci_frame": "M3",
+    "chop_frame": "H4"
+  },
+  {
+    "id": "cci_m3_chop_h1",
+    "kind": "combined",
+    "cci_frame": "M3",
+    "chop_frame": "H1"
+  },
+  {
+    "id": "cci_m3_chop_m30",
+    "kind": "combined",
+    "cci_frame": "M3",
+    "chop_frame": "M30"
+  },
+  {
+    "id": "cci_m3_chop_m15",
+    "kind": "combined",
+    "cci_frame": "M3",
+    "chop_frame": "M15"
+  },
+  {
+    "id": "cci_m3_chop_m5",
+    "kind": "combined",
+    "cci_frame": "M3",
+    "chop_frame": "M5"
+  },
+  {
+    "id": "cci_m3_chop_m3",
+    "kind": "combined",
+    "cci_frame": "M3",
+    "chop_frame": "M3"
+  },
+  {
+    "id": "cci_m3_chop_m1",
+    "kind": "combined",
+    "cci_frame": "M3",
+    "chop_frame": "M1"
+  },
+  {
+    "id": "cci_m1_chop_w",
+    "kind": "combined",
+    "cci_frame": "M1",
+    "chop_frame": "W"
+  },
+  {
+    "id": "cci_m1_chop_d",
+    "kind": "combined",
+    "cci_frame": "M1",
+    "chop_frame": "D"
+  },
+  {
+    "id": "cci_m1_chop_h12",
+    "kind": "combined",
+    "cci_frame": "M1",
+    "chop_frame": "H12"
+  },
+  {
+    "id": "cci_m1_chop_h6",
+    "kind": "combined",
+    "cci_frame": "M1",
+    "chop_frame": "H6"
+  },
+  {
+    "id": "cci_m1_chop_h4",
+    "kind": "combined",
+    "cci_frame": "M1",
+    "chop_frame": "H4"
+  },
+  {
+    "id": "cci_m1_chop_h1",
+    "kind": "combined",
+    "cci_frame": "M1",
+    "chop_frame": "H1"
+  },
+  {
+    "id": "cci_m1_chop_m30",
+    "kind": "combined",
+    "cci_frame": "M1",
+    "chop_frame": "M30"
+  },
+  {
+    "id": "cci_m1_chop_m15",
+    "kind": "combined",
+    "cci_frame": "M1",
+    "chop_frame": "M15"
+  },
+  {
+    "id": "cci_m1_chop_m5",
+    "kind": "combined",
+    "cci_frame": "M1",
+    "chop_frame": "M5"
+  },
+  {
+    "id": "cci_m1_chop_m3",
+    "kind": "combined",
+    "cci_frame": "M1",
+    "chop_frame": "M3"
+  },
+  {
+    "id": "cci_m1_chop_m1",
+    "kind": "combined",
+    "cci_frame": "M1",
+    "chop_frame": "M1"
+  }
+]

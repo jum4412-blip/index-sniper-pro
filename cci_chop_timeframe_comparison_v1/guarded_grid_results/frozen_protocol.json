@@ -1,0 +1,911 @@
+{
+  "experiment": "ALL_CCI_CHOP_PLACEMENTS_ACCOUNT_ENTRY_HALT_APPROXIMATION_V1",
+  "created_utc": "2026-10-05T07:32:39.797481+00:00",
+  "source_sha256": {
+    "guarded_grid.py": "7aeab87f07676ab4dabb67ad5aa97ad482190d43329aa5ab2243f94b5af0d41b",
+    "risk_halt_supplement.py": "e7a6108ed3df6f63bcb7e7335efd1ba426963b455f627cc20461ebe376a78ca6",
+    "runner.py": "0b3159eac08b16afeeb05262c7a6c7c89475ade86516e468c5a920a1a44e2f30"
+  },
+  "source_hashes": {
+    "BTCUSDT_minute.npz": "9b75ba34d34c173806ecebb4970ce16358a7a70c77a6319b0f914ba5c7266be9",
+    "BTCUSDT_funding.npz": "2e63badc8d0f7cf68828b6ce5328c6cf2971d66c6e64cb74c55815d1eccb9df3",
+    "ETHUSDT_minute.npz": "a71223e1bb57c634b2626bf531dd48df4726eff6a136bd4dd2c473b7b46bcb30",
+    "ETHUSDT_funding.npz": "0d93f8937f3909573471217ea2cefec544d7b21e80dda8a7f11718198b3a204e"
+  },
+  "original_selected_rule": {
+    "id": "cci_h6_chop_m3",
+    "kind": "combined",
+    "cci_frame": "H6",
+    "chop_frame": "M3",
+    "cci_period": 20,
+    "cci_long": 100,
+    "cci_short": -100,
+    "chop_period": 14,
+    "chop_max": 38.2,
+    "selection_reason": "TRAIN_SAMPLE_SUFFICIENT_THEN_DOUBLED_COST_NET",
+    "protocol_sha256": "f214c14b2006f4e6f2cdaa75f6fefc13a942a1412f33d31fa9dfc5d31d4fe337"
+  },
+  "variants": [
+    {
+      "id": "baseline",
+      "kind": "baseline",
+      "cci_frame": null,
+      "chop_frame": null
+    },
+    {
+      "id": "cci_w",
+      "kind": "cci",
+      "cci_frame": "W",
+      "chop_frame": null
+    },
+    {
+      "id": "cci_d",
+      "kind": "cci",
+      "cci_frame": "D",
+      "chop_frame": null
+    },
+    {
+      "id": "cci_h12",
+      "kind": "cci",
+      "cci_frame": "H12",
+      "chop_frame": null
+    },
+    {
+      "id": "cci_h6",
+      "kind": "cci",
+      "cci_frame": "H6",
+      "chop_frame": null
+    },
+    {
+      "id": "cci_h4",
+      "kind": "cci",
+      "cci_frame": "H4",
+      "chop_frame": null
+    },
+    {
+      "id": "cci_h1",
+      "kind": "cci",
+      "cci_frame": "H1",
+      "chop_frame": null
+    },
+    {
+      "id": "cci_m30",
+      "kind": "cci",
+      "cci_frame": "M30",
+      "chop_frame": null
+    },
+    {
+      "id": "cci_m15",
+      "kind": "cci",
+      "cci_frame": "M15",
+      "chop_frame": null
+    },
+    {
+      "id": "cci_m5",
+      "kind": "cci",
+      "cci_frame": "M5",
+      "chop_frame": null
+    },
+    {
+      "id": "cci_m3",
+      "kind": "cci",
+      "cci_frame": "M3",
+      "chop_frame": null
+    },
+    {
+      "id": "cci_m1",
+      "kind": "cci",
+      "cci_frame": "M1",
+      "chop_frame": null
+    },
+    {
+      "id": "chop_w",
+      "kind": "chop",
+      "cci_frame": null,
+      "chop_frame": "W"
+    },
+    {
+      "id": "chop_d",
+      "kind": "chop",
+      "cci_frame": null,
+      "chop_frame": "D"
+    },
+    {
+      "id": "chop_h12",
+      "kind": "chop",
+      "cci_frame": null,
+      "chop_frame": "H12"
+    },
+    {
+      "id": "chop_h6",
+      "kind": "chop",
+      "cci_frame": null,
+      "chop_frame": "H6"
+    },
+    {
+      "id": "chop_h4",
+      "kind": "chop",
+      "cci_frame": null,
+      "chop_frame": "H4"
+    },
+    {
+      "id": "chop_h1",
+      "kind": "chop",
+      "cci_frame": null,
+      "chop_frame": "H1"
+    },
+    {
+      "id": "chop_m30",
+      "kind": "chop",
+      "cci_frame": null,
+      "chop_frame": "M30"
+    },
+    {
+      "id": "chop_m15",
+      "kind": "chop",
+      "cci_frame": null,
+      "chop_frame": "M15"
+    },
+    {
+      "id": "chop_m5",
+      "kind": "chop",
+      "cci_frame": null,
+      "chop_frame": "M5"
+    },
+    {
+      "id": "chop_m3",
+      "kind": "chop",
+      "cci_frame": null,
+      "chop_frame": "M3"
+    },
+    {
+      "id": "chop_m1",
+      "kind": "chop",
+      "cci_frame": null,
+      "chop_frame": "M1"
+    },
+    {
+      "id": "cci_w_chop_w",
+      "kind": "combined",
+      "cci_frame": "W",
+      "chop_frame": "W"
+    },
+    {
+      "id": "cci_w_chop_d",
+      "kind": "combined",
+      "cci_frame": "W",
+      "chop_frame": "D"
+    },
+    {
+      "id": "cci_w_chop_h12",
+      "kind": "combined",
+      "cci_frame": "W",
+      "chop_frame": "H12"
+    },
+    {
+      "id": "cci_w_chop_h6",
+      "kind": "combined",
+      "cci_frame": "W",
+      "chop_frame": "H6"
+    },
+    {
+      "id": "cci_w_chop_h4",
+      "kind": "combined",
+      "cci_frame": "W",
+      "chop_frame": "H4"
+    },
+    {
+      "id": "cci_w_chop_h1",
+      "kind": "combined",
+      "cci_frame": "W",
+      "chop_frame": "H1"
+    },
+    {
+      "id": "cci_w_chop_m30",
+      "kind": "combined",
+      "cci_frame": "W",
+      "chop_frame": "M30"
+    },
+    {
+      "id": "cci_w_chop_m15",
+      "kind": "combined",
+      "cci_frame": "W",
+      "chop_frame": "M15"
+    },
+    {
+      "id": "cci_w_chop_m5",
+      "kind": "combined",
+      "cci_frame": "W",
+      "chop_frame": "M5"
+    },
+    {
+      "id": "cci_w_chop_m3",
+      "kind": "combined",
+      "cci_frame": "W",
+      "chop_frame": "M3"
+    },
+    {
+      "id": "cci_w_chop_m1",
+      "kind": "combined",
+      "cci_frame": "W",
+      "chop_frame": "M1"
+    },
+    {
+      "id": "cci_d_chop_w",
+      "kind": "combined",
+      "cci_frame": "D",
+      "chop_frame": "W"
+    },
+    {
+      "id": "cci_d_chop_d",
+      "kind": "combined",
+      "cci_frame": "D",
+      "chop_frame": "D"
+    },
+    {
+      "id": "cci_d_chop_h12",
+      "kind": "combined",
+      "cci_frame": "D",
+      "chop_frame": "H12"
+    },
+    {
+      "id": "cci_d_chop_h6",
+      "kind": "combined",
+      "cci_frame": "D",
+      "chop_frame": "H6"
+    },
+    {
+      "id": "cci_d_chop_h4",
+      "kind": "combined",
+      "cci_frame": "D",
+      "chop_frame": "H4"
+    },
+    {
+      "id": "cci_d_chop_h1",
+      "kind": "combined",
+      "cci_frame": "D",
+      "chop_frame": "H1"
+    },
+    {
+      "id": "cci_d_chop_m30",
+      "kind": "combined",
+      "cci_frame": "D",
+      "chop_frame": "M30"
+    },
+    {
+      "id": "cci_d_chop_m15",
+      "kind": "combined",
+      "cci_frame": "D",
+      "chop_frame": "M15"
+    },
+    {
+      "id": "cci_d_chop_m5",
+      "kind": "combined",
+      "cci_frame": "D",
+      "chop_frame": "M5"
+    },
+    {
+      "id": "cci_d_chop_m3",
+      "kind": "combined",
+      "cci_frame": "D",
+      "chop_frame": "M3"
+    },
+    {
+      "id": "cci_d_chop_m1",
+      "kind": "combined",
+      "cci_frame": "D",
+      "chop_frame": "M1"
+    },
+    {
+      "id": "cci_h12_chop_w",
+      "kind": "combined",
+      "cci_frame": "H12",
+      "chop_frame": "W"
+    },
+    {
+      "id": "cci_h12_chop_d",
+      "kind": "combined",
+      "cci_frame": "H12",
+      "chop_frame": "D"
+    },
+    {
+      "id": "cci_h12_chop_h12",
+      "kind": "combined",
+      "cci_frame": "H12",
+      "chop_frame": "H12"
+    },
+    {
+      "id": "cci_h12_chop_h6",
+      "kind": "combined",
+      "cci_frame": "H12",
+      "chop_frame": "H6"
+    },
+    {
+      "id": "cci_h12_chop_h4",
+      "kind": "combined",
+      "cci_frame": "H12",
+      "chop_frame": "H4"
+    },
+    {
+      "id": "cci_h12_chop_h1",
+      "kind": "combined",
+      "cci_frame": "H12",
+      "chop_frame": "H1"
+    },
+    {
+      "id": "cci_h12_chop_m30",
+      "kind": "combined",
+      "cci_frame": "H12",
+      "chop_frame": "M30"
+    },
+    {
+      "id": "cci_h12_chop_m15",
+      "kind": "combined",
+      "cci_frame": "H12",
+      "chop_frame": "M15"
+    },
+    {
+      "id": "cci_h12_chop_m5",
+      "kind": "combined",
+      "cci_frame": "H12",
+      "chop_frame": "M5"
+    },
+    {
+      "id": "cci_h12_chop_m3",
+      "kind": "combined",
+      "cci_frame": "H12",
+      "chop_frame": "M3"
+    },
+    {
+      "id": "cci_h12_chop_m1",
+      "kind": "combined",
+      "cci_frame": "H12",
+      "chop_frame": "M1"
+    },
+    {
+      "id": "cci_h6_chop_w",
+      "kind": "combined",
+      "cci_frame": "H6",
+      "chop_frame": "W"
+    },
+    {
+      "id": "cci_h6_chop_d",
+      "kind": "combined",
+      "cci_frame": "H6",
+      "chop_frame": "D"
+    },
+    {
+      "id": "cci_h6_chop_h12",
+      "kind": "combined",
+      "cci_frame": "H6",
+      "chop_frame": "H12"
+    },
+    {
+      "id": "cci_h6_chop_h6",
+      "kind": "combined",
+      "cci_frame": "H6",
+      "chop_frame": "H6"
+    },
+    {
+      "id": "cci_h6_chop_h4",
+      "kind": "combined",
+      "cci_frame": "H6",
+      "chop_frame": "H4"
+    },
+    {
+      "id": "cci_h6_chop_h1",
+      "kind": "combined",
+      "cci_frame": "H6",
+      "chop_frame": "H1"
+    },
+    {
+      "id": "cci_h6_chop_m30",
+      "kind": "combined",
+      "cci_frame": "H6",
+      "chop_frame": "M30"
+    },
+    {
+      "id": "cci_h6_chop_m15",
+      "kind": "combined",
+      "cci_frame": "H6",
+      "chop_frame": "M15"
+    },
+    {
+      "id": "cci_h6_chop_m5",
+      "kind": "combined",
+      "cci_frame": "H6",
+      "chop_frame": "M5"
+    },
+    {
+      "id": "cci_h6_chop_m3",
+      "kind": "combined",
+      "cci_frame": "H6",
+      "chop_frame": "M3"
+    },
+    {
+      "id": "cci_h6_chop_m1",
+      "kind": "combined",
+      "cci_frame": "H6",
+      "chop_frame": "M1"
+    },
+    {
+      "id": "cci_h4_chop_w",
+      "kind": "combined",
+      "cci_frame": "H4",
+      "chop_frame": "W"
+    },
+    {
+      "id": "cci_h4_chop_d",
+      "kind": "combined",
+      "cci_frame": "H4",
+      "chop_frame": "D"
+    },
+    {
+      "id": "cci_h4_chop_h12",
+      "kind": "combined",
+      "cci_frame": "H4",
+      "chop_frame": "H12"
+    },
+    {
+      "id": "cci_h4_chop_h6",
+      "kind": "combined",
+      "cci_frame": "H4",
+      "chop_frame": "H6"
+    },
+    {
+      "id": "cci_h4_chop_h4",
+      "kind": "combined",
+      "cci_frame": "H4",
+      "chop_frame": "H4"
+    },
+    {
+      "id": "cci_h4_chop_h1",
+      "kind": "combined",
+      "cci_frame": "H4",
+      "chop_frame": "H1"
+    },
+    {
+      "id": "cci_h4_chop_m30",
+      "kind": "combined",
+      "cci_frame": "H4",
+      "chop_frame": "M30"
+    },
+    {
+      "id": "cci_h4_chop_m15",
+      "kind": "combined",
+      "cci_frame": "H4",
+      "chop_frame": "M15"
+    },
+    {
+      "id": "cci_h4_chop_m5",
+      "kind": "combined",
+      "cci_frame": "H4",
+      "chop_frame": "M5"
+    },
+    {
+      "id": "cci_h4_chop_m3",
+      "kind": "combined",
+      "cci_frame": "H4",
+      "chop_frame": "M3"
+    },
+    {
+      "id": "cci_h4_chop_m1",
+      "kind": "combined",
+      "cci_frame": "H4",
+      "chop_frame": "M1"
+    },
+    {
+      "id": "cci_h1_chop_w",
+      "kind": "combined",
+      "cci_frame": "H1",
+      "chop_frame": "W"
+    },
+    {
+      "id": "cci_h1_chop_d",
+      "kind": "combined",
+      "cci_frame": "H1",
+      "chop_frame": "D"
+    },
+    {
+      "id": "cci_h1_chop_h12",
+      "kind": "combined",
+      "cci_frame": "H1",
+      "chop_frame": "H12"
+    },
+    {
+      "id": "cci_h1_chop_h6",
+      "kind": "combined",
+      "cci_frame": "H1",
+      "chop_frame": "H6"
+    },
+    {
+      "id": "cci_h1_chop_h4",
+      "kind": "combined",
+      "cci_frame": "H1",
+      "chop_frame": "H4"
+    },
+    {
+      "id": "cci_h1_chop_h1",
+      "kind": "combined",
+      "cci_frame": "H1",
+      "chop_frame": "H1"
+    },
+    {
+      "id": "cci_h1_chop_m30",
+      "kind": "combined",
+      "cci_frame": "H1",
+      "chop_frame": "M30"
+    },
+    {
+      "id": "cci_h1_chop_m15",
+      "kind": "combined",
+      "cci_frame": "H1",
+      "chop_frame": "M15"
+    },
+    {
+      "id": "cci_h1_chop_m5",
+      "kind": "combined",
+      "cci_frame": "H1",
+      "chop_frame": "M5"
+    },
+    {
+      "id": "cci_h1_chop_m3",
+      "kind": "combined",
+      "cci_frame": "H1",
+      "chop_frame": "M3"
+    },
+    {
+      "id": "cci_h1_chop_m1",
+      "kind": "combined",
+      "cci_frame": "H1",
+      "chop_frame": "M1"
+    },
+    {
+      "id": "cci_m30_chop_w",
+      "kind": "combined",
+      "cci_frame": "M30",
+      "chop_frame": "W"
+    },
+    {
+      "id": "cci_m30_chop_d",
+      "kind": "combined",
+      "cci_frame": "M30",
+      "chop_frame": "D"
+    },
+    {
+      "id": "cci_m30_chop_h12",
+      "kind": "combined",
+      "cci_frame": "M30",
+      "chop_frame": "H12"
+    },
+    {
+      "id": "cci_m30_chop_h6",
+      "kind": "combined",
+      "cci_frame": "M30",
+      "chop_frame": "H6"
+    },
+    {
+      "id": "cci_m30_chop_h4",
+      "kind": "combined",
+      "cci_frame": "M30",
+      "chop_frame": "H4"
+    },
+    {
+      "id": "cci_m30_chop_h1",
+      "kind": "combined",
+      "cci_frame": "M30",
+      "chop_frame": "H1"
+    },
+    {
+      "id": "cci_m30_chop_m30",
+      "kind": "combined",
+      "cci_frame": "M30",
+      "chop_frame": "M30"
+    },
+    {
+      "id": "cci_m30_chop_m15",
+      "kind": "combined",
+      "cci_frame": "M30",
+      "chop_frame": "M15"
+    },
+    {
+      "id": "cci_m30_chop_m5",
+      "kind": "combined",
+      "cci_frame": "M30",
+      "chop_frame": "M5"
+    },
+    {
+      "id": "cci_m30_chop_m3",
+      "kind": "combined",
+      "cci_frame": "M30",
+      "chop_frame": "M3"
+    },
+    {
+      "id": "cci_m30_chop_m1",
+      "kind": "combined",
+      "cci_frame": "M30",
+      "chop_frame": "M1"
+    },
+    {
+      "id": "cci_m15_chop_w",
+      "kind": "combined",
+      "cci_frame": "M15",
+      "chop_frame": "W"
+    },
+    {
+      "id": "cci_m15_chop_d",
+      "kind": "combined",
+      "cci_frame": "M15",
+      "chop_frame": "D"
+    },
+    {
+      "id": "cci_m15_chop_h12",
+      "kind": "combined",
+      "cci_frame": "M15",
+      "chop_frame": "H12"
+    },
+    {
+      "id": "cci_m15_chop_h6",
+      "kind": "combined",
+      "cci_frame": "M15",
+      "chop_frame": "H6"
+    },
+    {
+      "id": "cci_m15_chop_h4",
+      "kind": "combined",
+      "cci_frame": "M15",
+      "chop_frame": "H4"
+    },
+    {
+      "id": "cci_m15_chop_h1",
+      "kind": "combined",
+      "cci_frame": "M15",
+      "chop_frame": "H1"
+    },
+    {
+      "id": "cci_m15_chop_m30",
+      "kind": "combined",
+      "cci_frame": "M15",
+      "chop_frame": "M30"
+    },
+    {
+      "id": "cci_m15_chop_m15",
+      "kind": "combined",
+      "cci_frame": "M15",
+      "chop_frame": "M15"
+    },
+    {
+      "id": "cci_m15_chop_m5",
+      "kind": "combined",
+      "cci_frame": "M15",
+      "chop_frame": "M5"
+    },
+    {
+      "id": "cci_m15_chop_m3",
+      "kind": "combined",
+      "cci_frame": "M15",
+      "chop_frame": "M3"
+    },
+    {
+      "id": "cci_m15_chop_m1",
+      "kind": "combined",
+      "cci_frame": "M15",
+      "chop_frame": "M1"
+    },
+    {
+      "id": "cci_m5_chop_w",
+      "kind": "combined",
+      "cci_frame": "M5",
+      "chop_frame": "W"
+    },
+    {
+      "id": "cci_m5_chop_d",
+      "kind": "combined",
+      "cci_frame": "M5",
+      "chop_frame": "D"
+    },
+    {
+      "id": "cci_m5_chop_h12",
+      "kind": "combined",
+      "cci_frame": "M5",
+      "chop_frame": "H12"
+    },
+    {
+      "id": "cci_m5_chop_h6",
+      "kind": "combined",
+      "cci_frame": "M5",
+      "chop_frame": "H6"
+    },
+    {
+      "id": "cci_m5_chop_h4",
+      "kind": "combined",
+      "cci_frame": "M5",
+      "chop_frame": "H4"
+    },
+    {
+      "id": "cci_m5_chop_h1",
+      "kind": "combined",
+      "cci_frame": "M5",
+      "chop_frame": "H1"
+    },
+    {
+      "id": "cci_m5_chop_m30",
+      "kind": "combined",
+      "cci_frame": "M5",
+      "chop_frame": "M30"
+    },
+    {
+      "id": "cci_m5_chop_m15",
+      "kind": "combined",
+      "cci_frame": "M5",
+      "chop_frame": "M15"
+    },
+    {
+      "id": "cci_m5_chop_m5",
+      "kind": "combined",
+      "cci_frame": "M5",
+      "chop_frame": "M5"
+    },
+    {
+      "id": "cci_m5_chop_m3",
+      "kind": "combined",
+      "cci_frame": "M5",
+      "chop_frame": "M3"
+    },
+    {
+      "id": "cci_m5_chop_m1",
+      "kind": "combined",
+      "cci_frame": "M5",
+      "chop_frame": "M1"
+    },
+    {
+      "id": "cci_m3_chop_w",
+      "kind": "combined",
+      "cci_frame": "M3",
+      "chop_frame": "W"
+    },
+    {
+      "id": "cci_m3_chop_d",
+      "kind": "combined",
+      "cci_frame": "M3",
+      "chop_frame": "D"
+    },
+    {
+      "id": "cci_m3_chop_h12",
+      "kind": "combined",
+      "cci_frame": "M3",
+      "chop_frame": "H12"
+    },
+    {
+      "id": "cci_m3_chop_h6",
+      "kind": "combined",
+      "cci_frame": "M3",
+      "chop_frame": "H6"
+    },
+    {
+      "id": "cci_m3_chop_h4",
+      "kind": "combined",
+      "cci_frame": "M3",
+      "chop_frame": "H4"
+    },
+    {
+      "id": "cci_m3_chop_h1",
+      "kind": "combined",
+      "cci_frame": "M3",
+      "chop_frame": "H1"
+    },
+    {
+      "id": "cci_m3_chop_m30",
+      "kind": "combined",
+      "cci_frame": "M3",
+      "chop_frame": "M30"
+    },
+    {
+      "id": "cci_m3_chop_m15",
+      "kind": "combined",
+      "cci_frame": "M3",
+      "chop_frame": "M15"
+    },
+    {
+      "id": "cci_m3_chop_m5",
+      "kind": "combined",
+      "cci_frame": "M3",
+      "chop_frame": "M5"
+    },
+    {
+      "id": "cci_m3_chop_m3",
+      "kind": "combined",
+      "cci_frame": "M3",
+      "chop_frame": "M3"
+    },
+    {
+      "id": "cci_m3_chop_m1",
+      "kind": "combined",
+      "cci_frame": "M3",
+      "chop_frame": "M1"
+    },
+    {
+      "id": "cci_m1_chop_w",
+      "kind": "combined",
+      "cci_frame": "M1",
+      "chop_frame": "W"
+    },
+    {
+      "id": "cci_m1_chop_d",
+      "kind": "combined",
+      "cci_frame": "M1",
+      "chop_frame": "D"
+    },
+    {
+      "id": "cci_m1_chop_h12",
+      "kind": "combined",
+      "cci_frame": "M1",
+      "chop_frame": "H12"
+    },
+    {
+      "id": "cci_m1_chop_h6",
+      "kind": "combined",
+      "cci_frame": "M1",
+      "chop_frame": "H6"
+    },
+    {
+      "id": "cci_m1_chop_h4",
+      "kind": "combined",
+      "cci_frame": "M1",
+      "chop_frame": "H4"
+    },
+    {
+      "id": "cci_m1_chop_h1",
+      "kind": "combined",
+      "cci_frame": "M1",
+      "chop_frame": "H1"
+    },
+    {
+      "id": "cci_m1_chop_m30",
+      "kind": "combined",
+      "cci_frame": "M1",
+      "chop_frame": "M30"
+    },
+    {
+      "id": "cci_m1_chop_m15",
+      "kind": "combined",
+      "cci_frame": "M1",
+      "chop_frame": "M15"
+    },
+    {
+      "id": "cci_m1_chop_m5",
+      "kind": "combined",
+      "cci_frame": "M1",
+      "chop_frame": "M5"
+    },
+    {
+      "id": "cci_m1_chop_m3",
+      "kind": "combined",
+      "cci_frame": "M1",
+      "chop_frame": "M3"
+    },
+    {
+      "id": "cci_m1_chop_m1",
+      "kind": "combined",
+      "cci_frame": "M1",
+      "chop_frame": "M1"
+    }
+  ],
+  "variant_count": 144,
+  "scenario_count": 1152,
+  "cci_chop_thresholds_changed": false,
+  "weekly_daily_structure_exits_changed": false,
+  "risk": {
+    "daily_loss_fraction": 0.02,
+    "weekly_loss_fraction": 0.05,
+    "drawdown_fraction": 0.1,
+    "sticky_halt_on_eligible_new_signal": true,
+    "mark_equity_observation": "1m opens"
+  },
+  "selection": "same original sample-sufficient/train2cost/train1cost/id rank; combined121 only; independent supplementary ranking, original selection not replaced",
+  "fresh_untouched_data": false,
+  "original_grid_and_selected8_risk_results_already_viewed": true,
+  "native_mark_equity_and_fills_equivalence": false,
+  "deployment_approved": false,
+  "frozen_before_guarded_all_placement_results": true
+}
