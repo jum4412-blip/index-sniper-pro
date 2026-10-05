@@ -1,0 +1,9 @@
+{
+  "cci_frame": "M30",
+  "chop_frame": "H6",
+  "cci_period": 20,
+  "cci_long": 100,
+  "cci_short": -100,
+  "chop_period": 14,
+  "chop_max": 38.2
+}

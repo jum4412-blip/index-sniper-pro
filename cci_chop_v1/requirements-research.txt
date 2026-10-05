@@ -1,0 +1,2 @@
+# Runtime itself uses only Python's standard library. Research tests use NumPy.
+numpy>=1.24,<3

@@ -1,0 +1,702 @@
+{
+  "strategy_sha256": "3f4b3af4102dd66739989581cd6b140012edffe2d742d6a2c86c1fc481c7d060",
+  "entry_rule": {
+    "cci_frame": "M30",
+    "chop_frame": "H6",
+    "cci_period": 20,
+    "cci_long": 100.0,
+    "cci_short": -100.0,
+    "chop_period": 14,
+    "chop_max": 38.2
+  },
+  "live_policy": "USER_DIRECTED_EXPERIMENTAL",
+  "measured_probability": null,
+  "source": "SHA-verified Binance USD-M cross-exchange proxy; previously viewed history; 1m equity-halt approximation",
+  "future_profitability_guaranteed": false,
+  "native_bitget_data_verified": false,
+  "execution_and_protection_verified": false,
+  "prospective_validation_verified": false,
+  "deployment_approved": false,
+  "qualifying_state_count": 0,
+  "statistical_gate_passed": false,
+  "history_is_untouched_holdout": false,
+  "selection_protocol_sha256": "f830d600c6e794f970437fab2e917210f7c26772ac75bce9c2af36ed7383e66a",
+  "selected_variant": "cci_m30_chop_h6",
+  "selection_reason": "GUARDED_TRAIN_SAMPLE_SUFFICIENT_THEN_DOUBLED_COST_NET",
+  "sample_sufficient": false,
+  "ranking_replays_live_account_loss_halts": "ONE_MINUTE_OPEN_PRICE_PROXY_NOT_3_SECOND_BITGET_MARK_EQUITY",
+  "selection_used_diagnostic_period": false,
+  "comparison_grid_scenarios": 2304,
+  "observed_account_reference_usdt": 1042.19,
+  "account_reference_is_current": false,
+  "research_evidence": {
+    "train_2023_2024": {
+      "cost1": {
+        "portfolio": {
+          "completed_trades": 53,
+          "censored_period_end_marks": 0,
+          "total_marked_net_usdt": 205.005819111705,
+          "completed_net_usdt": 205.005819111705,
+          "net_win_fraction": 0.2830188679245283,
+          "profit_factor_completed": 1.7633127823101828,
+          "fees_usdt": 27.127617136000005,
+          "funding_usdt": -8.6572837522954,
+          "entry_notional_turnover_usdt": 33903.93162,
+          "active_week_blocks": 29,
+          "chronological_four_blocks": [
+            {
+              "completed_trades": 20,
+              "net_usdt": -19.31361607734912
+            },
+            {
+              "completed_trades": 12,
+              "net_usdt": 231.87843596235302
+            },
+            {
+              "completed_trades": 21,
+              "net_usdt": -7.55900077329889
+            },
+            {
+              "completed_trades": 0,
+              "net_usdt": 0
+            }
+          ],
+          "sample_sufficient": false,
+          "maximum_drawdown_1m_open_proxy": 0.10305181443530151,
+          "minimum_equity_1m_open_proxy_usdt": 989.983854140404
+        },
+        "by_symbol": {
+          "BTCUSDT": {
+            "completed_trades": 30,
+            "censored_period_end_marks": 0,
+            "total_marked_net_usdt": 309.26942105253136,
+            "completed_net_usdt": 309.26942105253136,
+            "net_win_fraction": 0.4,
+            "profit_factor_completed": 3.3667508650788864,
+            "fees_usdt": 16.690055176,
+            "funding_usdt": -6.1147437714684,
+            "entry_notional_turnover_usdt": 20806.69352,
+            "active_week_blocks": 22,
+            "chronological_four_blocks": [
+              {
+                "completed_trades": 13,
+                "net_usdt": 13.288850674648831
+              },
+              {
+                "completed_trades": 6,
+                "net_usdt": 225.5934509064146
+              },
+              {
+                "completed_trades": 11,
+                "net_usdt": 70.38711947146791
+              },
+              {
+                "completed_trades": 0,
+                "net_usdt": 0
+              }
+            ],
+            "sample_sufficient": false,
+            "maximum_drawdown_1m_open_proxy": null,
+            "minimum_equity_1m_open_proxy_usdt": null
+          },
+          "ETHUSDT": {
+            "completed_trades": 23,
+            "censored_period_end_marks": 0,
+            "total_marked_net_usdt": -104.26360194082636,
+            "completed_net_usdt": -104.26360194082636,
+            "net_win_fraction": 0.13043478260869565,
+            "profit_factor_completed": 0.2439255374829714,
+            "fees_usdt": 10.437561960000002,
+            "funding_usdt": -2.542539980827,
+            "entry_notional_turnover_usdt": 13097.2381,
+            "active_week_blocks": 19,
+            "chronological_four_blocks": [
+              {
+                "completed_trades": 7,
+                "net_usdt": -32.60246675199795
+              },
+              {
+                "completed_trades": 6,
+                "net_usdt": 6.284985055938398
+              },
+              {
+                "completed_trades": 10,
+                "net_usdt": -77.9461202447668
+              },
+              {
+                "completed_trades": 0,
+                "net_usdt": 0
+              }
+            ],
+            "sample_sufficient": false,
+            "maximum_drawdown_1m_open_proxy": null,
+            "minimum_equity_1m_open_proxy_usdt": null
+          }
+        },
+        "persistent_halt": {
+          "entry_ms": 1716250860000,
+          "entry_utc": "2024-05-21T00:21:00+00:00",
+          "reasons": [
+            "ACCOUNT_DRAWDOWN_LIMIT"
+          ],
+          "equity_usdt": 1247.195819111706,
+          "peak_usdt": 1390.4881454512329
+        },
+        "necessary_gate": {
+          "necessary_failure_reasons": [
+            "BTCUSDT:cost1:SAMPLE_INSUFFICIENT",
+            "BTCUSDT:cost1:CHRONOLOGICAL_INSTABILITY",
+            "ETHUSDT:cost1:SAMPLE_INSUFFICIENT",
+            "ETHUSDT:cost1:CHRONOLOGICAL_INSTABILITY",
+            "BTCUSDT:cost2:SAMPLE_INSUFFICIENT",
+            "BTCUSDT:cost2:CHRONOLOGICAL_INSTABILITY",
+            "ETHUSDT:cost2:SAMPLE_INSUFFICIENT",
+            "ETHUSDT:cost2:CHRONOLOGICAL_INSTABILITY"
+          ],
+          "necessary_conditions_passed": false,
+          "statistical_pass_claimed": false
+        }
+      },
+      "cost2": {
+        "portfolio": {
+          "completed_trades": 53,
+          "censored_period_end_marks": 0,
+          "total_marked_net_usdt": 60.31352163387984,
+          "completed_net_usdt": 60.31352163387984,
+          "net_win_fraction": 0.22641509433962265,
+          "profit_factor_completed": 1.2178001278802792,
+          "fees_usdt": 44.194603632,
+          "funding_usdt": -14.7869547341206,
+          "entry_notional_turnover_usdt": 27638.901250000003,
+          "active_week_blocks": 29,
+          "chronological_four_blocks": [
+            {
+              "completed_trades": 20,
+              "net_usdt": -42.6282360725054
+            },
+            {
+              "completed_trades": 12,
+              "net_usdt": 151.13868771432954
+            },
+            {
+              "completed_trades": 21,
+              "net_usdt": -48.196930007944296
+            },
+            {
+              "completed_trades": 0,
+              "net_usdt": 0
+            }
+          ],
+          "sample_sufficient": false,
+          "maximum_drawdown_1m_open_proxy": 0.1085596116166259,
+          "minimum_equity_1m_open_proxy_usdt": 985.1862943822512
+        },
+        "by_symbol": {
+          "BTCUSDT": {
+            "completed_trades": 30,
+            "censored_period_end_marks": 0,
+            "total_marked_net_usdt": 181.1867583332416,
+            "completed_net_usdt": 181.1867583332416,
+            "net_win_fraction": 0.3333333333333333,
+            "profit_factor_completed": 2.3463542258482413,
+            "fees_usdt": 26.941882512000003,
+            "funding_usdt": -10.1638391547586,
+            "entry_notional_turnover_usdt": 16806.930750000003,
+            "active_week_blocks": 22,
+            "chronological_four_blocks": [
+              {
+                "completed_trades": 13,
+                "net_usdt": -5.56489719432342
+              },
+              {
+                "completed_trades": 6,
+                "net_usdt": 157.1822622863733
+              },
+              {
+                "completed_trades": 11,
+                "net_usdt": 29.569393241191744
+              },
+              {
+                "completed_trades": 0,
+                "net_usdt": 0
+              }
+            ],
+            "sample_sufficient": false,
+            "maximum_drawdown_1m_open_proxy": null,
+            "minimum_equity_1m_open_proxy_usdt": null
+          },
+          "ETHUSDT": {
+            "completed_trades": 23,
+            "censored_period_end_marks": 0,
+            "total_marked_net_usdt": -120.87323669936178,
+            "completed_net_usdt": -120.87323669936178,
+            "net_win_fraction": 0.08695652173913043,
+            "profit_factor_completed": 0.1508465685075154,
+            "fees_usdt": 17.25272112,
+            "funding_usdt": -4.6231155793620005,
+            "entry_notional_turnover_usdt": 10831.970500000001,
+            "active_week_blocks": 19,
+            "chronological_four_blocks": [
+              {
+                "completed_trades": 7,
+                "net_usdt": -37.06333887818198
+              },
+              {
+                "completed_trades": 6,
+                "net_usdt": -6.043574572043771
+              },
+              {
+                "completed_trades": 10,
+                "net_usdt": -77.76632324913604
+              },
+              {
+                "completed_trades": 0,
+                "net_usdt": 0
+              }
+            ],
+            "sample_sufficient": false,
+            "maximum_drawdown_1m_open_proxy": null,
+            "minimum_equity_1m_open_proxy_usdt": null
+          }
+        },
+        "persistent_halt": {
+          "entry_ms": 1716250860000,
+          "entry_utc": "2024-05-21T00:21:00+00:00",
+          "reasons": [
+            "ACCOUNT_DRAWDOWN_LIMIT"
+          ],
+          "equity_usdt": 1102.50352163388,
+          "peak_usdt": 1236.766401882765
+        },
+        "necessary_gate": {
+          "necessary_failure_reasons": [
+            "BTCUSDT:cost1:SAMPLE_INSUFFICIENT",
+            "BTCUSDT:cost1:CHRONOLOGICAL_INSTABILITY",
+            "ETHUSDT:cost1:SAMPLE_INSUFFICIENT",
+            "ETHUSDT:cost1:CHRONOLOGICAL_INSTABILITY",
+            "BTCUSDT:cost2:SAMPLE_INSUFFICIENT",
+            "BTCUSDT:cost2:CHRONOLOGICAL_INSTABILITY",
+            "ETHUSDT:cost2:SAMPLE_INSUFFICIENT",
+            "ETHUSDT:cost2:CHRONOLOGICAL_INSTABILITY"
+          ],
+          "necessary_conditions_passed": false,
+          "statistical_pass_claimed": false
+        }
+      }
+    },
+    "previously_viewed_2025_2026": {
+      "cost1": {
+        "portfolio": {
+          "completed_trades": 39,
+          "censored_period_end_marks": 0,
+          "total_marked_net_usdt": -49.064844234899034,
+          "completed_net_usdt": -49.064844234899034,
+          "net_win_fraction": 0.38461538461538464,
+          "profit_factor_completed": 0.6841181226031581,
+          "fees_usdt": 15.482818016000001,
+          "funding_usdt": -0.9872862188990001,
+          "entry_notional_turnover_usdt": 19349.4352,
+          "active_week_blocks": 24,
+          "chronological_four_blocks": [
+            {
+              "completed_trades": 17,
+              "net_usdt": 12.88675782389244
+            },
+            {
+              "completed_trades": 20,
+              "net_usdt": -43.47287436539152
+            },
+            {
+              "completed_trades": 2,
+              "net_usdt": -18.478727693399954
+            },
+            {
+              "completed_trades": 0,
+              "net_usdt": 0
+            }
+          ],
+          "sample_sufficient": false,
+          "maximum_drawdown_1m_open_proxy": 0.10132666836827026,
+          "minimum_equity_1m_open_proxy_usdt": 993.125155765101
+        },
+        "by_symbol": {
+          "BTCUSDT": {
+            "completed_trades": 13,
+            "censored_period_end_marks": 0,
+            "total_marked_net_usdt": -24.242653537653954,
+            "completed_net_usdt": -24.242653537653954,
+            "net_win_fraction": 0.38461538461538464,
+            "profit_factor_completed": 0.47682584287946234,
+            "fees_usdt": 7.1823158560000016,
+            "funding_usdt": -0.7753976816540001,
+            "entry_notional_turnover_usdt": 8971.223100000001,
+            "active_week_blocks": 9,
+            "chronological_four_blocks": [
+              {
+                "completed_trades": 6,
+                "net_usdt": -1.3172547946075843
+              },
+              {
+                "completed_trades": 6,
+                "net_usdt": -14.106821289646394
+              },
+              {
+                "completed_trades": 1,
+                "net_usdt": -8.818577453399975
+              },
+              {
+                "completed_trades": 0,
+                "net_usdt": 0
+              }
+            ],
+            "sample_sufficient": false,
+            "maximum_drawdown_1m_open_proxy": null,
+            "minimum_equity_1m_open_proxy_usdt": null
+          },
+          "ETHUSDT": {
+            "completed_trades": 26,
+            "censored_period_end_marks": 0,
+            "total_marked_net_usdt": -24.82219069724508,
+            "completed_net_usdt": -24.82219069724508,
+            "net_win_fraction": 0.38461538461538464,
+            "profit_factor_completed": 0.7722503300196112,
+            "fees_usdt": 8.30050216,
+            "funding_usdt": -0.211888537245,
+            "entry_notional_turnover_usdt": 10378.2121,
+            "active_week_blocks": 18,
+            "chronological_four_blocks": [
+              {
+                "completed_trades": 11,
+                "net_usdt": 14.204012618500023
+              },
+              {
+                "completed_trades": 14,
+                "net_usdt": -29.366053075745125
+              },
+              {
+                "completed_trades": 1,
+                "net_usdt": -9.660150239999977
+              },
+              {
+                "completed_trades": 0,
+                "net_usdt": 0
+              }
+            ],
+            "sample_sufficient": false,
+            "maximum_drawdown_1m_open_proxy": null,
+            "minimum_equity_1m_open_proxy_usdt": null
+          }
+        },
+        "persistent_halt": {
+          "entry_ms": 1764875760000,
+          "entry_utc": "2025-12-04T19:16:00+00:00",
+          "reasons": [
+            "ACCOUNT_DRAWDOWN_LIMIT"
+          ],
+          "equity_usdt": 993.1251557651011,
+          "peak_usdt": 1105.1013987049935
+        },
+        "necessary_gate": {
+          "necessary_failure_reasons": [
+            "BTCUSDT:cost1:SAMPLE_INSUFFICIENT",
+            "BTCUSDT:cost1:CHRONOLOGICAL_INSTABILITY",
+            "ETHUSDT:cost1:SAMPLE_INSUFFICIENT",
+            "ETHUSDT:cost1:CHRONOLOGICAL_INSTABILITY",
+            "BTCUSDT:cost2:SAMPLE_INSUFFICIENT",
+            "BTCUSDT:cost2:CHRONOLOGICAL_INSTABILITY",
+            "ETHUSDT:cost2:SAMPLE_INSUFFICIENT",
+            "ETHUSDT:cost2:CHRONOLOGICAL_INSTABILITY"
+          ],
+          "necessary_conditions_passed": false,
+          "statistical_pass_claimed": false
+        }
+      },
+      "cost2": {
+        "portfolio": {
+          "completed_trades": 38,
+          "censored_period_end_marks": 0,
+          "total_marked_net_usdt": -70.81320129278359,
+          "completed_net_usdt": -70.81320129278359,
+          "net_win_fraction": 0.3157894736842105,
+          "profit_factor_completed": 0.5310141577619393,
+          "fees_usdt": 24.842375256000004,
+          "funding_usdt": -2.2564960367839,
+          "entry_notional_turnover_usdt": 15528.56407,
+          "active_week_blocks": 24,
+          "chronological_four_blocks": [
+            {
+              "completed_trades": 17,
+              "net_usdt": -4.0294963994560185
+            },
+            {
+              "completed_trades": 20,
+              "net_usdt": -58.13152514217755
+            },
+            {
+              "completed_trades": 1,
+              "net_usdt": -8.652179751150022
+            },
+            {
+              "completed_trades": 0,
+              "net_usdt": 0
+            }
+          ],
+          "sample_sufficient": false,
+          "maximum_drawdown_1m_open_proxy": 0.10730356802852384,
+          "minimum_equity_1m_open_proxy_usdt": 971.3767987072165
+        },
+        "by_symbol": {
+          "BTCUSDT": {
+            "completed_trades": 13,
+            "censored_period_end_marks": 0,
+            "total_marked_net_usdt": -38.37912539589772,
+            "completed_net_usdt": -38.37912539589772,
+            "net_win_fraction": 0.23076923076923078,
+            "profit_factor_completed": 0.2592739118491807,
+            "fees_usdt": 11.710129416000001,
+            "funding_usdt": -1.4961659798979001,
+            "entry_notional_turnover_usdt": 7316.43187,
+            "active_week_blocks": 9,
+            "chronological_four_blocks": [
+              {
+                "completed_trades": 6,
+                "net_usdt": -8.867302440755042
+              },
+              {
+                "completed_trades": 6,
+                "net_usdt": -20.859643203992654
+              },
+              {
+                "completed_trades": 1,
+                "net_usdt": -8.652179751150022
+              },
+              {
+                "completed_trades": 0,
+                "net_usdt": 0
+              }
+            ],
+            "sample_sufficient": false,
+            "maximum_drawdown_1m_open_proxy": null,
+            "minimum_equity_1m_open_proxy_usdt": null
+          },
+          "ETHUSDT": {
+            "completed_trades": 25,
+            "censored_period_end_marks": 0,
+            "total_marked_net_usdt": -32.43407589688587,
+            "completed_net_usdt": -32.43407589688587,
+            "net_win_fraction": 0.36,
+            "profit_factor_completed": 0.6729755140802881,
+            "fees_usdt": 13.132245840000001,
+            "funding_usdt": -0.760330056886,
+            "entry_notional_turnover_usdt": 8212.1322,
+            "active_week_blocks": 17,
+            "chronological_four_blocks": [
+              {
+                "completed_trades": 11,
+                "net_usdt": 4.8378060412990225
+              },
+              {
+                "completed_trades": 14,
+                "net_usdt": -37.2718819381849
+              },
+              {
+                "completed_trades": 0,
+                "net_usdt": 0
+              },
+              {
+                "completed_trades": 0,
+                "net_usdt": 0
+              }
+            ],
+            "sample_sufficient": false,
+            "maximum_drawdown_1m_open_proxy": null,
+            "minimum_equity_1m_open_proxy_usdt": null
+          }
+        },
+        "persistent_halt": {
+          "entry_ms": 1764853260000,
+          "entry_utc": "2025-12-04T13:01:00+00:00",
+          "reasons": [
+            "ACCOUNT_DRAWDOWN_LIMIT"
+          ],
+          "equity_usdt": 971.3767987072172,
+          "peak_usdt": 1088.1378752259366
+        },
+        "necessary_gate": {
+          "necessary_failure_reasons": [
+            "BTCUSDT:cost1:SAMPLE_INSUFFICIENT",
+            "BTCUSDT:cost1:CHRONOLOGICAL_INSTABILITY",
+            "ETHUSDT:cost1:SAMPLE_INSUFFICIENT",
+            "ETHUSDT:cost1:CHRONOLOGICAL_INSTABILITY",
+            "BTCUSDT:cost2:SAMPLE_INSUFFICIENT",
+            "BTCUSDT:cost2:CHRONOLOGICAL_INSTABILITY",
+            "ETHUSDT:cost2:SAMPLE_INSUFFICIENT",
+            "ETHUSDT:cost2:CHRONOLOGICAL_INSTABILITY"
+          ],
+          "necessary_conditions_passed": false,
+          "statistical_pass_claimed": false
+        }
+      }
+    }
+  },
+  "cells": {},
+  "bootstrap_protocol_sha256": "080ea00d84570d8ecf16d8fb2538a7267e2cc9f980bc6ad31ecaadb7f5ecad5b",
+  "selected_bootstrap_bounds": {
+    "train_2023_2024": {
+      "day": {
+        "cci_m30_chop_h6|personal|cost1|BTCUSDT": {
+          "net_lower_5pct_usdt": 46.848142246045626,
+          "net_lower_familywise_usdt": -150.58943105877813,
+          "incremental_lower_5pct_usdt": 64.00015874477914,
+          "incremental_lower_familywise_usdt": -129.52126088949123
+        },
+        "cci_m30_chop_h6|personal|cost1|ETHUSDT": {
+          "net_lower_5pct_usdt": -172.7801207487722,
+          "net_lower_familywise_usdt": -255.94259589004855,
+          "incremental_lower_5pct_usdt": -271.51367831447544,
+          "incremental_lower_familywise_usdt": -532.2964340645453
+        },
+        "cci_m30_chop_h6|personal|cost1|PORTFOLIO": {
+          "net_lower_5pct_usdt": -74.03118912182343,
+          "net_lower_familywise_usdt": -294.82000007862257,
+          "incremental_lower_5pct_usdt": -94.82838489604158,
+          "incremental_lower_familywise_usdt": -425.5562150067453
+        },
+        "cci_m30_chop_h6|personal|cost2|BTCUSDT": {
+          "net_lower_5pct_usdt": -12.411426861085953,
+          "net_lower_familywise_usdt": -169.72329185910183,
+          "incremental_lower_5pct_usdt": 15.48452693539269,
+          "incremental_lower_familywise_usdt": -140.14107343471596
+        },
+        "cci_m30_chop_h6|personal|cost2|ETHUSDT": {
+          "net_lower_5pct_usdt": -183.3989161950752,
+          "net_lower_familywise_usdt": -266.4177640220708,
+          "incremental_lower_5pct_usdt": -206.07596738639214,
+          "incremental_lower_familywise_usdt": -396.83246671260036
+        },
+        "cci_m30_chop_h6|personal|cost2|PORTFOLIO": {
+          "net_lower_5pct_usdt": -148.8035567185108,
+          "net_lower_familywise_usdt": -336.8396128210211,
+          "incremental_lower_5pct_usdt": -105.79236928923537,
+          "incremental_lower_familywise_usdt": -363.3803171099684
+        }
+      },
+      "week": {
+        "cci_m30_chop_h6|personal|cost1|BTCUSDT": {
+          "net_lower_5pct_usdt": 37.59483880768229,
+          "net_lower_familywise_usdt": -155.37792191871654,
+          "incremental_lower_5pct_usdt": 56.18301240027894,
+          "incremental_lower_familywise_usdt": -141.35330552978752
+        },
+        "cci_m30_chop_h6|personal|cost1|ETHUSDT": {
+          "net_lower_5pct_usdt": -178.98816047398046,
+          "net_lower_familywise_usdt": -274.5711256393594,
+          "incremental_lower_5pct_usdt": -246.8643251313278,
+          "incremental_lower_familywise_usdt": -469.48054055244194
+        },
+        "cci_m30_chop_h6|personal|cost1|PORTFOLIO": {
+          "net_lower_5pct_usdt": -75.71505734269279,
+          "net_lower_familywise_usdt": -287.0365313648973,
+          "incremental_lower_5pct_usdt": -83.39042012308906,
+          "incremental_lower_familywise_usdt": -390.1523863588137
+        },
+        "cci_m30_chop_h6|personal|cost2|BTCUSDT": {
+          "net_lower_5pct_usdt": -18.438539510211807,
+          "net_lower_familywise_usdt": -171.74985835885266,
+          "incremental_lower_5pct_usdt": 11.801905797283402,
+          "incremental_lower_familywise_usdt": -149.14178003620003
+        },
+        "cci_m30_chop_h6|personal|cost2|ETHUSDT": {
+          "net_lower_5pct_usdt": -190.07758924467942,
+          "net_lower_familywise_usdt": -284.7341372575487,
+          "incremental_lower_5pct_usdt": -196.3232880522458,
+          "incremental_lower_familywise_usdt": -357.02980508170936
+        },
+        "cci_m30_chop_h6|personal|cost2|PORTFOLIO": {
+          "net_lower_5pct_usdt": -149.6722805109569,
+          "net_lower_familywise_usdt": -326.3670317365105,
+          "incremental_lower_5pct_usdt": -103.61048498152532,
+          "incremental_lower_familywise_usdt": -337.1358434999197
+        }
+      }
+    },
+    "previously_viewed_2025_2026": {
+      "day": {
+        "cci_m30_chop_h6|personal|cost1|BTCUSDT": {
+          "net_lower_5pct_usdt": -61.50698010372837,
+          "net_lower_familywise_usdt": -111.57065336604042,
+          "incremental_lower_5pct_usdt": -81.10703473512113,
+          "incremental_lower_familywise_usdt": -219.86779459143665
+        },
+        "cci_m30_chop_h6|personal|cost1|ETHUSDT": {
+          "net_lower_5pct_usdt": -101.40519162293774,
+          "net_lower_familywise_usdt": -183.1871680486142,
+          "incremental_lower_5pct_usdt": -91.57744929754061,
+          "incremental_lower_familywise_usdt": -180.53415047323685
+        },
+        "cci_m30_chop_h6|personal|cost1|PORTFOLIO": {
+          "net_lower_5pct_usdt": -133.11839709351938,
+          "net_lower_familywise_usdt": -227.94203488975313,
+          "incremental_lower_5pct_usdt": -118.28324492067003,
+          "incremental_lower_familywise_usdt": -280.9864863092281
+        },
+        "cci_m30_chop_h6|personal|cost2|BTCUSDT": {
+          "net_lower_5pct_usdt": -74.86623848845,
+          "net_lower_familywise_usdt": -125.23586586333438,
+          "incremental_lower_5pct_usdt": -57.713738200682776,
+          "incremental_lower_familywise_usdt": -171.841286748036
+        },
+        "cci_m30_chop_h6|personal|cost2|ETHUSDT": {
+          "net_lower_5pct_usdt": -98.60220469021809,
+          "net_lower_familywise_usdt": -175.8972909068594,
+          "incremental_lower_5pct_usdt": -90.0996316642415,
+          "incremental_lower_familywise_usdt": -167.38881831012299
+        },
+        "cci_m30_chop_h6|personal|cost2|PORTFOLIO": {
+          "net_lower_5pct_usdt": -145.54432230600372,
+          "net_lower_familywise_usdt": -229.756058031351,
+          "incremental_lower_5pct_usdt": -98.87464343307047,
+          "incremental_lower_familywise_usdt": -238.209541331522
+        }
+      },
+      "week": {
+        "cci_m30_chop_h6|personal|cost1|BTCUSDT": {
+          "net_lower_5pct_usdt": -54.883888677138934,
+          "net_lower_familywise_usdt": -97.81347475546136,
+          "incremental_lower_5pct_usdt": -59.840668002536816,
+          "incremental_lower_familywise_usdt": -142.07844660916786
+        },
+        "cci_m30_chop_h6|personal|cost1|ETHUSDT": {
+          "net_lower_5pct_usdt": -96.84853320980788,
+          "net_lower_familywise_usdt": -174.80148533038263,
+          "incremental_lower_5pct_usdt": -83.87358519089065,
+          "incremental_lower_familywise_usdt": -161.67922796538957
+        },
+        "cci_m30_chop_h6|personal|cost1|PORTFOLIO": {
+          "net_lower_5pct_usdt": -132.15161654546446,
+          "net_lower_familywise_usdt": -223.17175259103632,
+          "incremental_lower_5pct_usdt": -110.27946741746501,
+          "incremental_lower_familywise_usdt": -235.95585321013922
+        },
+        "cci_m30_chop_h6|personal|cost2|BTCUSDT": {
+          "net_lower_5pct_usdt": -70.8535825575786,
+          "net_lower_familywise_usdt": -115.76198113315439,
+          "incremental_lower_5pct_usdt": -39.50248938248768,
+          "incremental_lower_familywise_usdt": -105.58635168426899
+        },
+        "cci_m30_chop_h6|personal|cost2|ETHUSDT": {
+          "net_lower_5pct_usdt": -94.27680880445678,
+          "net_lower_familywise_usdt": -165.3998183562036,
+          "incremental_lower_5pct_usdt": -82.48113590734734,
+          "incremental_lower_familywise_usdt": -155.19614824209222
+        },
+        "cci_m30_chop_h6|personal|cost2|PORTFOLIO": {
+          "net_lower_5pct_usdt": -141.849899734159,
+          "net_lower_familywise_usdt": -223.46545201379095,
+          "incremental_lower_5pct_usdt": -90.89183096549209,
+          "incremental_lower_familywise_usdt": -201.95779898841235
+        }
+      }
+    }
+  }
+}
