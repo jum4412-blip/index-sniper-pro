@@ -1,0 +1,46 @@
+test_drawdown_blocks_increase (test_core.CapitalTests.test_drawdown_blocks_increase) ... ok
+test_green_increase_capped (test_core.CapitalTests.test_green_increase_capped) ... ok
+test_incident_blocks_increase (test_core.CapitalTests.test_incident_blocks_increase) ... ok
+test_no_green_no_increase (test_core.CapitalTests.test_no_green_no_increase) ... ok
+test_project_reserve_constraint (test_core.CapitalTests.test_project_reserve_constraint) ... ok
+test_deposit_is_not_profit (test_core.LedgerTests.test_deposit_is_not_profit) ... ok
+test_duplicate_event_noop (test_core.LedgerTests.test_duplicate_event_noop) ... ok
+test_flow_needs_prevaluation (test_core.LedgerTests.test_flow_needs_prevaluation) ... ok
+test_flow_prevaluation_captures_prior_profit (test_core.LedgerTests.test_flow_prevaluation_captures_prior_profit) ... ok
+test_full_withdrawal_requires_explicit_closure (test_core.LedgerTests.test_full_withdrawal_requires_explicit_closure) ... ok
+test_id_conflict_rejected (test_core.LedgerTests.test_id_conflict_rejected) ... ok
+test_infinite_equity_rejected (test_core.LedgerTests.test_infinite_equity_rejected) ... ok
+test_no_init_reset (test_core.LedgerTests.test_no_init_reset) ... ok
+test_out_of_order_rejected (test_core.LedgerTests.test_out_of_order_rejected) ... ok
+test_timezone_required (test_core.LedgerTests.test_timezone_required) ... ok
+test_unitized_return_after_deposit_and_gain (test_core.LedgerTests.test_unitized_return_after_deposit_and_gain) ... ok
+test_withdrawal_not_loss (test_core.LedgerTests.test_withdrawal_not_loss) ... ok
+test_zero_equity_records_total_loss (test_core.LedgerTests.test_zero_equity_records_total_loss) ... ok
+test_below_minimum_not_rounded_up (test_core.RiskTests.test_below_minimum_not_rounded_up) ... ok
+test_daily_pause (test_core.RiskTests.test_daily_pause) ... ok
+test_gross_limit (test_core.RiskTests.test_gross_limit) ... ok
+test_half_risk (test_core.RiskTests.test_half_risk) ... ok
+test_hard_drawdown (test_core.RiskTests.test_hard_drawdown) ... ok
+test_losses_shrink_basis_immediately (test_core.RiskTests.test_losses_shrink_basis_immediately) ... ok
+test_micro_calculation (test_core.RiskTests.test_micro_calculation) ... ok
+test_missing_cost_fails (test_core.RiskTests.test_missing_cost_fails) ... ok
+test_missing_protection_blocks (test_core.RiskTests.test_missing_protection_blocks) ... ok
+test_nan_fails (test_core.RiskTests.test_nan_fails) ... ok
+test_no_automatic_size_increase_from_profit (test_core.RiskTests.test_no_automatic_size_increase_from_profit) ... ok
+test_observe_cannot_propose_trade (test_core.RiskTests.test_observe_cannot_propose_trade) ... ok
+test_pending_risk_counts (test_core.RiskTests.test_pending_risk_counts) ... ok
+test_position_limit (test_core.RiskTests.test_position_limit) ... ok
+test_rounding_grid_risk_invariant (test_core.RiskTests.test_rounding_grid_risk_invariant) ... ok
+test_same_symbol_no_pyramiding (test_core.RiskTests.test_same_symbol_no_pyramiding) ... ok
+test_short (test_core.RiskTests.test_short) ... ok
+test_stale_data_blocks (test_core.RiskTests.test_stale_data_blocks) ... ok
+test_standard_calculation (test_core.RiskTests.test_standard_calculation) ... ok
+test_unknown_available_margin (test_core.RiskTests.test_unknown_available_margin) ... ok
+test_unreconciled_default_blocks (test_core.RiskTests.test_unreconciled_default_blocks) ... ok
+test_weekly_pause (test_core.RiskTests.test_weekly_pause) ... ok
+test_wrong_side_stop (test_core.RiskTests.test_wrong_side_stop) ... ok
+
+----------------------------------------------------------------------
+Ran 41 tests in 0.005s
+
+OK

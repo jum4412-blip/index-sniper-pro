@@ -1,0 +1,19 @@
+# Managed by LAB1030 public observer v1
+[Unit]
+Description=LAB1030 same-instance SQLite snapshots (not offsite backup)
+
+[Service]
+Type=oneshot
+User=@@USER@@
+WorkingDirectory=@@ROOT@@/current
+ExecStart=@@ROOT@@/venv/bin/python -B -u @@ROOT@@/current/observer.py backup --root @@ROOT@@
+TimeoutStartSec=180
+UMask=0077
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=read-only
+ReadWritePaths=@@ROOT@@/shared
+Nice=15
+StandardOutput=journal
+StandardError=journal

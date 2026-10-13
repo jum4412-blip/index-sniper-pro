@@ -1,0 +1,12 @@
+# Managed by LAB1030 public observer v1
+[Unit]
+Description=LAB1030 daily local backup at approximately 03:10 Asia/Seoul
+
+[Timer]
+OnCalendar=*-*-* 03:10:00 Asia/Seoul
+RandomizedDelaySec=300
+Persistent=true
+Unit=lab1030-backup.service
+
+[Install]
+WantedBy=timers.target

@@ -1,0 +1,72 @@
+{
+  "IMPORTANT": "가상 숫자로 계산만 합니다. 실매매·시장 접속·API 연동 없음.",
+  "micro_example": {
+    "status": "SIZE_PROPOSAL_ONLY",
+    "stage": "micro",
+    "symbol": "BTCUSDT",
+    "side": "long",
+    "risk_basis_usdt": "700",
+    "quantity": "0.0012",
+    "notional_usdt": "96.0000",
+    "estimated_initial_margin_usdt": "19.2000",
+    "planned_loss_allowance_usdt": "1.6320000",
+    "risk_budget_usdt": "1.7500",
+    "structural_stop_distance_fraction": "0.015",
+    "supplied_cost_fraction": "0.002",
+    "binding_limit": "risk",
+    "risk_multiplier": "1",
+    "live_order_submission": "NOT_IMPLEMENTED",
+    "warning": "Actual loss may exceed the allowance; this is not an order authorization."
+  },
+  "standard_example": {
+    "status": "SIZE_PROPOSAL_ONLY",
+    "stage": "standard",
+    "symbol": "BTCUSDT",
+    "side": "long",
+    "risk_basis_usdt": "700",
+    "quantity": "0.0025",
+    "notional_usdt": "200.0000",
+    "estimated_initial_margin_usdt": "40.0000",
+    "planned_loss_allowance_usdt": "3.4000000",
+    "risk_budget_usdt": "3.500",
+    "structural_stop_distance_fraction": "0.015",
+    "supplied_cost_fraction": "0.002",
+    "binding_limit": "risk",
+    "risk_multiplier": "1",
+    "live_order_submission": "NOT_IMPLEMENTED",
+    "warning": "Actual loss may exceed the allowance; this is not an order authorization."
+  },
+  "before_deposit": {
+    "status": "OFFLINE_LEDGER",
+    "as_of_utc": "2026-10-14T00:00:00.000000+00:00",
+    "equity_usdt": "630",
+    "units": "700",
+    "nav": "0.9",
+    "flow_neutral_return_fraction": "-0.1",
+    "drawdown_fraction": "0.1",
+    "peak_nav": "1",
+    "net_contributions_usdt": "700",
+    "trading_pnl_usdt": "-70",
+    "external_operating_costs": "NOT_INCLUDED",
+    "event_count": "2"
+  },
+  "after_deposit": {
+    "status": "OFFLINE_LEDGER",
+    "as_of_utc": "2026-10-15T00:00:00.000000+00:00",
+    "equity_usdt": "830",
+    "units": "922.2222222222222222222222222",
+    "nav": "0.9",
+    "flow_neutral_return_fraction": "-0.1",
+    "drawdown_fraction": "0.1",
+    "peak_nav": "1",
+    "net_contributions_usdt": "900",
+    "trading_pnl_usdt": "-70",
+    "external_operating_costs": "NOT_INCLUDED",
+    "event_count": "3"
+  },
+  "capital_review_example": {
+    "status": "HUMAN_REVIEW_REQUIRED",
+    "proposed_ceiling_usdt": "770.00",
+    "automatic_transfer": "NOT_IMPLEMENTED"
+  }
+}

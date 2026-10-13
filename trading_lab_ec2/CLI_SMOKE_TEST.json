@@ -1,0 +1,50 @@
+{
+  "context": "Local synthetic runtime only. No systemd installation, no account/API test.",
+  "results": [
+    {
+      "command": [
+        "doctor",
+        "--offline"
+      ],
+      "exit": 0,
+      "expected": 0
+    },
+    {
+      "command": [
+        "status"
+      ],
+      "exit": 2,
+      "expected": 2
+    },
+    {
+      "command": [
+        "demo"
+      ],
+      "exit": 0,
+      "expected": 0
+    },
+    {
+      "command": [
+        "ledger",
+        "report"
+      ],
+      "exit": 2,
+      "expected": 2
+    },
+    {
+      "command": [
+        "backup"
+      ],
+      "exit": 0,
+      "expected": 0
+    },
+    {
+      "command": [
+        "paths"
+      ],
+      "exit": 0,
+      "expected": 0
+    }
+  ],
+  "no_fake_nav_database_created": true
+}

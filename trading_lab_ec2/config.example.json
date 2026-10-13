@@ -1,0 +1,14 @@
+{
+  "schema_version": 1,
+  "mode": "OBSERVE_ONLY",
+  "symbols": ["BTCUSDT", "ETHUSDT"],
+  "intervals": ["5m", "1H", "4H", "1D"],
+  "poll_seconds": 60,
+  "http_timeout_seconds": 10,
+  "candle_limit": 200,
+  "close_grace_ms": 5000,
+  "clock_skew_limit_ms": 120000,
+  "min_free_mb": 512,
+  "quote_retention_days": 30,
+  "stale_seconds": 300
+}
