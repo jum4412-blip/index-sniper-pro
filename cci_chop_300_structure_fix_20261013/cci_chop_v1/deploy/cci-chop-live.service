@@ -1,0 +1,21 @@
+[Unit]
+Description=BTC ETH CCI CHOP user-directed experimental live manager
+Wants=network-online.target
+After=network-online.target
+
+[Service]
+Type=simple
+User=ubuntu
+WorkingDirectory=/home/ubuntu/btc_eth_probability_v1_git
+ExecStart=/home/ubuntu/btc_eth_probability_v1_git/cc run --mode live
+Restart=on-failure
+RestartSec=30
+KillSignal=SIGTERM
+TimeoutStopSec=45
+UMask=0077
+NoNewPrivileges=true
+PrivateTmp=true
+Environment=PYTHONUNBUFFERED=1
+
+[Install]
+WantedBy=multi-user.target
